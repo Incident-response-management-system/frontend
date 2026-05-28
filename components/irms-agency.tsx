@@ -51,7 +51,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
               <IRMSMark size={28} />
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                 <IRMSMark size={24} />
                 <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.01em' }}>IRMS</span>

@@ -93,7 +93,7 @@ graph TD
 To translate the HTML prototype into a production MERN/Next.js system, we will employ a clean, modular structure.
 
 ### 4.1 Technology Decisions
-- **Frontend Framework:** Next.js 15 (App Router) for hybrid static/dynamic generation, SEO optimizations, and robust API endpoints (Server Actions).
+- **Frontend Framework:** Next.js 16 (App Router) for hybrid static/dynamic generation, SEO optimizations, and robust API endpoints (Server Actions).
 - **Component System:** Radix UI primitives styled with TailwindCSS via `shadcn/ui` to guarantee professional, accessibility-compliant components (sheets, dialogs, dropdowns).
 - **Backend/API:** Node.js with Express (or Next.js Serverless Routes) providing robust middleware, token-based JWT authentication, and request rate-limiting.
 - **Real-Time Layer:** WebSockets (via Socket.io or Pusher) for instant, low-latency dispatcher dashboard updates when a citizen files a report.
@@ -174,7 +174,7 @@ To transform this system into a world-class platform, we specify the following h
 ## 7. Phased Implementation Roadmap
 
 ### Phase 1: MERN/Next.js Core Setup (1-2 Weeks)
-- Scaffold Next.js 15 application structure.
+- Scaffold Next.js 16 application structure.
 - Configure tailwind CSS and `shadcn/ui` theme variables utilizing the high-end custom palette: **Warm Cream** (`#F4F2EC`), **Deep Ink** (`#14130D`), **Dashboard Paper** (`#FFFFFF` / `#F5F4EF`), and status HSL tones.
 - Setup Prisma / MongoDB schemas for Incident, Agency, User, and ActivityLog.
 
