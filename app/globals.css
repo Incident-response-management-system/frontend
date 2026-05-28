@@ -1,8 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Warm cream + deep ink — civic, calm, professional */
+  --brand-cream: #F4F2EC;
+  --brand-ink: #14130D;
+  --brand-white: #FFFFFF;
+  --brand-surface-alt: #FAF8F2;
+  --brand-hairline: #E7E4DA;
+  --brand-divider: #D2CEC1;
+  --brand-muted: #6D6A5E;
+  
+  /* Status Colors */
+  --status-red: #C8463C;
+  --status-red-bg: rgba(200, 70, 60, 0.08);
+  --status-red-bd: rgba(200, 70, 60, 0.28);
+  
+  --status-amber: #B97A2A;
+  --status-amber-bg: rgba(185, 122, 42, 0.10);
+  --status-amber-bd: rgba(185, 122, 42, 0.30);
+  
+  --status-blue: #3B6FB8;
+  --status-blue-bg: rgba(59, 111, 184, 0.10);
+  --status-blue-bd: rgba(59, 111, 184, 0.30);
+  
+  --status-green: #3E8657;
+  --status-green-bg: rgba(62, 134, 87, 0.10);
+  --status-green-bd: rgba(62, 134, 87, 0.30);
+
+  --background: var(--brand-cream);
+  --foreground: var(--brand-ink);
 }
 
 @theme inline {
@@ -10,17 +36,35 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  /* Brand Theme Customizations */
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-white: var(--brand-white);
+  --color-brand-surface-alt: var(--brand-surface-alt);
+  --color-brand-hairline: var(--brand-hairline);
+  --color-brand-divider: var(--brand-divider);
+  --color-brand-muted: var(--brand-muted);
+  
+  --color-status-red: var(--status-red);
+  --color-status-red-bg: var(--status-red-bg);
+  --color-status-red-bd: var(--status-red-bd);
+  
+  --color-status-amber: var(--status-amber);
+  --color-status-amber-bg: var(--status-amber-bg);
+  --color-status-amber-bd: var(--status-amber-bd);
+  
+  --color-status-blue: var(--status-blue);
+  --color-status-blue-bg: var(--status-blue-bg);
+  --color-status-blue-bd: var(--status-blue-bd);
+  
+  --color-status-green: var(--status-green);
+  --color-status-green-bg: var(--status-green-bg);
+  --color-status-green-bd: var(--status-green-bd);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
