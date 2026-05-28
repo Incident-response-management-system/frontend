@@ -1,10 +1,10 @@
 # Project Implementation Tasks: IRMS Next.js App
 
-This document outlines the division of implementation tasks between **Developer 1 (SAMKIEL - Lead)** and **Tobi (Co-Developer)** for the Next.js frontend (integrating with a remote backend URL).
+This document outlines the division of implementation tasks between **SAMKIEL** and **Tobi (Co-Developer)** for the Next.js frontend (integrating with a remote backend URL).
 
 ---
 
-## 👤 Developer 1 (SAMKIEL) — Lead & Core Operations
+## 👤 SAMKIEL — Core Operations (More agency features)
 
 ### Phase 1: Architecture & Foundations
 - `[ ]` Scaffold Next.js 15 application structure (pages, components, styles, middleware).
@@ -29,7 +29,7 @@ This document outlines the division of implementation tasks between **Developer 
 
 ---
 
-## 👤 Tobi — Public Portal, Forms & Caching
+## 👤 Tobi — Public Portal, Forms & Caching (More citizen features)
 
 ### Phase 1: Auth Shells & Signin/Signup
 - `[ ]` Build visual two-tone layout shells (`AuthShell`, `CitizenAuthShell`).
