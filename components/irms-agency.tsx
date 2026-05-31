@@ -362,14 +362,32 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
 export function MapTab({ onViewIncident }: { onViewIncident: (inc: Incident) => void }) {
   const mapRef = React.useRef<HTMLDivElement>(null);
   const mapInstance = React.useRef<any>(null);
+  const tileLayerRef = React.useRef<any>(null);
+  const gpsMarkerRef = React.useRef<any>(null);
+  const gpsCircleRef = React.useRef<any>(null);
+
+  const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searching, setSearching] = React.useState(false);
 
   React.useEffect(() => {
     if (!mapRef.current || mapInstance.current || !L) return;
     const map = L.map(mapRef.current, { zoomControl: false }).setView([6.8912, 3.1720], 14);
     L.control.zoom({ position: 'topright' }).addTo(map);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap, © CARTO', subdomains: 'abcd', maxZoom: 19,
+
+    const initialTileUrl = layerType === 'satellite'
+      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    const initialAttr = layerType === 'satellite'
+      ? 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS'
+      : '© OpenStreetMap, © CARTO';
+
+    const tileLayer = L.tileLayer(initialTileUrl, {
+      attribution: initialAttr,
+      maxZoom: 22,
+      maxNativeZoom: layerType === 'satellite' ? 18 : 19,
     }).addTo(map);
+    tileLayerRef.current = tileLayer;
 
     SAMPLE_INCIDENTS.forEach(inc => {
       const icon = L.divIcon({
@@ -383,6 +401,108 @@ export function MapTab({ onViewIncident }: { onViewIncident: (inc: Incident) => 
     mapInstance.current = map;
     return () => { map.remove(); mapInstance.current = null; };
   }, []);
+
+  // Update map layer dynamically
+  React.useEffect(() => {
+    if (!mapInstance.current || !L || !tileLayerRef.current) return;
+    const map = mapInstance.current;
+    tileLayerRef.current.remove();
+
+    const tileUrl = layerType === 'satellite'
+      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    const attr = layerType === 'satellite'
+      ? 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS'
+      : '© OpenStreetMap, © CARTO';
+
+    const tileLayer = L.tileLayer(tileUrl, {
+      attribution: attr,
+      maxZoom: 22,
+      maxNativeZoom: layerType === 'satellite' ? 18 : 19,
+    }).addTo(map);
+    tileLayerRef.current = tileLayer;
+  }, [layerType]);
+
+  const locateUser = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    toast.loading('Locating your position...', { id: 'locate-toast' });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        toast.dismiss('locate-toast');
+        toast.success('Location detected successfully!');
+
+        if (!mapInstance.current || !L) return;
+        const map = mapInstance.current;
+
+        map.setView([latitude, longitude], 15);
+
+        if (gpsMarkerRef.current) gpsMarkerRef.current.remove();
+        if (gpsCircleRef.current) gpsCircleRef.current.remove();
+
+        gpsCircleRef.current = L.circle([latitude, longitude], {
+          radius: accuracy || 50,
+          color: 'var(--status-blue)',
+          fillColor: 'var(--status-blue)',
+          fillOpacity: 0.15,
+          weight: 1.5,
+        }).addTo(map);
+
+        const gpsIcon = L.divIcon({
+          html: `<div class="irms-marker assigned" style="border-color: white; background: var(--status-blue); width: 22px; height: 22px;"><div class="pulse" style="color: var(--status-blue);"></div></div>`,
+          className: '',
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        });
+        gpsMarkerRef.current = L.marker([latitude, longitude], { icon: gpsIcon }).addTo(map);
+      },
+      (error) => {
+        toast.dismiss('locate-toast');
+        toast.error(`Unable to retrieve location: ${error.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    const toastId = toast.loading(`Searching for "${searchQuery}"...`);
+
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const { lat, lon, display_name } = data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+
+        toast.dismiss(toastId);
+        toast.success(`Found: ${display_name.split(',')[0]}`);
+
+        if (!mapInstance.current || !L) return;
+        const map = mapInstance.current;
+
+        map.setView([latitude, longitude], 15);
+      } else {
+        toast.dismiss(toastId);
+        toast.error('Location not found.');
+      }
+    } catch (err) {
+      toast.dismiss(toastId);
+      toast.error('Search service currently unavailable.');
+    } finally {
+      setSearching(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -408,9 +528,66 @@ export function MapTab({ onViewIncident }: { onViewIncident: (inc: Incident) => 
       {/* Map */}
       <div style={{ flex: 1, position: 'relative' }}>
         <div ref={mapRef} style={{ position: 'absolute', inset: 0 }} />
-        {/* Legend */}
+
+        {/* Floating Geosearch Bar */}
+        <form onSubmit={handleSearch} className="irms-map-search-container" style={{
+          position: 'absolute', top: 20, right: 20, zIndex: 1000,
+          width: 300, maxWidth: 'calc(100vw - 40px)'
+        }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search for an address..."
+            className="irms-map-search-input"
+            disabled={searching}
+          />
+          <button type="submit" className="irms-map-search-btn" disabled={searching}>
+            <Icon.search style={{ width: 16, height: 16 }} />
+          </button>
+        </form>
+
+        {/* Floating Map Actions (Layers Control & Geolocation Target) */}
         <div style={{
-          position: 'absolute', bottom: 20, right: 20, zIndex: 500,
+          position: 'absolute', bottom: 20, right: 20, zIndex: 1000,
+          display: 'flex', flexDirection: 'column', gap: 10
+        }}>
+          {/* Layer toggle button */}
+          <button
+            onClick={() => setLayerType(l => l === 'satellite' ? 'streets' : 'satellite')}
+            className="irms-map-control-btn"
+            title="Toggle map layers"
+            type="button"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </button>
+
+          {/* Geolocation button */}
+          <button
+            onClick={locateUser}
+            className="irms-map-control-btn"
+            title="Locate my position"
+            type="button"
+            style={{ background: 'var(--status-blue)', color: 'white', borderColor: 'var(--status-blue-bd)' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="3"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Legend - positioned bottom-left to prevent overlap with controls */}
+        <div style={{
+          position: 'absolute', bottom: 20, left: 20, zIndex: 500,
           background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: '14px 16px',
           boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
         }}>
