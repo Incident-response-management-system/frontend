@@ -238,7 +238,7 @@ export function InkButton({ children, onClick, full, size = 'md', style }: Butto
 
 export function GhostButton({ children, onClick, theme = 'dark', size = 'md', style }: ButtonProps & { theme?: 'light' | 'dark' }) {
   const isLight = theme === 'light';
-  const sizes = { sm: { p: '7px 12px', fs: 13 }, md: { p: '10px 16px', fs: 14 } };
+  const sizes = { sm: { p: '7px 12px', fs: 13 }, md: { p: '10px 16px', fs: 14 }, lg: { p: '13px 20px', fs: 15 } };
   const s = sizes[size];
   return (
     <button onClick={onClick} style={{
