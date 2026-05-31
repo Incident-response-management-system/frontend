@@ -162,7 +162,15 @@ export function CitizenLoginScreen({ navigate, onAuth }: CitizenAuthProps) {
   );
 }
 
-function DarkInput({ label, type = 'text', value, onChange, placeholder }: any) {
+interface DarkInputProps {
+  label: string;
+  type?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+}
+
+function DarkInput({ label, type = 'text', value, onChange, placeholder }: DarkInputProps) {
   const [show, setShow] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
   const isPassword = type === 'password';
@@ -206,7 +214,13 @@ const MY_REPORTS: Incident[] = [
   { ref: 'INC-2026-00097', type: 'civil', location: 'Camp Gate 2', status: 'resolved', reportedAt: '02 May · 21:05', desc: 'Disorderly crowd near vehicle screening.', media: 0, assignedTo: 'RCCG Camp Security', lat: 6.8954, lng: 3.1745, reported: '26 days ago' },
 ];
 
-export function MyReportsScreen({ navigate, user, onSignOut }: any) {
+interface MyReportsScreenProps {
+  navigate: (to: string) => void;
+  user: { name: string; email: string; phone?: string } | null;
+  onSignOut: () => void;
+}
+
+export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenProps) {
   const [tab, setTab] = React.useState('all');
   const [selected, setSelected] = React.useState<Incident | null>(null);
   const [profileOpen, setProfileOpen] = React.useState(false);
@@ -328,7 +342,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: any) {
         </div>
 
         {/* Report list */}
-        <div style={{ background: 'var(--brand-white)', borderRadius: 0, border: '1px solid var(--brand-hairline)', borderTop: 'none', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderTop: 'none', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
           {filtered.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--brand-muted)' }}>
               <div style={{ fontSize: 14, marginBottom: 16 }}>No {tab === 'all' ? '' : tab} reports yet.</div>
