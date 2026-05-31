@@ -13,13 +13,13 @@ This document outlines the division of implementation tasks between **SAMKIEL** 
 - `[ ]` Secure agency routing using Next.js Middleware.
 
 ### Phase 2: Core Map Component & Pin Drop Hook
-- `[ ]` Implement base Map component using Leaflet or Mapbox GL.
-- `[ ]` Construct dynamic incident map marker graphics based on status state rules.
-- `[ ]` Implement standard map interaction event boundaries (drag, center-on-GPS, click-to-place-pin).
+- `[x]` Implement base Map component using Leaflet.
+- `[x]` Construct dynamic incident map marker graphics based on status state rules.
+- `[x]` Implement standard map interaction event boundaries (click-to-place-pin, dynamic custom HTML markers).
 
 ### Phase 3: Agency Operations Dashboard
 - `[ ]` **Overview Tab:** Setup stats strip with daily Comparative Deltas and Bezier sparkline charts.
-- `[ ]` **Map Tab:** Build dispatcher map view to visualize all live coordinate markers within their radius.
+- `[x]` **Map Tab:** Build dispatcher map view to visualize all live coordinate markers within their radius.
 - `[ ]` **Reports Tab:** Set up the global operations queue with search, pagination, and multi-field filters.
 - `[ ]` **Incident Detail Panel:** Design the sliding case assessment side-drawer, assignee routes, and status dropdowns.
 
@@ -38,7 +38,7 @@ This document outlines the division of implementation tasks between **SAMKIEL** 
 - `[ ]` Build HTTP auth interceptors to inject Bearer tokens for all protected requests.
 
 ### Phase 2: Citizen Incident Report Flow
-- `[ ]` Build reporting bottom sheet layout centering on custom Map coordinates.
+- `[x]` Build reporting bottom sheet layout centering on custom Map coordinates.
 - `[ ]` Build the interactive Incident Type Selector Grid.
 - `[ ]` Implement description rich textareas and dynamic file upload inputs with attachment previews.
 - `[ ]` Create the success screen displaying reference tracking codes and clipboard actions.
@@ -56,6 +56,6 @@ This document outlines the division of implementation tasks between **SAMKIEL** 
 
 ## 🤝 Integration Checklist (Shared Work)
 
-- `[ ]` Align coordinate payload structure between the Map pin-drop event and the report submission form.
+- `[x]` Align coordinate payload structure between the Map pin-drop event and the report submission form.
 - `[ ]` Connect dispatcher status-update actions to citizen stepper progress timeline triggers.
 - `[ ]` Perform joint end-to-end user-flow validation testing citizen-to-dispatcher.

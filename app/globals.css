@@ -68,3 +68,135 @@ body {
   color: var(--foreground);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
+
+/* Custom Leaflet map markers styling */
+.irms-marker {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 3px 10px rgba(40, 35, 20, 0.25), 0 0 0 1px rgba(40, 35, 20, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.irms-marker:hover {
+  transform: scale(1.15);
+}
+
+.irms-marker.received {
+  background: var(--status-red);
+}
+
+.irms-marker.review {
+  background: var(--status-amber);
+}
+
+.irms-marker.assigned {
+  background: var(--status-blue);
+}
+
+.irms-marker.resolved {
+  background: var(--status-green);
+}
+
+.pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: pulse 2s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 0.6;
+  }
+  100% {
+    box-shadow: 0 0 0 18px transparent;
+    opacity: 0;
+  }
+}
+
+/* Leaflet container overrides */
+.leaflet-container {
+  background: var(--brand-surface-alt) !important;
+  font-family: var(--font-sans);
+  outline: none;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: var(--brand-muted) !important;
+  font-size: 10px !important;
+  border: 1px solid var(--brand-hairline) !important;
+}
+
+.leaflet-control-zoom a {
+  background: white !important;
+  color: var(--brand-ink) !important;
+  border-color: var(--brand-hairline) !important;
+}
+
+/* Floating UI Controls on Map */
+.irms-map-control-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid var(--brand-divider);
+  color: var(--brand-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(40, 35, 20, 0.12);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.irms-map-control-btn:hover {
+  transform: scale(1.05);
+  background: var(--brand-cream);
+  border-color: var(--brand-muted);
+}
+
+.irms-map-search-container {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid var(--brand-divider);
+  border-radius: 10px;
+  padding: 2px 10px;
+  box-shadow: 0 8px 32px rgba(40, 35, 20, 0.15);
+  font-family: var(--font-sans);
+}
+
+.irms-map-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13.5px;
+  color: var(--brand-ink);
+  padding: 8px 4px;
+  background: transparent;
+}
+
+.irms-map-search-btn {
+  background: none;
+  border: none;
+  color: var(--brand-muted);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.irms-map-search-btn:hover {
+  color: var(--brand-ink);
+}
+
+
