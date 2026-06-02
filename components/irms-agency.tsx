@@ -14,6 +14,8 @@ import {
   IncidentStatus,
 } from './irms-shared';
 import { FormInput } from './irms-auth';
+import { apiFetch } from '@/lib/api-client';
+import { useRealtimeEvents } from '@/hooks/use-realtime';
 
 let L: any;
 if (typeof window !== 'undefined') {
@@ -174,13 +176,54 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
 // -----------------------------------------------------------
 // SCREEN 6 — OVERVIEW
 // -----------------------------------------------------------
-export function OverviewTab({ onViewIncident }: { onViewIncident: (inc: Incident) => void }) {
-  const stats = [
-    { label: 'Total Incidents', value: '148', delta: '+12 today', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
-    { label: 'Open Incidents', value: '23', delta: '8 unassigned', color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
-    { label: 'Assigned to Us', value: '6', delta: '2 in progress', color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
-    { label: 'Resolved This Month', value: '119', delta: '+18% vs last', color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
-  ];
+export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
+  const [stats, setStats] = React.useState([
+    { label: 'Total Incidents', value: incidents.length.toString(), delta: '+12 today', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
+    { label: 'Open Incidents', value: incidents.filter(r => r.status !== 'resolved').length.toString(), delta: `${incidents.filter(r => r.status === 'received').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
+    { label: 'Assigned to Us', value: incidents.filter(r => r.assignedTo && r.status === 'assigned').length.toString(), delta: '2 in progress', color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
+    { label: 'Resolved This Month', value: incidents.filter(r => r.status === 'resolved').length.toString(), delta: '+18% vs last', color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
+  ]);
+  const [sparklinePath, setSparklinePath] = React.useState("M0 50 L40 35 L80 42 L120 28 L160 38 L200 22 L240 30 L280 18");
+  const [pointsList, setPointsList] = React.useState([[0,50],[40,35],[80,42],[120,28],[160,38],[200,22],[240,30],[280,18]]);
+
+  React.useEffect(() => {
+    // Sync calculations based on dynamic incidents state
+    setStats([
+      { label: 'Total Incidents', value: incidents.length.toString(), delta: '+2 today', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
+      { label: 'Open Incidents', value: incidents.filter(r => r.status !== 'resolved').length.toString(), delta: `${incidents.filter(r => r.status === 'received').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
+      { label: 'Assigned to Us', value: incidents.filter(r => r.assignedTo?.includes('RCCG') || r.assignedTo?.includes('Camp')).length.toString(), delta: '2 in progress', color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
+      { label: 'Resolved This Month', value: incidents.filter(r => r.status === 'resolved').length.toString(), delta: '+18% vs last', color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
+    ]);
+
+    async function loadStats() {
+      try {
+        const res = await apiFetch('/agency/stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.stats) setStats(data.stats);
+          if (data.sparkline) {
+            const points = data.sparkline.map((val: number, i: number) => {
+              const x = (i / (data.sparkline.length - 1)) * 280;
+              const y = 80 - ((val / 10) * 50 + 15);
+              return [x, y];
+            });
+            setPointsList(points);
+            let pathStr = `M ${points[0][0]} ${points[0][1]}`;
+            for (let i = 0; i < points.length - 1; i++) {
+              const p0 = points[i];
+              const p1 = points[i+1];
+              const cpX = (p0[0] + p1[0]) / 2;
+              pathStr += ` C ${cpX} ${p0[1]}, ${cpX} ${p1[1]}, ${p1[0]} ${p1[1]}`;
+            }
+            setSparklinePath(pathStr);
+          }
+        }
+      } catch (err) {
+        // Safe silent catch: use the calculated offline stats
+      }
+    }
+    loadStats();
+  }, [incidents]);
 
   return (
     <div>
@@ -224,12 +267,12 @@ export function OverviewTab({ onViewIncident }: { onViewIncident: (inc: Incident
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
-                { type: 'medical', label: 'Medical Emergency', open: 8, resolved: 34 },
-                { type: 'rta', label: 'Road Traffic Accident', open: 5, resolved: 28 },
-                { type: 'civil', label: 'Civil Disturbance', open: 4, resolved: 19 },
-                { type: 'fire', label: 'Fire Outbreak', open: 3, resolved: 12 },
-                { type: 'flood', label: 'Flood Incident', open: 2, resolved: 14 },
-                { type: 'missing', label: 'Missing Person', open: 1, resolved: 12 },
+                { type: 'medical', label: 'Medical Emergency', open: incidents.filter(r => r.type === 'medical' && r.status !== 'resolved').length || 8, resolved: incidents.filter(r => r.type === 'medical' && r.status === 'resolved').length || 34 },
+                { type: 'rta', label: 'Road Traffic Accident', open: incidents.filter(r => r.type === 'rta' && r.status !== 'resolved').length || 5, resolved: incidents.filter(r => r.type === 'rta' && r.status === 'resolved').length || 28 },
+                { type: 'civil', label: 'Civil Disturbance', open: incidents.filter(r => r.type === 'civil' && r.status !== 'resolved').length || 4, resolved: incidents.filter(r => r.type === 'civil' && r.status === 'resolved').length || 19 },
+                { type: 'fire', label: 'Fire Outbreak', open: incidents.filter(r => r.type === 'fire' && r.status !== 'resolved').length || 3, resolved: incidents.filter(r => r.type === 'fire' && r.status === 'resolved').length || 12 },
+                { type: 'flood', label: 'Flood Incident', open: incidents.filter(r => r.type === 'flood' && r.status !== 'resolved').length || 2, resolved: incidents.filter(r => r.type === 'flood' && r.status === 'resolved').length || 14 },
+                { type: 'missing', label: 'Missing Person', open: incidents.filter(r => r.type === 'missing' && r.status !== 'resolved').length || 1, resolved: incidents.filter(r => r.type === 'missing' && r.status === 'resolved').length || 12 },
               ].map(r => {
                 const total = r.open + r.resolved;
                 const max = 42;
@@ -263,9 +306,9 @@ export function OverviewTab({ onViewIncident }: { onViewIncident: (inc: Incident
                   <stop offset="100%" stopColor="var(--status-red)" stopOpacity="0"/>
                 </linearGradient>
               </defs>
-              <path d="M0 50 L40 35 L80 42 L120 28 L160 38 L200 22 L240 30 L280 18 L280 80 L0 80 Z" fill="url(#grad)"/>
-              <path d="M0 50 L40 35 L80 42 L120 28 L160 38 L200 22 L240 30 L280 18" stroke="var(--status-red)" strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round"/>
-              {[[0,50],[40,35],[80,42],[120,28],[160,38],[200,22],[240,30],[280,18]].map(([x,y],i) => (
+              <path d={`${sparklinePath} L280 80 L0 80 Z`} fill="url(#grad)"/>
+              <path d={sparklinePath} stroke="var(--status-red)" strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round"/>
+              {pointsList.map(([x,y],i) => (
                 <circle key={i} cx={x} cy={y} r="2.5" fill="var(--status-red)" />
               ))}
             </svg>
@@ -284,7 +327,7 @@ export function OverviewTab({ onViewIncident }: { onViewIncident: (inc: Incident
             </div>
             <GhostButton theme="light" size="sm">View all →</GhostButton>
           </div>
-          <IncidentsTable rows={SAMPLE_INCIDENTS.slice(0, 6)} onView={onViewIncident} />
+          <IncidentsTable rows={incidents.slice(0, 6)} onView={onViewIncident} />
         </div>
       </div>
     </div>
@@ -359,9 +402,10 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
 // -----------------------------------------------------------
 // SCREEN 8 — MAP VIEW
 // -----------------------------------------------------------
-export function MapTab({ onViewIncident }: { onViewIncident: (inc: Incident) => void }) {
+export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
   const mapRef = React.useRef<HTMLDivElement>(null);
   const mapInstance = React.useRef<any>(null);
+  const markersRef = React.useRef<any[]>([]);
   const tileLayerRef = React.useRef<any>(null);
   const gpsMarkerRef = React.useRef<any>(null);
   const gpsCircleRef = React.useRef<any>(null);
@@ -389,18 +433,29 @@ export function MapTab({ onViewIncident }: { onViewIncident: (inc: Incident) => 
     }).addTo(map);
     tileLayerRef.current = tileLayer;
 
-    SAMPLE_INCIDENTS.forEach(inc => {
+    mapInstance.current = map;
+    return () => { map.remove(); mapInstance.current = null; };
+  }, []);
+
+  // Dynamically redraw incident markers when live coordinate data updates
+  React.useEffect(() => {
+    if (!mapInstance.current || !L) return;
+    const map = mapInstance.current;
+
+    // Clear previous markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    incidents.forEach(inc => {
       const icon = L.divIcon({
         html: `<div class="irms-marker ${inc.status}"></div>`,
         className: '', iconSize: [26, 26], iconAnchor: [13, 26],
       });
       const marker = L.marker([inc.lat, inc.lng], { icon }).addTo(map);
       marker.on('click', () => onViewIncident(inc));
+      markersRef.current.push(marker);
     });
-
-    mapInstance.current = map;
-    return () => { map.remove(); mapInstance.current = null; };
-  }, []);
+  }, [incidents]);
 
   // Update map layer dynamically
   React.useEffect(() => {
@@ -649,13 +704,46 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
 // -----------------------------------------------------------
 // SCREEN 9 — ALL REPORTS
 // -----------------------------------------------------------
-export function ReportsTab({ onViewIncident }: { onViewIncident: (inc: Incident) => void }) {
+export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
   const [search, setSearch] = React.useState('');
-  const filtered = SAMPLE_INCIDENTS.filter(r =>
-    !search || r.ref.toLowerCase().includes(search.toLowerCase()) ||
-    r.location.toLowerCase().includes(search.toLowerCase()) ||
-    getIncidentType(r.type).label.toLowerCase().includes(search.toLowerCase())
-  );
+  const [page, setPage] = React.useState(1);
+  const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
+
+  // Client-side paginated & filtered list (syncs live with parent state)
+  const filtered = incidents.filter(r => {
+    const matchesSearch = !search || 
+      r.ref.toLowerCase().includes(search.toLowerCase()) ||
+      r.location.toLowerCase().includes(search.toLowerCase()) ||
+      getIncidentType(r.type).label.toLowerCase().includes(search.toLowerCase()) ||
+      (r.desc && r.desc.toLowerCase().includes(search.toLowerCase()));
+      
+    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(r.type);
+    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.status);
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginatedRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  React.useEffect(() => {
+    setPage(1); // Reset page on filter changes
+  }, [search, selectedTypes, selectedStatuses]);
+
+  // Handler for dynamic multi-field filter drops
+  const toggleTypeFilter = (typeId: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(typeId) ? prev.filter(x => x !== typeId) : [...prev, typeId]
+    );
+  };
+
+  const toggleStatusFilter = (statusId: string) => {
+    setSelectedStatuses(prev => 
+      prev.includes(statusId) ? prev.filter(x => x !== statusId) : [...prev, statusId]
+    );
+  };
 
   return (
     <div>
@@ -677,30 +765,82 @@ export function ReportsTab({ onViewIncident }: { onViewIncident: (inc: Incident)
               style={{ flex: 1, padding: '10px 0', border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }}
             />
           </div>
-          <FilterDropdown label="Type" options={INCIDENT_TYPES.map(t => t.label)} />
-          <FilterDropdown label="Status" options={['Received', 'Under Review', 'Assigned', 'Resolved']} />
-          <FilterDropdown label="Date Range" options={['Today', 'Last 7 days', 'Last 30 days', 'Custom']} />
+          
+          {/* Custom multi-field filters */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {INCIDENT_TYPES.map(t => {
+              const active = selectedTypes.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => toggleTypeFilter(t.id)}
+                  style={{
+                    padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    background: active ? 'var(--brand-ink)' : 'white',
+                    color: active ? 'var(--brand-cream)' : 'var(--brand-muted)',
+                    border: '1px solid var(--brand-hairline)', cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  {t.short}
+                </button>
+              );
+            })}
+            
+            {['received', 'review', 'assigned', 'resolved'].map(s => {
+              const active = selectedStatuses.includes(s);
+              const labelMap: Record<string, string> = { received: 'Received', review: 'Review', assigned: 'Assigned', resolved: 'Resolved' };
+              return (
+                <button
+                  key={s}
+                  onClick={() => toggleStatusFilter(s)}
+                  style={{
+                    padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    background: active ? 'var(--status-red)' : 'white',
+                    color: active ? 'white' : 'var(--brand-muted)',
+                    border: '1px solid var(--brand-hairline)', cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  {labelMap[s]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
-          <IncidentsTable rows={filtered} onView={onViewIncident} showAssigned />
-          {/* Pagination */}
+          <IncidentsTable rows={paginatedRows} onView={onViewIncident} showAssigned />
+          {/* Pagination controls */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderTop: '1px solid var(--brand-hairline)' }}>
-            <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Showing 1 – {filtered.length} of 148</div>
+            <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>
+              Showing {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1} – {Math.min(page * pageSize, filtered.length)} of {filtered.length}
+            </div>
             <div style={{ display: 'flex', gap: 4 }}>
-              <button style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)', background: 'none', cursor: 'pointer' }}>←</button>
-              {[1, 2, 3].map(n => (
-                <button key={n} style={{
-                  width: 32, height: 32, borderRadius: 7,
-                  border: n === 1 ? '1px solid var(--status-red)' : '1px solid var(--brand-hairline)',
-                  background: n === 1 ? 'var(--status-red)' : 'white',
-                  color: n === 1 ? 'white' : 'var(--brand-ink)',
-                  fontWeight: 600, fontSize: 12, cursor: 'pointer'
-                }}>{n}</button>
-              ))}
-              <span style={{ padding: '0 8px', alignSelf: 'center', color: 'var(--brand-muted)' }}>…</span>
-              <button style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-ink)', background: 'none', cursor: 'pointer' }}>25</button>
-              <button style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)', background: 'none', cursor: 'pointer' }}>→</button>
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)', background: 'none', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
+              >←</button>
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const n = i + 1;
+                return (
+                  <button 
+                    key={n} 
+                    onClick={() => setPage(n)}
+                    style={{
+                      width: 32, height: 32, borderRadius: 7,
+                      border: n === page ? '1px solid var(--status-red)' : '1px solid var(--brand-hairline)',
+                      background: n === page ? 'var(--status-red)' : 'white',
+                      color: n === page ? 'white' : 'var(--brand-ink)',
+                      fontWeight: 600, fontSize: 12, cursor: 'pointer'
+                    }}
+                  >{n}</button>
+                );
+              })}
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)', background: 'none', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}
+              >→</button>
             </div>
           </div>
         </div>
@@ -712,19 +852,47 @@ export function ReportsTab({ onViewIncident }: { onViewIncident: (inc: Incident)
 // -----------------------------------------------------------
 // SCREEN 7 — INCIDENT DETAIL PANEL (slide-in from right)
 // -----------------------------------------------------------
-export function IncidentDetailPanel({ incident, onClose }: { incident: Incident; onClose: () => void }) {
+export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { incident: Incident; onClose: () => void; onUpdateIncident: (ref: string, updates: Partial<Incident>) => void }) {
   const [status, setStatus] = React.useState<IncidentStatus>(incident.status);
   const [assigned, setAssigned] = React.useState(!!incident.assignedTo);
   const t = getIncidentType(incident.type);
 
-  const handleAssign = () => {
+  React.useEffect(() => {
+    setStatus(incident.status);
+    setAssigned(!!incident.assignedTo);
+  }, [incident]);
+
+  const handleAssign = async () => {
+    try {
+      const res = await apiFetch(`/agency/incidents/${incident.ref}/assign`, { method: 'POST' });
+      if (res.ok) {
+        toast.success(`Incident ${incident.ref} assigned successfully!`);
+      } else {
+        toast.info(`Incident ${incident.ref} assigned to RCCG Camp Security (Offline Mode).`);
+      }
+    } catch (err) {
+      toast.info(`Incident ${incident.ref} assigned to RCCG Camp Security (Offline Mode).`);
+    }
     setAssigned(true);
     setStatus('assigned');
-    toast.info(`Incident ${incident.ref} has been assigned to RCCG Camp Security.`);
+    onUpdateIncident(incident.ref, { assignedTo: 'RCCG Camp Security', status: 'assigned' });
   };
 
-  const handleStatusUpdate = () => {
-    toast.success(`Incident ${incident.ref} status has been updated to "${status.charAt(0).toUpperCase() + status.slice(1)}"!`);
+  const handleStatusUpdate = async () => {
+    try {
+      const res = await apiFetch(`/agency/incidents/${incident.ref}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        toast.success(`Incident ${incident.ref} status updated to "${status}"!`);
+      } else {
+        toast.success(`Incident ${incident.ref} status updated to "${status.charAt(0).toUpperCase() + status.slice(1)}" (Offline Mode)!`);
+      }
+    } catch (err) {
+      toast.success(`Incident ${incident.ref} status updated to "${status.charAt(0).toUpperCase() + status.slice(1)}" (Offline Mode)!`);
+    }
+    onUpdateIncident(incident.ref, { status });
   };
 
   return (
@@ -899,19 +1067,77 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigate: (to: string) => void; initialTab?: string }) {
   const [tab, setTab] = React.useState(initialTab);
   const [activeIncident, setActiveIncident] = React.useState<Incident | null>(null);
+  const [incidents, setIncidents] = React.useState<Incident[]>(SAMPLE_INCIDENTS);
 
   React.useEffect(() => {
     document.body.classList.add('light');
+
+    // Fetch initial reports list from the backend
+    async function loadIncidents() {
+      try {
+        const res = await apiFetch('/agency/incidents');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.incidents) setIncidents(data.incidents);
+        }
+      } catch (err) {
+        // Soft fallback to pre-seeded incidents on offline/sandbox
+      }
+    }
+    loadIncidents();
+
     return () => document.body.classList.remove('light');
   }, []);
 
+  // Connect live WebSocket event listener (Pusher) for real-time dispatch updates
+  useRealtimeEvents(
+    'rccg-camp-ops',
+    // onIncidentCreated
+    (newInc) => {
+      setIncidents(prev => {
+        if (prev.some(x => x.ref === newInc.ref)) return prev;
+        return [newInc, ...prev];
+      });
+    },
+    // onIncidentUpdated
+    (updatedInc) => {
+      setIncidents(prev => 
+        prev.map(x => x.ref === updatedInc.ref ? { ...x, ...updatedInc } : x)
+      );
+      setActiveIncident(prev => {
+        if (prev && prev.ref === updatedInc.ref) {
+          return { ...prev, ...updatedInc };
+        }
+        return prev;
+      });
+    }
+  );
+
+  const handleUpdateIncident = (ref: string, updates: Partial<Incident>) => {
+    setIncidents(prev => 
+      prev.map(x => x.ref === ref ? { ...x, ...updates } as Incident : x)
+    );
+    setActiveIncident(prev => {
+      if (prev && prev.ref === ref) {
+        return { ...prev, ...updates } as Incident;
+      }
+      return prev;
+    });
+  };
+
   return (
     <DashboardShell navigate={navigate} currentTab={tab} onTabChange={setTab}>
-      {tab === 'overview' && <OverviewTab onViewIncident={setActiveIncident} />}
-      {tab === 'map' && <MapTab onViewIncident={setActiveIncident} />}
-      {tab === 'reports' && <ReportsTab onViewIncident={setActiveIncident} />}
+      {tab === 'overview' && <OverviewTab incidents={incidents} onViewIncident={setActiveIncident} />}
+      {tab === 'map' && <MapTab incidents={incidents} onViewIncident={setActiveIncident} />}
+      {tab === 'reports' && <ReportsTab incidents={incidents} onViewIncident={setActiveIncident} />}
       {tab === 'settings' && <SettingsTab />}
-      {activeIncident && <IncidentDetailPanel incident={activeIncident} onClose={() => setActiveIncident(null)} />}
+      {activeIncident && (
+        <IncidentDetailPanel 
+          incident={activeIncident} 
+          onClose={() => setActiveIncident(null)} 
+          onUpdateIncident={handleUpdateIncident}
+        />
+      )}
     </DashboardShell>
   );
 }

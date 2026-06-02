@@ -1,20 +1,12 @@
 "use client";
 
 import React from 'react';
-import { LandingScreen } from '@/components/irms-citizen';
+import { AgencySignupScreen } from '@/components/irms-auth';
 import { useRouter } from 'next/navigation';
-import { getCookie, deleteCookie } from '@/lib/api-client';
+import { setCookie } from '@/lib/api-client';
 
-export default function Home() {
+export default function AgencySignupPage() {
   const router = useRouter();
-  const [user, setUser] = React.useState<any>(null);
-
-  React.useEffect(() => {
-    const citizenToken = getCookie('citizen_token');
-    if (citizenToken) {
-      setUser({ name: 'Chinedu Okafor', email: 'chinedu.okafor@example.com' });
-    }
-  }, []);
 
   const navigate = (to: string) => {
     const routeMap: Record<string, string> = {
@@ -28,14 +20,14 @@ export default function Home() {
       'agency-login': '/auth/agency/login',
       'agency-dashboard': '/agency/dashboard',
     };
+    
+    // Auto-login on mock signup
+    if (to === 'agency-dashboard') {
+      setCookie('agency_token', 'mock-agency-token-xyz');
+    }
+    
     router.push(routeMap[to] || '/landing');
   };
 
-  const handleSignOut = () => {
-    deleteCookie('citizen_token');
-    setUser(null);
-  };
-
-  return <LandingScreen navigate={navigate} user={user} onSignOut={handleSignOut} />;
+  return <AgencySignupScreen navigate={navigate} />;
 }
-
