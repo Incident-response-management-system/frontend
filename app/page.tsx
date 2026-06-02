@@ -1,9 +1,15 @@
 "use client";
 
 import React from 'react';
-import { LandingScreen } from '@/components/irms-citizen';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { getCookie, deleteCookie } from '@/lib/api-client';
+
+// Dynamic import with SSR disabled to prevent Leaflet browser-only API crashes on Next build
+const LandingScreen = dynamic(
+  () => import('@/components/irms-citizen').then(mod => mod.LandingScreen),
+  { ssr: false }
+);
 
 export default function Home() {
   const router = useRouter();
@@ -38,4 +44,3 @@ export default function Home() {
 
   return <LandingScreen navigate={navigate} user={user} onSignOut={handleSignOut} />;
 }
-

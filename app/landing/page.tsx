@@ -1,9 +1,15 @@
 "use client";
 
 import React from 'react';
-import { LandingScreen } from '@/components/irms-citizen';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { getCookie, deleteCookie } from '@/lib/api-client';
+
+// Dynamic import with SSR disabled to prevent Leaflet browser-only API crashes on Next build
+const LandingScreen = dynamic(
+  () => import('@/components/irms-citizen').then(mod => mod.LandingScreen),
+  { ssr: false }
+);
 
 export default function LandingPage() {
   const router = useRouter();
@@ -12,7 +18,6 @@ export default function LandingPage() {
   React.useEffect(() => {
     const citizenToken = getCookie('citizen_token');
     if (citizenToken) {
-      // Decode or mock user load
       setUser({ name: 'Chinedu Okafor', email: 'chinedu.okafor@example.com' });
     }
   }, []);

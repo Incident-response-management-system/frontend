@@ -1,11 +1,17 @@
 "use client";
 
-import React from 'react';
-import { DashboardScreen } from '@/components/irms-agency';
+import React, { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { deleteCookie } from '@/lib/api-client';
 
-export default function AgencyDashboardPage() {
+// Dynamic import with SSR disabled to prevent Leaflet browser-only API crashes on Next build
+const DashboardScreen = dynamic(
+  () => import('@/components/irms-agency').then(mod => mod.DashboardScreen),
+  { ssr: false }
+);
+
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'overview';
@@ -31,4 +37,12 @@ export default function AgencyDashboardPage() {
   };
 
   return <DashboardScreen navigate={navigate} initialTab={tab} />;
+}
+
+export default function AgencyDashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, fontFamily: 'var(--font-mono)', color: 'var(--brand-ink)', background: 'var(--brand-cream)', minHeight: '100vh' }}>Loading dashboard operations...</div>}>
+      <DashboardContent />
+    </Suspense>
+  );
 }

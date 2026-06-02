@@ -1,8 +1,14 @@
 "use client";
 
 import React from 'react';
-import { ReportScreen } from '@/components/irms-citizen';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+
+// Dynamic import with SSR disabled to prevent Leaflet browser-only API crashes on Next build
+const ReportScreen = dynamic(
+  () => import('@/components/irms-citizen').then(mod => mod.ReportScreen),
+  { ssr: false }
+);
 
 export default function ReportPage() {
   const router = useRouter();
