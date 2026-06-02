@@ -7,10 +7,10 @@ This document outlines the division of implementation tasks between **SAMKIEL** 
 ## 👤 SAMKIEL — Core Operations (More agency features)
 
 ### Phase 1: Architecture & Foundations
-- `[ ]` Scaffold Next.js 16 application structure (pages, components, styles, middleware).
-- `[ ]` Configure TailwindCSS & `shadcn/ui` theme variables (Warm Cream, Deep Ink, Dashboard Paper, and semantic states).
-- `[ ]` Setup Axios / Fetch clients with custom configurations for the remote Backend URL.
-- `[ ]` Secure agency routing using Next.js Middleware.
+- `[x]` Scaffold Next.js 16 application structure (pages, components, styles, middleware).
+- `[x]` Configure TailwindCSS & `shadcn/ui` theme variables (Warm Cream, Deep Ink, Dashboard Paper, and semantic states).
+- `[x]` Setup Axios / Fetch clients with custom configurations for the remote Backend URL.
+- `[x]` Secure agency routing using Next.js Middleware.
 
 ### Phase 2: Core Map Component & Pin Drop Hook
 - `[x]` Implement base Map component using Leaflet.
@@ -18,14 +18,14 @@ This document outlines the division of implementation tasks between **SAMKIEL** 
 - `[x]` Implement standard map interaction event boundaries (click-to-place-pin, dynamic custom HTML markers).
 
 ### Phase 3: Agency Operations Dashboard
-- `[ ]` **Overview Tab:** Setup stats strip with daily Comparative Deltas and Bezier sparkline charts.
+- `[x]` **Overview Tab:** Setup stats strip with daily Comparative Deltas and Bezier sparkline charts.
 - `[x]` **Map Tab:** Build dispatcher map view to visualize all live coordinate markers within their radius.
-- `[ ]` **Reports Tab:** Set up the global operations queue with search, pagination, and multi-field filters.
-- `[ ]` **Incident Detail Panel:** Design the sliding case assessment side-drawer, assignee routes, and status dropdowns.
+- `[x]` **Reports Tab:** Set up the global operations queue with search, pagination, and multi-field filters.
+- `[x]` **Incident Detail Panel:** Design the sliding case assessment side-drawer, assignee routes, and status dropdowns.
 
 ### Phase 4: Live Event Handlers
-- `[ ]` Integrate WebSockets/Pusher to handle real-time incoming dispatches without browser reload.
-- `[ ]` Wire Dispatch Detail status updates directly to remote Backend API.
+- `[x]` Integrate WebSockets/Pusher to handle real-time incoming dispatches without browser reload.
+- `[x]` Wire Dispatch Detail status updates directly to remote Backend API.
 
 ---
 
