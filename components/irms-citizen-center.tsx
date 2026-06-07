@@ -11,6 +11,7 @@ import {
 } from './irms-shared';
 import { addCitizenNote } from '@/lib/incidents-api';
 import { useIsMobile } from '@/hooks/use-media-query';
+import { ThemeToggle } from './ThemeToggle';
 
 // -----------------------------------------------------------
 // SEEDED DEMO DATA — MY REPORTS
@@ -140,7 +141,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: isMobile ? '14px 16px' : '18px 32px', borderBottom: '1px solid var(--brand-hairline)',
                 position: 'sticky', top: 0,
-                background: 'rgba(244, 242, 236, 0.88)', backdropFilter: 'blur(14px) saturate(140%)', zIndex: 50,
+                background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)', zIndex: 50,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 28 }}>
                     <button onClick={() => navigate('landing')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -165,13 +166,16 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                     </nav>
                 </div>
 
+                {/* Right cluster: theme toggle + user menu */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <ThemeToggle />
                 {/* User menu */}
                 <div style={{ position: 'relative' }}>
                     <button
                         onClick={() => setProfileOpen(!profileOpen)}
                         style={{
                             display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px 6px 6px',
-                            borderRadius: 999, border: '1px solid var(--brand-divider)', background: 'white', cursor: 'pointer',
+                            borderRadius: 999, border: '1px solid var(--brand-divider)', background: 'var(--brand-white)', cursor: 'pointer',
                             transition: 'border-color 0.15s',
                         }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--brand-muted)'}
@@ -217,6 +221,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                             </div>
                         </>
                     )}
+                </div>
                 </div>
             </header>
 
@@ -474,7 +479,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
             <div
                 onClick={onClose}
                 style={{
-                    position: 'fixed', inset: 0, background: 'rgba(20, 18, 14, 0.32)', backdropFilter: 'blur(2px)',
+                    position: 'fixed', inset: 0, background: 'var(--scrim)', backdropFilter: 'blur(2px)',
                     zIndex: 1500, animation: 'fadeIn 0.2s ease-out',
                 }}
             />
@@ -486,7 +491,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
             }}>
                 {/* Sticky header */}
                 <div style={{
-                    position: 'sticky', top: 0, background: 'rgba(255,255,255,0.95)',
+                    position: 'sticky', top: 0, background: 'var(--surface-overlay)',
                     backdropFilter: 'blur(8px)',
                     padding: isMobile ? '18px 16px 14px' : '20px 28px 16px', borderBottom: '1px solid var(--brand-hairline)', zIndex: 5,
                 }}>
@@ -582,7 +587,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                             }}>
                                 <div style={{
                                     width: 38, height: 38, borderRadius: 9, flexShrink: 0,
-                                    background: 'white', border: `1px solid ${agencyMeta?.bd || 'var(--status-blue-bd)'}`,
+                                    background: 'var(--brand-white)', border: `1px solid ${agencyMeta?.bd || 'var(--status-blue-bd)'}`,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     color: agencyMeta?.color || 'var(--status-blue)',
                                 }}>
@@ -596,7 +601,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                                 </div>
                                 <div style={{
                                     fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 99,
-                                    background: 'white', color: agencyMeta?.color || 'var(--status-blue)',
+                                    background: 'var(--brand-white)', color: agencyMeta?.color || 'var(--status-blue)',
                                     border: `1px solid ${agencyMeta?.bd || 'var(--status-blue-bd)'}`,
                                 }}>
                                     On scene

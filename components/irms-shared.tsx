@@ -246,7 +246,7 @@ export function GhostButton({ children, onClick, theme = 'dark', size = 'md', st
   const s = sizes[size];
   return (
     <button onClick={onClick} style={{
-      background: isLight ? 'var(--brand-white)' : '#FFFFFF',
+      background: isLight ? 'var(--brand-white)' : 'var(--brand-white)',
       color: isLight ? 'var(--brand-ink)' : 'var(--brand-ink)',
       border: `1px solid ${isLight ? 'var(--brand-hairline)' : 'var(--brand-divider)'}`,
       padding: s.p, borderRadius: 9, fontWeight: 500, fontSize: s.fs,
@@ -260,7 +260,7 @@ export function GhostButton({ children, onClick, theme = 'dark', size = 'md', st
       }}
       onMouseLeave={e => {
         e.currentTarget.style.borderColor = isLight ? 'var(--brand-hairline)' : 'var(--brand-divider)';
-        e.currentTarget.style.background = isLight ? 'var(--brand-white)' : '#FFFFFF';
+        e.currentTarget.style.background = isLight ? 'var(--brand-white)' : 'var(--brand-white)';
       }}
     >{children}</button>
   );

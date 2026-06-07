@@ -14,6 +14,7 @@ import {
   IncidentStatus,
 } from './irms-shared';
 import { FormInput } from './irms-auth';
+import { ThemeToggle } from './ThemeToggle';
 import { apiFetch } from '@/lib/api-client';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
@@ -48,7 +49,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
       {/* Backdrop (drawer mode only) */}
       {isTablet && mobileOpen && (
         <div onClick={() => setMobileOpen(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(10,13,20,0.4)', zIndex: 1999,
+          position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 1999,
         }}/>
       )}
 
@@ -57,7 +58,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
         <button onClick={() => setMobileOpen(true)} aria-label="Open menu" style={{
           position: 'fixed', top: 14, left: 12, zIndex: 1500,
           width: 40, height: 40, borderRadius: 10,
-          background: 'white', border: '1px solid var(--brand-hairline)',
+          background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--brand-ink)', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         }}>
@@ -68,7 +69,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
       {/* SIDEBAR */}
       <aside style={{
         width: isTablet ? 248 : (collapsed ? 72 : 248), flexShrink: 0,
-        background: 'white', borderRight: '1px solid var(--brand-hairline)',
+        background: 'var(--brand-white)', borderRight: '1px solid var(--brand-hairline)',
         display: 'flex', flexDirection: 'column',
         transition: isTablet ? 'transform 0.25s ease' : 'width 0.2s ease',
         ...(isTablet
@@ -180,7 +181,7 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding, borderBottom: '1px solid var(--brand-hairline)', background: 'white',
+      padding, borderBottom: '1px solid var(--brand-hairline)', background: 'var(--brand-white)',
     }}>
       <div>
         <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 4px' }}>{title}</h1>
@@ -188,7 +189,8 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {actions}
-        <button style={{ position: 'relative', width: 38, height: 38, borderRadius: 10, border: '1px solid var(--brand-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-ink)', background: 'white', cursor: 'pointer' }}>
+        <ThemeToggle />
+        <button style={{ position: 'relative', width: 38, height: 38, borderRadius: 10, border: '1px solid var(--brand-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-ink)', background: 'var(--brand-white)', cursor: 'pointer' }}>
           <Icon.bell />
           <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: '50%', background: 'var(--status-red)', border: '2px solid white' }}/>
         </button>
@@ -273,7 +275,7 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
         <div style={{ display: 'grid', gridTemplateColumns: isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
           {stats.map((s, i) => (
             <div key={i} style={{
-              background: 'white', border: `1px solid var(--brand-hairline)`,
+              background: 'var(--brand-white)', border: `1px solid var(--brand-hairline)`,
               borderRadius: 12, padding: 20, position: 'relative', overflow: 'hidden',
             }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.color, opacity: 0.9 }}/>
@@ -289,7 +291,7 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
         {/* Activity feed + heatmap row */}
         <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.4fr 1fr', gap: 16, marginBottom: 32 }}>
           {/* Incident distribution */}
-          <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 16 : 24 }}>
+          <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 16 : 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
               <div>
                 <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Incident distribution</h3>
@@ -326,7 +328,7 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
           </div>
 
           {/* Response times */}
-          <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 16 : 24 }}>
+          <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 16 : 24 }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Response performance</h3>
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginBottom: 24 }}>This week</div>
             <div style={{ marginBottom: 24 }}>
@@ -354,7 +356,7 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
         </div>
 
         {/* Recent incidents table */}
-        <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--brand-hairline)' }}>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Recent incidents</h3>
@@ -608,7 +610,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       {/* Filter toolbar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: isMobile ? '10px 16px' : '12px 32px',
-        background: 'white', borderBottom: '1px solid var(--brand-hairline)',
+        background: 'var(--brand-white)', borderBottom: '1px solid var(--brand-hairline)',
         flexWrap: isMobile ? 'wrap' : 'nowrap',
       }}>
         <FilterDropdown label="Incident Type" options={INCIDENT_TYPES.map(t => t.label)} />
@@ -687,7 +689,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         {/* Legend - positioned bottom-left to prevent overlap with controls */}
         <div style={{
           position: 'absolute', bottom: 20, left: 20, zIndex: 500,
-          background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: '14px 16px',
+          background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: '14px 16px',
           boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
         }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-muted)', letterSpacing: '0.12em', marginBottom: 10 }}>LEGEND</div>
@@ -716,7 +718,7 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
     <div style={{ position: 'relative' }}>
       <button onClick={() => setOpen(!open)} style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-        borderRadius: 9, border: '1px solid var(--brand-hairline)', background: 'white',
+        borderRadius: 9, border: '1px solid var(--brand-hairline)', background: 'var(--brand-white)',
         fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', cursor: 'pointer'
       }}>
         {label} <Icon.chevDown />
@@ -726,7 +728,7 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }}/>
           <div style={{
             position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 200,
-            background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 10,
+            background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 10,
             boxShadow: '0 8px 24px rgba(0,0,0,0.08)', minWidth: 200, maxWidth: 'calc(100vw - 24px)', padding: 6,
           }}>
             {options.map(o => (
@@ -801,7 +803,7 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{
             flex: 1, minWidth: isMobile ? 160 : 260, display: 'flex', alignItems: 'center', gap: 10,
-            padding: '0 14px', background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 10,
+            padding: '0 14px', background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 10,
           }}>
             <Icon.search style={{ color: 'var(--brand-muted)' }} />
             <input
@@ -821,7 +823,7 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
                   onClick={() => toggleTypeFilter(t.id)}
                   style={{
                     padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                    background: active ? 'var(--brand-ink)' : 'white',
+                    background: active ? 'var(--brand-ink)' : 'var(--brand-white)',
                     color: active ? 'var(--brand-cream)' : 'var(--brand-muted)',
                     border: '1px solid var(--brand-hairline)', cursor: 'pointer', transition: 'all 0.15s'
                   }}
@@ -840,7 +842,7 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
                   onClick={() => toggleStatusFilter(s)}
                   style={{
                     padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                    background: active ? 'var(--status-red)' : 'white',
+                    background: active ? 'var(--status-red)' : 'var(--brand-white)',
                     color: active ? 'white' : 'var(--brand-muted)',
                     border: '1px solid var(--brand-hairline)', cursor: 'pointer', transition: 'all 0.15s'
                   }}
@@ -852,7 +854,7 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
           </div>
         </div>
 
-        <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
           <IncidentsTable rows={paginatedRows} onView={onViewIncident} showAssigned />
           {/* Pagination controls */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderTop: '1px solid var(--brand-hairline)' }}>
@@ -874,7 +876,7 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
                     style={{
                       width: 32, height: 32, borderRadius: 7,
                       border: n === page ? '1px solid var(--status-red)' : '1px solid var(--brand-hairline)',
-                      background: n === page ? 'var(--status-red)' : 'white',
+                      background: n === page ? 'var(--status-red)' : 'var(--brand-white)',
                       color: n === page ? 'white' : 'var(--brand-ink)',
                       fontWeight: 600, fontSize: 12, cursor: 'pointer'
                     }}
@@ -944,18 +946,18 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
   return (
     <>
       <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, background: 'rgba(10,13,20,0.4)', zIndex: 1500,
+        position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 1500,
         animation: 'fadeIn 0.2s ease-out',
       }}/>
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(620px, 92vw)',
-        background: 'white', zIndex: 1600, overflowY: 'auto',
+        background: 'var(--brand-white)', zIndex: 1600, overflowY: 'auto',
         boxShadow: '-20px 0 60px rgba(0,0,0,0.15)',
         animation: 'slideRight 0.3s cubic-bezier(.2,.8,.2,1)',
       }}>
         {/* Header */}
         <div style={{
-          position: 'sticky', top: 0, background: 'white', zIndex: 10,
+          position: 'sticky', top: 0, background: 'var(--brand-white)', zIndex: 10,
           padding: isMobile ? '24px 20px 16px' : '24px 32px 16px', borderBottom: '1px solid var(--brand-hairline)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -1057,7 +1059,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{incident.assignedTo || 'RCCG Camp Security'}</div>
 
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'white', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
                   {(['received', 'review', 'assigned', 'resolved'] as IncidentStatus[]).map(s => {
                     const map = { received: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
                                   review: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
@@ -1116,8 +1118,6 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
   const [incidents, setIncidents] = React.useState<Incident[]>(SAMPLE_INCIDENTS);
 
   React.useEffect(() => {
-    document.body.classList.add('light');
-
     // Fetch initial reports list from the backend
     async function loadIncidents() {
       try {
@@ -1131,8 +1131,6 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
       }
     }
     loadIncidents();
-
-    return () => document.body.classList.remove('light');
   }, []);
 
   // Connect live WebSocket event listener (Pusher) for real-time dispatch updates
@@ -1197,7 +1195,7 @@ function SettingsTab() {
     <div>
       <DashTopBar title="Settings" subtitle="Manage your agency profile and notification preferences" />
       <div style={{ padding: isMobile ? 16 : 32, maxWidth: 720 }}>
-        <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 20 : 28 }}>
+        <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 20 : 28 }}>
           <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px' }}>Agency profile</h3>
           <p style={{ fontSize: 13, color: 'var(--brand-muted)', margin: '0 0 24px' }}>Visible to the public during incident assignment.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

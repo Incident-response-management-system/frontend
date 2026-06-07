@@ -13,6 +13,7 @@ import {
 } from './irms-shared';
 import { submitReport } from '@/lib/incidents-api';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
+import { ThemeToggle } from './ThemeToggle';
 
 let L: any;
 if (typeof window !== 'undefined') {
@@ -52,10 +53,11 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: isMobile ? '16px 16px' : '16px 48px', borderBottom: '1px solid var(--brand-hairline)',
-        background: 'rgba(244, 242, 236, 0.88)', backdropFilter: 'blur(14px) saturate(140%)',
+        background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)',
       }}>
         <IRMSLogo size={16} color="var(--brand-ink)" />
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <ThemeToggle />
           {user ? (
             <button onClick={() => navigate('my-reports')} style={{
               padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', borderRadius: 8,
@@ -594,7 +596,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: isMobile ? '12px 16px' : '14px 24px', background: 'rgba(244, 242, 236, 0.92)', backdropFilter: 'blur(14px) saturate(140%)',
+        padding: isMobile ? '12px 16px' : '14px 24px', background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)',
         borderBottom: '1px solid var(--brand-hairline)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -607,9 +609,12 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>REDEMPTION CAMP · OGUN STATE · NIGERIA</div>
           </div>
         </div>
-        <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-divider)', borderRadius: 8 }}>
-          <Icon.pin style={{ color: 'var(--brand-ink)', width: 14, height: 14 }} />
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--brand-ink)' }}>Click the map to place a pin</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <ThemeToggle />
+          <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-divider)', borderRadius: 8 }}>
+            <Icon.pin style={{ color: 'var(--brand-ink)', width: 14, height: 14 }} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--brand-ink)' }}>Click the map to place a pin</span>
+          </div>
         </div>
       </div>
 
@@ -696,7 +701,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
       {sheetOpen && (
         <>
           <div onClick={closeSheet} style={{
-            position: 'absolute', inset: 0, background: 'rgba(20, 18, 14, 0.32)', backdropFilter: 'blur(2px)',
+            position: 'absolute', inset: 0, background: 'var(--scrim)', backdropFilter: 'blur(2px)',
             zIndex: 1500, animation: 'fadeIn 0.2s ease-out',
           }} />
           <div style={{
@@ -1253,7 +1258,10 @@ export function TrackScreen({ navigate, params }: any) {
           <Icon.back />
           <IRMSLogo size={15} color="var(--brand-ink)" />
         </button>
-        <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Tracking Page</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Tracking Page</div>
+          <ThemeToggle />
+        </div>
       </nav>
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: isMobile ? '40px 16px 60px' : '60px 32px 80px' }}>

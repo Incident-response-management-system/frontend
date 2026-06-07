@@ -37,6 +37,52 @@
     --foreground: var(--brand-ink);
 
     --font-serif: 'Playfair Display', serif;
+
+    /* Theme-aware semantic tokens. In light mode these equal their brand counterparts;
+       .dark overrides the same names so inline styles using these vars recolor for free.
+       --surface-overlay backs translucent nav/header bars (was rgba(244,242,236,..)).
+       --scrim backs modal/drawer backdrops. --shadow-color tints box-shadows. */
+    --surface-overlay: rgba(244, 242, 236, 0.88);
+    --scrim: rgba(20, 18, 14, 0.32);
+    --shadow-color: rgba(40, 35, 20, 0.12);
+    color-scheme: light;
+}
+
+/* ─── DARK THEME ─────────────────────────────────────────────
+   Applied via `.dark` on <html> (set by the ThemeProvider).
+   Only the variable *values* change; every component that uses
+   var(--brand-*) / var(--status-*) recolors automatically. */
+.dark {
+    --brand-cream: #0E0F13;      /* page background */
+    --brand-ink: #F1F2F4;        /* primary text */
+    --brand-white: #181A20;      /* cards / elevated surfaces (replaces literal 'white') */
+    --brand-surface-alt: #202329;/* subtle alt surface / chips */
+    --brand-hairline: #262A31;   /* faint borders */
+    --brand-divider: #363B44;    /* stronger borders */
+    --brand-muted: #9AA0AB;      /* secondary text */
+    --brand-accent: #D4B88E;     /* gold, slightly brighter for dark */
+
+    /* Status hues stay recognizable but brighten a touch; bg/bd alphas raised to read on dark */
+    --status-red: #E26257;
+    --status-red-bg: rgba(226, 98, 87, 0.14);
+    --status-red-bd: rgba(226, 98, 87, 0.34);
+
+    --status-amber: #D4B88E;
+    --status-amber-bg: rgba(212, 184, 142, 0.16);
+    --status-amber-bd: rgba(212, 184, 142, 0.36);
+
+    --status-blue: #5E8BB5;
+    --status-blue-bg: rgba(94, 139, 181, 0.16);
+    --status-blue-bd: rgba(94, 139, 181, 0.38);
+
+    --status-green: #5DA374;
+    --status-green-bg: rgba(93, 163, 116, 0.16);
+    --status-green-bd: rgba(93, 163, 116, 0.38);
+
+    --surface-overlay: rgba(14, 15, 19, 0.82);
+    --scrim: rgba(0, 0, 0, 0.55);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
 }
 
 @theme inline {
@@ -69,6 +115,9 @@
     --color-status-green: var(--status-green);
     --color-status-green-bg: var(--status-green-bg);
     --color-status-green-bd: var(--status-green-bd);
+
+    --color-surface-overlay: var(--surface-overlay);
+    --color-scrim: var(--scrim);
 }
 
 body {
@@ -144,9 +193,46 @@ body {
 }
 
 .leaflet-control-zoom a {
-    background: white !important;
+    background: var(--brand-white) !important;
     color: var(--brand-ink) !important;
     border-color: var(--brand-hairline) !important;
+}
+
+/* ─── Leaflet dark-mode tuning ──────────────────────────────── */
+.dark .leaflet-container {
+    background: var(--brand-surface-alt) !important;
+}
+
+.dark .leaflet-control-attribution {
+    background: rgba(24, 26, 32, 0.85) !important;
+    color: var(--brand-muted) !important;
+    border-color: var(--brand-hairline) !important;
+}
+
+.dark .leaflet-control-attribution a {
+    color: var(--brand-muted) !important;
+}
+
+.dark .irms-map-control-btn,
+.dark .irms-map-search-container {
+    background: var(--brand-white);
+    border-color: var(--brand-divider);
+    color: var(--brand-ink);
+}
+
+.dark .irms-map-search-input {
+    color: var(--brand-ink);
+}
+
+.dark .irms-map-search-input::placeholder {
+    color: var(--brand-muted);
+}
+
+/* Popups render on a white card by default; recolor for dark */
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+    background: var(--brand-white) !important;
+    color: var(--brand-ink) !important;
 }
 
 /* Floating UI Controls on Map */

@@ -1,5 +1,6 @@
 import React from 'react';
 import { IRMSLogo, Icon } from '@/components/irms-shared';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface CitizenAuthShellProps {
     children: React.ReactNode;
@@ -46,7 +47,10 @@ export function CitizenAuthShell({ children, mode = 'signup', navigate }: Citize
                 </div>
             </div>
             {/* Right: form on white */}
-            <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>{children}</div>
+            <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}><ThemeToggle size={34} /></div>
+                {children}
+            </div>
         </div>
     );
 }

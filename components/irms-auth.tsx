@@ -1,6 +1,7 @@
 import React from 'react';
 import { toast } from 'sonner';
 import { IRMSLogo, Icon } from './irms-shared';
+import { ThemeToggle } from './ThemeToggle';
 import { agencySignup, agencyLogin } from '@/lib/auth-api';
 import { useIsMobile } from '@/hooks/use-media-query';
 
@@ -207,8 +208,11 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
         <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <Icon.back style={{ width: 16, height: 16 }} /> Back to home
         </button>
-        <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-          Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
+            Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
+          </div>
+          <ThemeToggle size={34} />
         </div>
       </div>
 
@@ -351,8 +355,11 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
         <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <Icon.back style={{ width: 16, height: 16 }} /> Back to home
         </button>
-        <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-          New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>Register here</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
+            New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>Register here</button>
+          </div>
+          <ThemeToggle size={34} />
         </div>
       </div>
 

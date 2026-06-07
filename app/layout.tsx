@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { Toaster } from "sonner";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/hooks/use-theme";
+import { ThemedToaster } from "@/components/ThemedToaster";
 
 export const metadata: Metadata = {
   title: "IRMS · Incident Response Management System",
@@ -24,10 +26,17 @@ export default function RootLayout({
     <html
       lang="en"
       className="h-full antialiased"
+      suppressHydrationWarning
     >
+      <head>
+        {/* Set theme class before first paint to prevent flash-of-wrong-theme */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
-        <Toaster position="bottom-right" richColors />
-        {children}
+        <ThemeProvider>
+          <ThemedToaster />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
