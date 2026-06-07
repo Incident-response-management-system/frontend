@@ -11,6 +11,7 @@ import {
   GhostButton,
   getIncidentType,
 } from './irms-shared';
+import { submitReport } from '@/lib/incidents-api';
 
 let L: any;
 if (typeof window !== 'undefined') {
@@ -38,7 +39,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       }}>
         <span>A civic emergency reporting service · Pilot deployment, Ogun State</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }}/>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }} />
           Services operational
         </span>
       </div>
@@ -72,7 +73,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
               <button onClick={() => navigate('citizen-signup')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', background: 'none', border: 'none', cursor: 'pointer' }}>Create account</button>
             </>
           )}
-          <div style={{ width: 1, height: 20, background: 'var(--brand-hairline)', margin: '0 12px' }}/>
+          <div style={{ width: 1, height: 20, background: 'var(--brand-hairline)', margin: '0 12px' }} />
           <button onClick={() => navigate('agency-login')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>For agencies</button>
         </div>
       </nav>
@@ -85,8 +86,8 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
               Incident Response Management System
             </div>
             <h1 style={{
-              fontSize: 'clamp(36px, 4.5vw, 56px)', lineHeight: 1.05, fontWeight: 700,
-              letterSpacing: '-0.025em', margin: '0 0 20px', textWrap: 'balance',
+              fontFamily: 'var(--font-serif)', fontSize: 'clamp(38px, 5vw, 64px)', lineHeight: 1.05, fontWeight: 600,
+              letterSpacing: '-0.01em', margin: '0 0 20px', color: 'var(--brand-ink)'
             }}>
               Report emergencies and reach the right responders.
             </h1>
@@ -108,7 +109,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
             </div>
           </div>
 
-          {/* Right column: incident type reference (utility, not decoration) */}
+          {/* Right column: incident type reference */}
           <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--brand-hairline)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)', letterSpacing: '0.02em' }}>What can I report?</div>
@@ -138,13 +139,13 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
         </div>
       </section>
 
-      {/* HOW IT WORKS — terse, informational */}
+      {/* HOW IT WORKS */}
       <section style={{ padding: '80px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 32, marginBottom: 56 }}>
             <div style={{ maxWidth: 640 }}>
               <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 14 }}>How it works</div>
-              <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 14px', lineHeight: 1.1 }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 40, fontWeight: 600, letterSpacing: '-0.01em', margin: '0 0 14px', lineHeight: 1.15, color: 'var(--brand-ink)' }}>
                 A short, structured report. Faster than a phone call.
               </h2>
               <p style={{ fontSize: 15, color: 'var(--brand-muted)', lineHeight: 1.6, margin: 0, maxWidth: 560 }}>
@@ -152,7 +153,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
               </p>
             </div>
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }}/>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }} />
               Median report → assigned: 4 min 12 s
             </div>
           </div>
@@ -176,7 +177,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)',
                   }}>{s.num}</div>
-                  <div style={{ flex: 1, height: 1, background: 'var(--brand-hairline)' }}/>
+                  <div style={{ flex: 1, height: 1, background: 'var(--brand-hairline)' }} />
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>{s.title}</div>
                 <p style={{ fontSize: 14, color: 'var(--brand-muted)', lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
@@ -186,7 +187,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
         </div>
       </section>
 
-      {/* RESPONDERS / COVERAGE — replaces vanity stats */}
+      {/* COVERAGE */}
       <section style={{ padding: '64px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'flex-start' }}>
           <div>
@@ -203,7 +204,6 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
             }}>Are you a responder? Apply to join →</button>
           </div>
 
-          {/* Responder categories — factual list */}
           <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-surface-alt)', borderRadius: 10 }}>
             {[
               { cat: 'Police service', count: '6 agencies', ex: 'Nigeria Police, RCCG Camp Security' },
@@ -227,7 +227,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
         </div>
       </section>
 
-      {/* PRIVACY / TRUST — civic platforms always include this */}
+      {/* PRIVACY */}
       <section style={{ padding: '80px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 32, marginBottom: 56 }}>
@@ -237,11 +237,11 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
                 What we collect, and what we don't.
               </h2>
               <p style={{ fontSize: 15, color: 'var(--brand-muted)', lineHeight: 1.6, margin: 0, maxWidth: 560 }}>
-                IRMS is a civic service, not a data product. We collect the minimum needed to dispatch responders — and never more. Your identity is never required to file a report.
+                IRMS is a civic service, not a data product. We collect the minimum needed to dispatch responders — and never more.
               </p>
             </div>
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }}/>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }} />
               NDPR compliant · Reviewed Mar 2026
             </div>
           </div>
@@ -259,7 +259,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
               },
               {
                 kind: 'dont',
-                label: 'What we don\'t collect',
+                label: "What we don't collect",
                 items: [
                   { t: 'Your name or identity', d: 'Reports are anonymous to the public and to responding agencies.' },
                   { t: 'Your contact details', d: 'We never share your phone or email with the public.' },
@@ -280,7 +280,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
                       fontSize: 16, fontWeight: 700, lineHeight: 1,
                     }}>{isDo ? '+' : '−'}</div>
                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--brand-ink)' }}>{col.label}</div>
-                    <div style={{ flex: 1, height: 1, background: 'var(--brand-hairline)', marginLeft: 8 }}/>
+                    <div style={{ flex: 1, height: 1, background: 'var(--brand-hairline)', marginLeft: 8 }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {col.items.map((item, i) => (
@@ -300,7 +300,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
         </div>
       </section>
 
-      {/* AGENCY CTA — quieter */}
+      {/* AGENCY CTA */}
       <section style={{ padding: '48px 48px', background: 'var(--brand-white)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
           <div>
@@ -315,7 +315,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
         </div>
       </section>
 
-      {/* FOOTER — formal */}
+      {/* FOOTER */}
       <footer style={{ padding: '40px 48px 32px', background: 'var(--brand-surface-alt)', borderTop: '1px solid var(--brand-hairline)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 32, flexWrap: 'wrap' }}>
           <div style={{ maxWidth: 360 }}>
@@ -374,9 +374,11 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [selectedType, setSelectedType] = React.useState<any>(null);
   const [description, setDescription] = React.useState('');
+  const [attachments, setAttachments] = React.useState<File[]>([]);
   const [trackReport, setTrackReport] = React.useState(true);
   const [submitted, setSubmitted] = React.useState(false);
-  const [refCode] = React.useState('INC-2026-00149');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [refCode, setRefCode] = React.useState('INC-2026-00149');
 
   const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -384,7 +386,6 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
   React.useEffect(() => {
     if (!mapRef.current || mapInstance.current || !L) return;
-    // Redemption Camp coords
     const map = L.map(mapRef.current, { zoomControl: false }).setView([6.8932, 3.1721], 15);
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -415,7 +416,6 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
       setSubmitted(false);
     });
 
-    // Pre-existing markers around the camp
     [
       { lat: 6.8945, lng: 3.1733, s: 'received' },
       { lat: 6.8901, lng: 3.1689, s: 'review' },
@@ -433,7 +433,6 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
     return () => { map.remove(); mapInstance.current = null; };
   }, []);
 
-  // Update map layer dynamically
   React.useEffect(() => {
     if (!mapInstance.current || !L || !tileLayerRef.current) return;
     const map = mapInstance.current;
@@ -555,12 +554,34 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
     }
   };
 
-  const closeSheet = () => { setSheetOpen(false); setSubmitted(false); setSelectedType(null); setDescription(''); };
+  const closeSheet = () => {
+    setSheetOpen(false);
+    setSubmitted(false);
+    setSelectedType(null);
+    setDescription('');
+    setAttachments([]);
+  };
 
-  const submitReport = () => {
-    if (!selectedType) return;
-    setSubmitted(true);
-    toast.success(`Incident ${refCode} has been reported successfully!`);
+  const handleSubmitReport = async () => {
+    if (!selectedType || !pinLocation) return;
+    setSubmitting(true);
+    try {
+      const result = await submitReport({
+        incidentType: selectedType,
+        description,
+        lat: pinLocation.lat,
+        lng: pinLocation.lng,
+        attachments,
+        trackReport,
+      });
+      setRefCode(result.ref);
+      setSubmitted(true);
+      toast.success(`Incident ${result.ref} reported successfully!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Submission failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -609,12 +630,11 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
         </button>
       </form>
 
-      {/* Floating Map Actions (Layers Control & Geolocation Target) */}
+      {/* Floating Map Actions */}
       <div style={{
         position: 'absolute', bottom: 24, right: 24, zIndex: 1000,
         display: 'flex', flexDirection: 'column', gap: 10
       }}>
-        {/* Layer toggle button */}
         <button
           onClick={() => setLayerType(l => l === 'satellite' ? 'streets' : 'satellite')}
           className="irms-map-control-btn"
@@ -622,13 +642,12 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
           type="button"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-            <polyline points="2 17 12 22 22 17"/>
-            <polyline points="2 12 12 17 22 12"/>
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
           </svg>
         </button>
 
-        {/* Geolocation button */}
         <button
           onClick={locateUser}
           className="irms-map-control-btn"
@@ -637,12 +656,12 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
           style={{ background: 'var(--status-blue)', color: 'white', borderColor: 'var(--status-blue-bd)' }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <circle cx="12" cy="12" r="3"/>
-            <line x1="12" y1="1" x2="12" y2="3"/>
-            <line x1="12" y1="21" x2="12" y2="23"/>
-            <line x1="1" y1="12" x2="3" y2="12"/>
-            <line x1="21" y1="12" x2="23" y2="12"/>
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
           </svg>
         </button>
       </div>
@@ -662,7 +681,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
             { c: 'var(--status-green)', l: 'Resolved' },
           ].map(x => (
             <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'white' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: x.c, border: '2px solid white' }}/>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: x.c, border: '2px solid white' }} />
               {x.l}
             </div>
           ))}
@@ -675,7 +694,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
           <div onClick={closeSheet} style={{
             position: 'absolute', inset: 0, background: 'rgba(20, 18, 14, 0.32)', backdropFilter: 'blur(2px)',
             zIndex: 1500, animation: 'fadeIn 0.2s ease-out',
-          }}/>
+          }} />
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1600,
             background: 'var(--brand-white)', borderTop: '1px solid var(--brand-divider)',
@@ -690,10 +709,13 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
                 setSelectedType={setSelectedType}
                 description={description}
                 setDescription={setDescription}
+                attachments={attachments}
+                setAttachments={setAttachments}
                 trackReport={trackReport}
                 setTrackReport={setTrackReport}
                 onClose={closeSheet}
-                onSubmit={submitReport}
+                onSubmit={handleSubmitReport}
+                submitting={submitting}
               />
             ) : (
               <ReportSuccess refCode={refCode} pinLocation={pinLocation} trackReport={trackReport} onClose={closeSheet} navigate={navigate} />
@@ -705,17 +727,53 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
   );
 }
 
-function ReportForm({ pinLocation, selectedType, setSelectedType, description, setDescription, trackReport, setTrackReport, onClose, onSubmit }: any) {
-  const [media, setMedia] = React.useState([
-    { id: 1, color: 'oklch(0.45 0.12 30)' },
-    { id: 2, color: 'oklch(0.38 0.10 60)' },
-  ]);
+// ─── Description hints per type ────────────────────────────────
+
+const TYPE_DESCRIPTION_HINTS: Record<string, string> = {
+  rta: 'e.g. Two vehicles collided near the gate. One overturned. Injuries visible. Approx. 5 passengers.',
+  missing: 'e.g. 7-year-old boy, blue striped shirt, last seen near the food court at 14:20.',
+  civil: 'e.g. Large crowd gathering at Gate 2. Arguments reported. No weapons seen yet.',
+  medical: 'e.g. Elderly woman collapsed near Auditorium 3. Conscious but unresponsive. Crowd gathered.',
+  flood: 'e.g. Water overflowing drainage channel B, blocking the pedestrian pathway.',
+  fire: 'e.g. Smoke visible from Kitchen Block C. No flames yet. Residents evacuating.',
+};
+
+// ─── Report Form ────────────────────────────────────────────
+
+function ReportForm({ pinLocation, selectedType, setSelectedType, description, setDescription, attachments, setAttachments, trackReport, setTrackReport, onClose, onSubmit, submitting }: any) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const MAX_CHARS = 500;
+  const charCount = description.length;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const MAX_FILES = 6;
+    const remaining = MAX_FILES - attachments.length;
+    if (files.length > remaining) {
+      toast.error(`You can attach up to ${MAX_FILES} files. ${MAX_FILES - attachments.length} slots remaining.`);
+      return;
+    }
+    const invalid = files.filter(f => f.size > 20 * 1024 * 1024);
+    if (invalid.length) {
+      toast.error('Some files exceed the 20 MB limit and were skipped.');
+    }
+    const valid = files.filter(f => f.size <= 20 * 1024 * 1024);
+    setAttachments((prev: File[]) => [...prev, ...valid].slice(0, MAX_FILES));
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (idx: number) => {
+    setAttachments((prev: File[]) => prev.filter((_: File, i: number) => i !== idx));
+  };
+
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 28px 32px' }}>
       {/* Drag handle */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--brand-muted)' }}/>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--brand-hairline)' }} />
       </div>
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
@@ -723,9 +781,9 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
             <Icon.pin style={{ color: 'var(--status-red)', width: 16, height: 16 }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--status-red)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Pinned location</span>
           </div>
-          <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>Near Redemption Camp Main Gate</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 600, marginBottom: 4, letterSpacing: '0.01em' }}>Near Redemption Camp Main Gate</div>
           <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--brand-muted)' }}>
-            {pinLocation ? `${pinLocation.lat.toFixed(4)}° N · ${pinLocation.lng.toFixed(4)}° E` : '6.8932° N · 3.1721° E'} · OGUN STATE
+            {pinLocation ? `${pinLocation.lat.toFixed(5)}° N · ${pinLocation.lng.toFixed(5)}° E` : '6.89320° N · 3.17210° E'} · OGUN STATE
           </div>
         </div>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--brand-divider)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer' }}>
@@ -733,23 +791,55 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
         </button>
       </div>
 
-      {/* Type selector */}
+      {/* Incident Type Selector Grid */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 12 }}>What is happening?</label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <label style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 12 }}>
+          What is happening? <span style={{ color: 'var(--status-red)', marginLeft: 2 }}>*</span>
+        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {INCIDENT_TYPES.map(t => {
             const selected = selectedType === t.id;
             return (
-              <button key={t.id} onClick={() => setSelectedType(t.id)} style={{
-                padding: '16px 12px', borderRadius: 12,
-                background: selected ? 'var(--status-red-bg)' : 'var(--brand-cream)',
-                border: selected ? '1.5px solid var(--status-red)' : '1px solid var(--brand-divider)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                color: selected ? 'var(--status-red)' : 'var(--brand-ink)',
-                transition: 'all 0.15s', cursor: 'pointer',
-              }}>
-                <t.icon />
-                <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>{t.label}</span>
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSelectedType(selected ? null : t.id)}
+                style={{
+                  padding: '16px 10px 14px', borderRadius: 12,
+                  background: selected ? 'var(--status-red-bg)' : 'var(--brand-cream)',
+                  border: selected ? '2px solid var(--status-red)' : '1.5px solid var(--brand-divider)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9,
+                  color: selected ? 'var(--status-red)' : 'var(--brand-ink)',
+                  transition: 'all 0.18s cubic-bezier(.2,.8,.2,1)',
+                  cursor: 'pointer',
+                  boxShadow: selected ? '0 0 0 3px rgba(200, 70, 60, 0.12)' : '0 1px 2px rgba(40,35,20,0.04)',
+                  transform: selected ? 'scale(1.02)' : 'scale(1)',
+                }}
+                onMouseEnter={e => {
+                  if (!selected) {
+                    e.currentTarget.style.background = 'var(--brand-white)';
+                    e.currentTarget.style.borderColor = 'var(--brand-muted)';
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!selected) {
+                    e.currentTarget.style.background = 'var(--brand-cream)';
+                    e.currentTarget.style.borderColor = 'var(--brand-divider)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }
+                }}
+              >
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: selected ? 'rgba(200, 70, 60, 0.1)' : 'var(--brand-white)',
+                  border: `1px solid ${selected ? 'var(--status-red-bd)' : 'var(--brand-hairline)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.18s',
+                }}>
+                  <t.icon style={{ width: 20, height: 20 }} />
+                </div>
+                <span style={{ fontSize: 11.5, fontWeight: 600, textAlign: 'center', lineHeight: 1.25 }}>{t.label}</span>
               </button>
             );
           })}
@@ -758,51 +848,89 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
 
       {/* Description */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 8 }}>Describe the incident</label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <label style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)' }}>
+            Describe the incident
+          </label>
+          <span style={{
+            fontSize: 11, fontFamily: 'var(--font-mono)',
+            color: charCount > MAX_CHARS * 0.9 ? 'var(--status-red)' : 'var(--brand-muted)',
+          }}>
+            {charCount}/{MAX_CHARS}
+          </span>
+        </div>
         <textarea
           value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="Describe what you are seeing right now — be as specific as possible. Mention injuries, vehicles, landmarks."
+          onChange={e => setDescription(e.target.value.slice(0, MAX_CHARS))}
+          placeholder={selectedType && TYPE_DESCRIPTION_HINTS[selectedType]
+            ? TYPE_DESCRIPTION_HINTS[selectedType]
+            : 'Describe what you are seeing right now — be as specific as possible. Mention injuries, vehicles, landmarks.'}
           style={{
-            width: '100%', minHeight: 120, padding: 14, borderRadius: 10,
-            background: 'var(--brand-cream)', border: '1px solid var(--brand-divider)',
-            color: 'var(--brand-ink)', fontSize: 14, lineHeight: 1.55, resize: 'vertical',
-            fontFamily: 'inherit', outline: 'none',
+            width: '100%', minHeight: 110, padding: '13px 14px', borderRadius: 10,
+            background: 'var(--brand-cream)', border: '1.5px solid var(--brand-divider)',
+            color: 'var(--brand-ink)', fontSize: 14, lineHeight: 1.6, resize: 'vertical',
+            fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+            transition: 'border-color 0.15s',
           }}
           onFocus={e => e.target.style.borderColor = 'var(--status-red)'}
           onBlur={e => e.target.style.borderColor = 'var(--brand-divider)'}
         />
+        {/* Progress bar */}
+        <div style={{ height: 2, background: 'var(--brand-hairline)', borderRadius: 1, marginTop: 6, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            width: `${(charCount / MAX_CHARS) * 100}%`,
+            background: charCount > MAX_CHARS * 0.9 ? 'var(--status-red)' : charCount > MAX_CHARS * 0.6 ? 'var(--status-amber)' : 'var(--status-green)',
+            borderRadius: 1,
+            transition: 'width 0.2s, background 0.3s',
+          }} />
+        </div>
       </div>
 
-      {/* Media upload */}
+      {/* File Upload */}
       <div style={{ marginBottom: 24 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 8 }}>
-          Photos or videos <span style={{ color: 'var(--brand-muted)', fontWeight: 400 }}>(optional)</span>
+        <label style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 8 }}>
+          Photos or videos <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--brand-muted)', fontWeight: 400 }}>(optional · max 6 files · 20 MB each)</span>
         </label>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {media.map(m => (
-            <div key={m.id} style={{
-              width: 80, height: 80, borderRadius: 10, position: 'relative',
-              background: `linear-gradient(135deg, ${m.color}, var(--brand-hairline))`,
-              border: '1px solid var(--brand-divider)', overflow: 'hidden',
-            }}>
-              <button onClick={() => setMedia(media.filter(x => x.id !== m.id))} style={{
-                position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%',
-                background: 'rgba(20, 18, 14, 0.75)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: 'none', cursor: 'pointer'
-              }}><Icon.close style={{ width: 14, height: 14 }} /></button>
-            </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {attachments.map((file: File, idx: number) => (
+            <AttachmentPreview key={`${file.name}-${idx}`} file={file} onRemove={() => removeAttachment(idx)} />
           ))}
-          <button style={{
-            width: 80, height: 80, borderRadius: 10,
-            border: '1.5px dashed var(--brand-muted)', background: 'transparent',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-            color: 'var(--brand-muted)', cursor: 'pointer'
-          }}>
-            <Icon.upload style={{ width: 18, height: 18 }} />
-            <span style={{ fontSize: 11, fontWeight: 500 }}>Attach</span>
-          </button>
+          {attachments.length < 6 && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                width: 80, height: 80, borderRadius: 10,
+                border: '2px dashed var(--brand-muted)', background: 'transparent',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5,
+                color: 'var(--brand-muted)', cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--brand-ink)';
+                e.currentTarget.style.color = 'var(--brand-ink)';
+                e.currentTarget.style.background = 'var(--brand-cream)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--brand-muted)';
+                e.currentTarget.style.color = 'var(--brand-muted)';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <Icon.upload style={{ width: 18, height: 18 }} />
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.02em' }}>ATTACH</span>
+            </button>
+          )}
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+        />
       </div>
 
       {/* Track toggle */}
@@ -813,78 +941,289 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--brand-ink)' }}>Track this report</div>
-            <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>We'll give you a link to check status in this browser.</div>
+            <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>We'll give you a reference code to check status in this browser.</div>
           </div>
-          <button onClick={() => setTrackReport(!trackReport)} style={{
-            width: 42, height: 24, borderRadius: 12,
-            background: trackReport ? 'var(--brand-ink)' : 'var(--brand-muted)',
-            position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-            border: 'none', cursor: 'pointer'
-          }}>
+          <button
+            type="button"
+            onClick={() => setTrackReport(!trackReport)}
+            style={{
+              width: 44, height: 24, borderRadius: 12,
+              background: trackReport ? 'var(--brand-ink)' : 'var(--brand-divider)',
+              position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              border: 'none', cursor: 'pointer'
+            }}>
             <div style={{
-              position: 'absolute', top: 2, left: trackReport ? 20 : 2,
+              position: 'absolute', top: 2, left: trackReport ? 22 : 2,
               width: 20, height: 20, borderRadius: '50%', background: 'white',
               transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(40,35,20,0.2)',
-            }}/>
+            }} />
           </button>
         </div>
       </div>
 
       {/* Submit */}
-      <PrimaryButton onClick={onSubmit} full size="lg" style={{
-        opacity: selectedType ? 1 : 0.5, pointerEvents: selectedType ? 'auto' : 'none',
-      }}>
-        Submit Report
-      </PrimaryButton>
-      <div style={{ fontSize: 11, color: 'var(--brand-muted)', textAlign: 'center', marginTop: 12 }}>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={!selectedType || submitting}
+        style={{
+          width: '100%', padding: '14px 24px', borderRadius: 9,
+          background: (!selectedType || submitting) ? 'var(--brand-muted)' : 'var(--status-red)',
+          color: 'white', fontWeight: 600, fontSize: 15, border: 'none',
+          cursor: (!selectedType || submitting) ? 'not-allowed' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          transition: 'background 0.2s, transform 0.1s',
+          transform: 'scale(1)',
+          letterSpacing: '0.005em',
+        }}
+        onMouseEnter={e => { if (selectedType && !submitting) e.currentTarget.style.background = '#B23B33'; }}
+        onMouseLeave={e => { if (selectedType && !submitting) e.currentTarget.style.background = 'var(--status-red)'; }}
+        onMouseDown={e => { if (selectedType && !submitting) e.currentTarget.style.transform = 'scale(0.98)'; }}
+        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        {submitting ? (
+          <>
+            <Spinner />
+            Submitting report…
+          </>
+        ) : (
+          <>Submit Report</>
+        )}
+      </button>
+
+      {!selectedType && (
+        <div style={{ fontSize: 12, color: 'var(--brand-muted)', textAlign: 'center', marginTop: 8 }}>
+          Select an incident type above to continue
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: 'var(--brand-muted)', textAlign: 'center', marginTop: 10 }}>
         By submitting you confirm this is a genuine incident. False reports are an offense.
       </div>
     </div>
   );
 }
 
+// ─── Attachment Preview ─────────────────────────────────────
+
+function AttachmentPreview({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const [preview, setPreview] = React.useState<string | null>(null);
+  const isImage = file.type.startsWith('image/');
+  const isVideo = file.type.startsWith('video/');
+
+  React.useEffect(() => {
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = e => setPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+    return () => setPreview(null);
+  }, [file]);
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div style={{
+      width: 80, height: 80, borderRadius: 10, position: 'relative',
+      border: '1px solid var(--brand-divider)', overflow: 'hidden',
+      background: 'var(--brand-cream)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {isImage && preview ? (
+        <img
+          src={preview}
+          alt={file.name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      ) : isVideo ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 4 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand-muted)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.723v6.554a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z" />
+          </svg>
+          <span style={{ fontSize: 9, color: 'var(--brand-muted)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>{formatSize(file.size)}</span>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 4 }}>
+          <Icon.upload style={{ width: 20, height: 20, color: 'var(--brand-muted)' }} />
+          <span style={{ fontSize: 9, color: 'var(--brand-muted)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>{formatSize(file.size)}</span>
+        </div>
+      )}
+      {/* Remove button */}
+      <button
+        type="button"
+        onClick={onRemove}
+        style={{
+          position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%',
+          background: 'rgba(20, 18, 14, 0.8)', color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: 'none', cursor: 'pointer', padding: 0,
+        }}
+      >
+        <Icon.close style={{ width: 12, height: 12 }} />
+      </button>
+      {/* File name tooltip on hover */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: 'rgba(20, 18, 14, 0.75)', backdropFilter: 'blur(4px)',
+        padding: '3px 5px', fontSize: 9, color: 'white', fontWeight: 500,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {file.name.length > 10 ? file.name.slice(0, 8) + '…' : file.name}
+      </div>
+    </div>
+  );
+}
+
+// ─── Spinner ────────────────────────────────────────────────
+
+function Spinner() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ─── Report Success ─────────────────────────────────────────
+
 function ReportSuccess({ refCode, pinLocation, trackReport, onClose, navigate }: any) {
+  const [copied, setCopied] = React.useState(false);
+
   const handleCopy = () => {
     if (typeof navigator !== 'undefined') {
-      navigator.clipboard.writeText(refCode);
-      toast.success('Reference code copied to clipboard!');
+      navigator.clipboard.writeText(refCode).then(() => {
+        setCopied(true);
+        toast.success('Reference code copied to clipboard!');
+        setTimeout(() => setCopied(false), 2500);
+      });
     }
   };
+
+  const handleShare = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'IRMS Incident Report',
+          text: `I submitted an incident report to IRMS. Reference: ${refCode}. Track it at irms.ng`,
+          url: window.location.origin + '/track?ref=' + refCode,
+        });
+      } catch (_) {
+        // user cancelled share
+      }
+    } else {
+      handleCopy();
+    }
+  };
+
   return (
-    <div style={{ maxWidth: 540, margin: '0 auto', padding: '40px 28px 32px', textAlign: 'center', animation: 'fadeIn 0.4s ease-out' }}>
+    <div style={{ maxWidth: 540, margin: '0 auto', padding: '40px 28px 36px', textAlign: 'center', animation: 'fadeIn 0.4s ease-out' }}>
+      {/* Animated success icon */}
       <div style={{
-        width: 72, height: 72, borderRadius: '50%',
+        width: 80, height: 80, borderRadius: '50%',
         background: 'var(--status-green-bg)', border: '2px solid var(--status-green-bd)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto 24px', color: 'var(--status-green)',
         animation: 'scaleIn 0.4s ease-out 0.1s both',
       }}>
-        <Icon.check style={{ width: 36, height: 36 }} />
+        <Icon.check style={{ width: 40, height: 40 }} />
       </div>
-      <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 10px' }}>Report submitted</h2>
-      <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: '0 0 28px', lineHeight: 1.6 }}>
-        Verified agencies covering this location have been notified. You can track this report at any time using the reference below.
+
+      <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 10px' }}>Report submitted</h2>
+      <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: '0 0 8px', lineHeight: 1.6 }}>
+        Verified agencies covering this location have been notified.
       </p>
-      <div
-        onClick={handleCopy}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 18px',
-          borderRadius: 999, background: 'var(--brand-cream)', border: '1px solid var(--brand-divider)',
-          marginBottom: 32, cursor: 'pointer',
-        }}
-      >
-        <span style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em' }}>REFERENCE</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600, color: 'var(--brand-ink)' }}>{refCode}</span>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: 'var(--status-green-bg)', border: '1px solid var(--status-green-bd)', marginBottom: 28 }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }} />
+        <span style={{ fontSize: 12, color: 'var(--status-green)', fontWeight: 600 }}>Estimated response: ~4 minutes</span>
       </div>
-      <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
+
+      {/* Reference code */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Your reference code</div>
+        <div
+          onClick={handleCopy}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 12, padding: '12px 20px',
+            borderRadius: 999, background: 'var(--brand-cream)', border: `2px solid ${copied ? 'var(--status-green)' : 'var(--brand-divider)'}`,
+            cursor: 'pointer', transition: 'border-color 0.2s',
+          }}
+        >
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 700, color: 'var(--brand-ink)', letterSpacing: '0.04em' }}>{refCode}</span>
+          <span style={{
+            display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+            color: copied ? 'var(--status-green)' : 'var(--brand-muted)', fontWeight: 600,
+            transition: 'color 0.2s',
+          }}>
+            {copied ? <Icon.check style={{ width: 14, height: 14 }} /> : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            )}
+            {copied ? 'Copied!' : 'Copy'}
+          </span>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 8, lineHeight: 1.5 }}>
+          Save this code to track your report from any device.
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
         {trackReport && (
-          <PrimaryButton onClick={() => navigate('track', { ref: refCode })} full>
+          <button
+            type="button"
+            onClick={() => navigate('track', { ref: refCode })}
+            style={{
+              width: '100%', padding: '12px 20px', borderRadius: 9,
+              background: 'var(--status-red)', color: 'white',
+              fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#B23B33'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--status-red)'}
+          >
             View report status <Icon.arrow />
-          </PrimaryButton>
+          </button>
         )}
-        <GhostButton onClick={() => navigate('landing')} style={{ width: '100%', justifyContent: 'center' }} theme="light">
-          Back to home
-        </GhostButton>
+        <button
+          type="button"
+          onClick={handleShare}
+          style={{
+            width: '100%', padding: '11px 20px', borderRadius: 9,
+            background: 'var(--brand-white)', color: 'var(--brand-ink)',
+            fontWeight: 500, fontSize: 14, border: '1px solid var(--brand-divider)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-cream)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-white)'}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+          Share reference
+        </button>
+        <button
+          type="button"
+          onClick={() => { onClose(); }}
+          style={{
+            width: '100%', padding: '10px 20px', borderRadius: 9,
+            background: 'transparent', color: 'var(--brand-muted)',
+            fontWeight: 500, fontSize: 14, border: 'none', cursor: 'pointer',
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--brand-ink)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--brand-muted)'}
+        >
+          Report another incident
+        </button>
       </div>
     </div>
   );
@@ -977,7 +1316,7 @@ export function TrackScreen({ navigate, params }: any) {
           ].map((x, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: i < 2 ? '1px solid var(--brand-hairline)' : 'none' }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--brand-muted)', minWidth: 50 }}>{x.t}</span>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: x.c }}/>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: x.c }} />
               <span style={{ fontSize: 14, color: 'var(--brand-ink)' }}>{x.e}</span>
             </div>
           ))}
