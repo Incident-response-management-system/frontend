@@ -16,6 +16,7 @@ import {
 import { FormInput } from './irms-auth';
 import { apiFetch } from '@/lib/api-client';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
+import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
 let L: any;
 if (typeof window !== 'undefined') {
@@ -31,24 +32,51 @@ interface DashboardShellProps {
 
 export function DashboardShell({ navigate, currentTab, children, onTabChange }: DashboardShellProps) {
   const [collapsed, setCollapsed] = React.useState(false);
+  const isTablet = useIsTablet();
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  // In drawer mode (tablet/mobile) the sidebar is always shown expanded.
+  const drawerCollapsed = isTablet ? false : collapsed;
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Icon.grid },
     { id: 'map', label: 'Map View', icon: Icon.map },
     { id: 'reports', label: 'All Reports', icon: Icon.list },
     { id: 'settings', label: 'Settings', icon: Icon.settings },
   ];
+  const handleNav = (id: string) => { onTabChange(id); if (isTablet) setMobileOpen(false); };
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)' }}>
+      {/* Backdrop (drawer mode only) */}
+      {isTablet && mobileOpen && (
+        <div onClick={() => setMobileOpen(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(10,13,20,0.4)', zIndex: 1999,
+        }}/>
+      )}
+
+      {/* Fixed hamburger button (drawer mode, drawer closed) */}
+      {isTablet && !mobileOpen && (
+        <button onClick={() => setMobileOpen(true)} aria-label="Open menu" style={{
+          position: 'fixed', top: 14, left: 12, zIndex: 1500,
+          width: 40, height: 40, borderRadius: 10,
+          background: 'white', border: '1px solid var(--brand-hairline)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--brand-ink)', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+      )}
+
       {/* SIDEBAR */}
       <aside style={{
-        width: collapsed ? 72 : 248, flexShrink: 0,
+        width: isTablet ? 248 : (collapsed ? 72 : 248), flexShrink: 0,
         background: 'white', borderRight: '1px solid var(--brand-hairline)',
         display: 'flex', flexDirection: 'column',
-        transition: 'width 0.2s ease',
-        position: 'sticky', top: 0, height: '100vh', zIndex: 100,
+        transition: isTablet ? 'transform 0.25s ease' : 'width 0.2s ease',
+        ...(isTablet
+          ? { position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 2000, transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)' }
+          : { position: 'sticky', top: 0, height: '100vh', zIndex: 100 }),
       }}>
-        <div style={{ padding: collapsed ? '20px 16px' : '20px 20px', borderBottom: '1px solid var(--brand-hairline)' }}>
-          {collapsed ? (
+        <div style={{ padding: drawerCollapsed ? '20px 16px' : '20px 20px', borderBottom: '1px solid var(--brand-hairline)' }}>
+          {drawerCollapsed ? (
             <div style={{ cursor: 'pointer' }} onClick={() => setCollapsed(false)}>
               <IRMSMark size={28} />
             </div>
@@ -58,15 +86,15 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
                 <IRMSMark size={24} />
                 <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.01em' }}>IRMS</span>
               </div>
-              <button onClick={() => setCollapsed(true)} style={{ color: 'var(--brand-muted)', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
-                <Icon.back style={{ width: 16, height: 16 }} />
+              <button onClick={() => isTablet ? setMobileOpen(false) : setCollapsed(true)} style={{ color: 'var(--brand-muted)', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
+                {isTablet ? <Icon.close style={{ width: 16, height: 16 }} /> : <Icon.back style={{ width: 16, height: 16 }} />}
               </button>
             </div>
           )}
         </div>
 
         {/* Agency badge */}
-        {!collapsed && (
+        {!drawerCollapsed && (
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--brand-hairline)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
@@ -88,21 +116,21 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
           {navItems.map(item => {
             const active = currentTab === item.id;
             return (
-              <button key={item.id} onClick={() => onTabChange(item.id)} style={{
+              <button key={item.id} onClick={() => handleNav(item.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                padding: collapsed ? '11px 12px' : '11px 14px', borderRadius: 9,
+                padding: drawerCollapsed ? '11px 12px' : '11px 14px', borderRadius: 9,
                 background: active ? 'var(--status-red-bg)' : 'transparent',
                 color: active ? 'var(--status-red)' : 'var(--brand-ink)',
                 fontWeight: active ? 600 : 500, fontSize: 14, border: 'none', cursor: 'pointer',
-                transition: 'all 0.15s', justifyContent: collapsed ? 'center' : 'flex-start',
+                transition: 'all 0.15s', justifyContent: drawerCollapsed ? 'center' : 'flex-start',
                 position: 'relative',
               }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--brand-surface-alt)'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
               >
                 <item.icon />
-                {!collapsed && <span>{item.label}</span>}
-                {active && !collapsed && <div style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: 3, background: 'var(--status-red)' }}/>}
+                {!drawerCollapsed && <span>{item.label}</span>}
+                {active && !drawerCollapsed && <div style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: 3, background: 'var(--status-red)' }}/>}
               </button>
             );
           })}
@@ -110,22 +138,22 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
 
         {/* Logout */}
         <div style={{ padding: 12, borderTop: '1px solid var(--brand-hairline)' }}>
-          {collapsed && (
+          {drawerCollapsed && (
             <button onClick={() => setCollapsed(false)} style={{
               width: '100%', padding: '11px 12px', borderRadius: 9,
               display: 'flex', justifyContent: 'center', color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer'
             }}><Icon.chev /></button>
           )}
-          <button onClick={() => navigate('landing')} style={{
+          <button onClick={() => { if (isTablet) setMobileOpen(false); navigate('landing'); }} style={{
             display: 'flex', alignItems: 'center', gap: 12,
-            padding: collapsed ? '11px 12px' : '11px 14px', borderRadius: 9, width: '100%',
+            padding: drawerCollapsed ? '11px 12px' : '11px 14px', borderRadius: 9, width: '100%',
             color: 'var(--brand-muted)', fontSize: 14, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer',
-            justifyContent: collapsed ? 'center' : 'flex-start',
+            justifyContent: drawerCollapsed ? 'center' : 'flex-start',
           }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-surface-alt)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <Icon.logout />{!collapsed && 'Logout'}
+            <Icon.logout />{!drawerCollapsed && 'Logout'}
           </button>
         </div>
       </aside>
@@ -146,13 +174,16 @@ interface DashTopBarProps {
 }
 
 export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const padding = isMobile ? '18px 16px 18px 56px' : (isTablet ? '20px 20px 20px 60px' : '24px 32px');
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '24px 32px', borderBottom: '1px solid var(--brand-hairline)', background: 'white',
+      padding, borderBottom: '1px solid var(--brand-hairline)', background: 'white',
     }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 4px' }}>{title}</h1>
+        <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 4px' }}>{title}</h1>
         {subtitle && <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>{subtitle}</div>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -163,10 +194,12 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 12, borderLeft: '1px solid var(--brand-hairline)' }}>
           <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--brand-ink)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>AO</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>Adebayo Olamide</div>
-            <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>Dispatch Lead</div>
-          </div>
+          {!isMobile && (
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Adebayo Olamide</div>
+              <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>Dispatch Lead</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -177,6 +210,8 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
 // SCREEN 6 — OVERVIEW
 // -----------------------------------------------------------
 export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const [stats, setStats] = React.useState([
     { label: 'Total Incidents', value: incidents.length.toString(), delta: '+12 today', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
     { label: 'Open Incidents', value: incidents.filter(r => r.status !== 'resolved').length.toString(), delta: `${incidents.filter(r => r.status === 'received').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
@@ -233,9 +268,9 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
         actions={<GhostButton theme="light" size="sm"><Icon.filter /> Today</GhostButton>}
       />
 
-      <div style={{ padding: 32 }}>
+      <div style={{ padding: isMobile ? 16 : 32 }}>
         {/* Stat cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
           {stats.map((s, i) => (
             <div key={i} style={{
               background: 'white', border: `1px solid var(--brand-hairline)`,
@@ -245,7 +280,7 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <span style={{ fontSize: 12, color: 'var(--brand-muted)', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>{s.label}</span>
               </div>
-              <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, fontFamily: 'var(--font-mono)', color: 'var(--brand-ink)' }}>{s.value}</div>
+              <div style={{ fontSize: isMobile ? 28 : 36, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, fontFamily: 'var(--font-mono)', color: 'var(--brand-ink)' }}>{s.value}</div>
               <div style={{ fontSize: 12, color: s.color, marginTop: 8, fontWeight: 500 }}>{s.delta}</div>
             </div>
           ))}

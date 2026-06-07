@@ -10,6 +10,7 @@ import {
     IncidentStatus,
 } from './irms-shared';
 import { addCitizenNote } from '@/lib/incidents-api';
+import { useIsMobile } from '@/hooks/use-media-query';
 
 // -----------------------------------------------------------
 // SEEDED DEMO DATA — MY REPORTS
@@ -105,6 +106,7 @@ interface MyReportsScreenProps {
 // MY REPORTS SCREEN
 // ─────────────────────────────────────────────────────────────
 export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenProps) {
+    const isMobile = useIsMobile();
     const [tab, setTab] = React.useState('all');
     const [search, setSearch] = React.useState('');
     const [selected, setSelected] = React.useState<Incident | null>(null);
@@ -136,11 +138,11 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
             {/* Top bar */}
             <header style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '18px 32px', borderBottom: '1px solid var(--brand-hairline)',
+                padding: isMobile ? '14px 16px' : '18px 32px', borderBottom: '1px solid var(--brand-hairline)',
                 position: 'sticky', top: 0,
                 background: 'rgba(244, 242, 236, 0.88)', backdropFilter: 'blur(14px) saturate(140%)', zIndex: 50,
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 28 }}>
                     <button onClick={() => navigate('landing')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                         <IRMSLogo size={15} color="var(--brand-ink)" />
                     </button>
@@ -218,11 +220,11 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                 </div>
             </header>
 
-            <div style={{ maxWidth: 1120, margin: '0 auto', padding: '40px 32px 80px' }}>
+            <div style={{ maxWidth: 1120, margin: '0 auto', padding: isMobile ? '28px 16px 56px' : '40px 32px 80px' }}>
                 {/* Page header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32, gap: 24, flexWrap: 'wrap' }}>
                     <div>
-                        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 600, letterSpacing: '-0.01em', margin: '0 0 6px', color: 'var(--brand-ink)' }}>Your reports</h1>
+                        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: isMobile ? 26 : 36, fontWeight: 600, letterSpacing: '-0.01em', margin: '0 0 6px', color: 'var(--brand-ink)' }}>Your reports</h1>
                         <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: 0 }}>
                             Every incident you have submitted is listed below. Click any report to see full status, assigned agency, and activity.
                         </p>
@@ -244,7 +246,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
 
                 {/* Summary strip */}
                 <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0,
+                    display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 0,
                     background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12,
                     marginBottom: 24, overflow: 'hidden',
                 }}>
@@ -255,10 +257,14 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                         { l: 'Resolved', v: MY_REPORTS.filter(r => r.status === 'resolved').length, c: 'var(--status-green)' },
                     ].map((s, i) => (
                         <div key={i} style={{
-                            padding: '22px 24px', borderLeft: i > 0 ? '1px solid var(--brand-hairline)' : 'none',
+                            padding: isMobile ? '16px 14px' : '22px 24px',
+                            borderLeft: isMobile
+                                ? (i % 2 === 1 ? '1px solid var(--brand-hairline)' : 'none')
+                                : (i > 0 ? '1px solid var(--brand-hairline)' : 'none'),
+                            borderTop: isMobile && i >= 2 ? '1px solid var(--brand-hairline)' : 'none',
                         }}>
                             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{s.l}</div>
-                            <div style={{ fontSize: 30, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', color: s.c }}>{s.v}</div>
+                            <div style={{ fontSize: isMobile ? 24 : 30, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', color: s.c }}>{s.v}</div>
                         </div>
                     ))}
                 </div>
@@ -267,7 +273,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 0, flexWrap: 'wrap' }}>
                     {/* Search */}
                     <div style={{
-                        flex: 1, minWidth: 200,
+                        flex: 1, minWidth: isMobile ? 140 : 200,
                         display: 'flex', alignItems: 'center', gap: 8,
                         background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)',
                         borderRadius: 8, padding: '0 12px', height: 40,
@@ -362,7 +368,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                                 type="button"
                                 onClick={() => setSelected(r)}
                                 style={{
-                                    width: '100%', textAlign: 'left', padding: '16px 24px',
+                                    width: '100%', textAlign: 'left', padding: isMobile ? '14px 16px' : '16px 24px',
                                     borderBottom: idx < filtered.length - 1 ? '1px solid var(--brand-hairline)' : 'none',
                                     display: 'grid', gridTemplateColumns: '40px 1fr auto', gap: 16, alignItems: 'center',
                                     transition: 'background 0.1s', background: 'none', border: 'none', cursor: 'pointer',
@@ -395,7 +401,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                                     </div>
                                     <div style={{ fontSize: 13, color: 'var(--brand-muted)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                                         <Icon.pin style={{ width: 11, height: 11, color: 'var(--brand-muted)', flexShrink: 0 }} />
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>{r.location}</span>
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 150 : 240 }}>{r.location}</span>
                                         <span style={{ color: 'var(--brand-hairline)' }}>·</span>
                                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, whiteSpace: 'nowrap' }}>{r.reportedAt}</span>
                                         {r.assignedTo && (

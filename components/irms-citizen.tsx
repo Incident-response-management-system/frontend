@@ -147,7 +147,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 32, marginBottom: 56 }}>
             <div style={{ maxWidth: 640 }}>
               <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 14 }}>How it works</div>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 40, fontWeight: 600, letterSpacing: '-0.01em', margin: '0 0 14px', lineHeight: 1.15, color: 'var(--brand-ink)' }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: isMobile ? 28 : 40, fontWeight: 600, letterSpacing: '-0.01em', margin: '0 0 14px', lineHeight: 1.15, color: 'var(--brand-ink)' }}>
                 A short, structured report. Faster than a phone call.
               </h2>
               <p style={{ fontSize: 15, color: 'var(--brand-muted)', lineHeight: 1.6, margin: 0, maxWidth: 560 }}>
@@ -160,7 +160,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, background: 'var(--brand-hairline)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 1, background: 'var(--brand-hairline)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
             {[
               { num: '01', title: 'Pin the location', desc: 'Tap your spot on an interactive map of the camp and surrounding area. GPS auto-detects on mobile so the pin lands precisely.' },
               { num: '02', title: 'Describe and attach', desc: 'Pick the incident category. Add a short description and, if it is safe to do so, a photo or short video as evidence.' },
@@ -190,8 +190,8 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       </section>
 
       {/* COVERAGE */}
-      <section style={{ padding: '64px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'flex-start' }}>
+      <section style={{ padding: isMobile ? '48px 16px' : '64px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 32 : 64, alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>Coverage</div>
             <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 16px', lineHeight: 1.2 }}>
@@ -230,7 +230,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       </section>
 
       {/* PRIVACY */}
-      <section style={{ padding: '80px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
+      <section style={{ padding: isMobile ? '56px 16px' : '80px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 32, marginBottom: 56 }}>
             <div style={{ maxWidth: 640 }}>
@@ -248,7 +248,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, background: 'var(--brand-hairline)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 1, background: 'var(--brand-hairline)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
             {[
               {
                 kind: 'do',
@@ -303,7 +303,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       </section>
 
       {/* AGENCY CTA */}
-      <section style={{ padding: '48px 48px', background: 'var(--brand-white)' }}>
+      <section style={{ padding: isMobile ? '40px 16px' : '48px 48px', background: 'var(--brand-white)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>For agencies</div>
@@ -318,7 +318,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       </section>
 
       {/* FOOTER */}
-      <footer style={{ padding: '40px 48px 32px', background: 'var(--brand-surface-alt)', borderTop: '1px solid var(--brand-hairline)' }}>
+      <footer style={{ padding: isMobile ? '40px 16px 32px' : '40px 48px 32px', background: 'var(--brand-surface-alt)', borderTop: '1px solid var(--brand-hairline)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 32, flexWrap: 'wrap' }}>
           <div style={{ maxWidth: 360 }}>
             <IRMSLogo size={14} color="var(--brand-ink)" />
@@ -326,7 +326,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
               Incident Response Management System. A civic coordination platform for emergency reporting. Pilot deployment for Redemption Camp and Ogun State.
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: 56, fontSize: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, auto)', gap: isMobile ? 32 : 56, fontSize: 12 }}>
             <div>
               <div style={{ color: 'var(--brand-muted)', fontWeight: 600, marginBottom: 10, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: 10 }}>Service</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -365,6 +365,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 // SCREEN 2 — REPORT (interactive Leaflet map + bottom sheet)
 // -----------------------------------------------------------
 export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut'>) {
+  const isMobile = useIsMobile();
   const mapRef = React.useRef<HTMLDivElement>(null);
   const mapInstance = React.useRef<any>(null);
   const userMarker = React.useRef<any>(null);
@@ -592,7 +593,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 24px', background: 'rgba(244, 242, 236, 0.92)', backdropFilter: 'blur(14px) saturate(140%)',
+        padding: isMobile ? '12px 16px' : '14px 24px', background: 'rgba(244, 242, 236, 0.92)', backdropFilter: 'blur(14px) saturate(140%)',
         borderBottom: '1px solid var(--brand-hairline)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -605,7 +606,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>REDEMPTION CAMP · OGUN STATE · NIGERIA</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-divider)', borderRadius: 8 }}>
+        <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-divider)', borderRadius: 8 }}>
           <Icon.pin style={{ color: 'var(--brand-ink)', width: 14, height: 14 }} />
           <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--brand-ink)' }}>Click the map to place a pin</span>
         </div>
@@ -616,8 +617,8 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       {/* Floating Geosearch Bar */}
       <form onSubmit={handleSearch} className="irms-map-search-container" style={{
-        position: 'absolute', top: 84, right: 24, zIndex: 1000,
-        width: 320, maxWidth: 'calc(100vw - 48px)'
+        position: 'absolute', top: isMobile ? 72 : 84, left: isMobile ? 16 : undefined, right: isMobile ? 16 : 24, zIndex: 1000,
+        width: isMobile ? 'auto' : 320, maxWidth: 'calc(100vw - 48px)'
       }}>
         <input
           type="text"
@@ -743,6 +744,7 @@ const TYPE_DESCRIPTION_HINTS: Record<string, string> = {
 // ─── Report Form ────────────────────────────────────────────
 
 function ReportForm({ pinLocation, selectedType, setSelectedType, description, setDescription, attachments, setAttachments, trackReport, setTrackReport, onClose, onSubmit, submitting }: any) {
+  const isMobile = useIsMobile();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const MAX_CHARS = 500;
   const charCount = description.length;
