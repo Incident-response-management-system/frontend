@@ -289,8 +289,8 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
         {/* Activity feed + heatmap row */}
         <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.4fr 1fr', gap: 16, marginBottom: 32 }}>
           {/* Incident distribution */}
-          <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 16 : 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
               <div>
                 <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Incident distribution</h3>
                 <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Last 30 days · By type</div>
@@ -312,8 +312,8 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
                 const total = r.open + r.resolved;
                 const max = 42;
                 return (
-                  <div key={r.type} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 60px', gap: 12, alignItems: 'center' }}>
-                    <div style={{ fontSize: 13, color: 'var(--brand-ink)', fontWeight: 500 }}>{r.label}</div>
+                  <div key={r.type} style={{ display: 'grid', gridTemplateColumns: isMobile ? '80px 1fr 32px' : '140px 1fr 60px', gap: isMobile ? 8 : 12, alignItems: 'center' }}>
+                    <div style={{ fontSize: isMobile ? 11 : 13, color: 'var(--brand-ink)', fontWeight: 500 }}>{r.label}</div>
                     <div style={{ display: 'flex', height: 22, borderRadius: 4, overflow: 'hidden', background: 'var(--brand-cream)' }}>
                       <div style={{ width: `${(r.open / max) * 100}%`, background: 'var(--status-red)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6, fontSize: 10, fontWeight: 600, color: 'white' }}>{r.open}</div>
                       <div style={{ width: `${(r.resolved / max) * 100}%`, background: 'var(--status-green)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6, fontSize: 10, fontWeight: 600, color: 'white' }}>{r.resolved}</div>
@@ -326,7 +326,7 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
           </div>
 
           {/* Response times */}
-          <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: 24 }}>
+          <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 16 : 24 }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Response performance</h3>
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginBottom: 24 }}>This week</div>
             <div style={{ marginBottom: 24 }}>
@@ -379,6 +379,9 @@ interface IncidentsTableProps {
 }
 
 export function IncidentsTable({ rows, onView, showAssigned = false }: IncidentsTableProps) {
+  const isMobile = useIsMobile();
+  const cellPad = isMobile ? '12px 14px' : '14px 24px';
+  const headPad = isMobile ? '12px 14px' : '12px 24px';
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -386,7 +389,7 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
           <tr style={{ background: 'var(--brand-cream)', borderBottom: '1px solid var(--brand-hairline)' }}>
             {['Reference', 'Type', 'Location', 'Status', 'Reported', showAssigned && 'Assigned to', 'Action'].filter(Boolean).map(h => (
               <th key={h as string} style={{
-                padding: '12px 24px', textAlign: 'left', fontSize: 11, fontWeight: 600,
+                padding: headPad, textAlign: 'left', fontSize: 11, fontWeight: 600,
                 color: 'var(--brand-muted)', letterSpacing: '0.05em', textTransform: 'uppercase',
               }}>{h}</th>
             ))}
@@ -400,8 +403,8 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-cream)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <td style={{ padding: '14px 24px', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{r.ref}</td>
-                <td style={{ padding: '14px 24px' }}>
+                <td style={{ padding: cellPad, fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>{r.ref}</td>
+                <td style={{ padding: cellPad }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 30, height: 30, borderRadius: 7, flexShrink: 0,
@@ -411,11 +414,11 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
                     <span style={{ fontSize: 13, fontWeight: 500 }}>{t.short}</span>
                   </div>
                 </td>
-                <td style={{ padding: '14px 24px', fontSize: 13, color: 'var(--brand-ink)', maxWidth: 260 }}>{r.location}</td>
-                <td style={{ padding: '14px 24px' }}><StatusBadge status={r.status} size="sm"/></td>
-                <td style={{ padding: '14px 24px', fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>{r.reported}</td>
-                {showAssigned && <td style={{ padding: '14px 24px', fontSize: 13, color: r.assignedTo ? 'var(--brand-ink)' : 'var(--brand-muted)' }}>{r.assignedTo || '— unassigned'}</td>}
-                <td style={{ padding: '14px 24px', textAlign: 'right' }}>
+                <td style={{ padding: cellPad, fontSize: 13, color: 'var(--brand-ink)', maxWidth: 260 }}>{r.location}</td>
+                <td style={{ padding: cellPad }}><StatusBadge status={r.status} size="sm"/></td>
+                <td style={{ padding: cellPad, fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>{r.reported}</td>
+                {showAssigned && <td style={{ padding: cellPad, fontSize: 13, color: r.assignedTo ? 'var(--brand-ink)' : 'var(--brand-muted)' }}>{r.assignedTo || '— unassigned'}</td>}
+                <td style={{ padding: cellPad, textAlign: 'right' }}>
                   <button onClick={() => onView(r)} style={{
                     padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600,
                     color: 'var(--brand-ink)', background: 'var(--brand-cream)',
@@ -438,6 +441,7 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
 // SCREEN 8 — MAP VIEW
 // -----------------------------------------------------------
 export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
+  const isMobile = useIsMobile();
   const mapRef = React.useRef<HTMLDivElement>(null);
   const mapInstance = React.useRef<any>(null);
   const markersRef = React.useRef<any[]>([]);
@@ -595,7 +599,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <DashTopBar
         title="Live map"
         subtitle={`${SAMPLE_INCIDENTS.length} incidents · 25km service radius`}
@@ -603,16 +607,19 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       />
       {/* Filter toolbar */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 32px',
+        display: 'flex', alignItems: 'center', gap: 10, padding: isMobile ? '10px 16px' : '12px 32px',
         background: 'white', borderBottom: '1px solid var(--brand-hairline)',
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
       }}>
         <FilterDropdown label="Incident Type" options={INCIDENT_TYPES.map(t => t.label)} />
         <FilterDropdown label="Status" options={['Received', 'Under Review', 'Assigned', 'Resolved']} />
         <button style={{ fontSize: 13, color: 'var(--brand-muted)', fontWeight: 500, padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer' }}>Reset filters</button>
         <div style={{ flex: 1 }}/>
-        <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
-          REDEMPTION CAMP · 6.8932° N · 3.1721° E
-        </div>
+        {!isMobile && (
+          <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
+            REDEMPTION CAMP · 6.8932° N · 3.1721° E
+          </div>
+        )}
       </div>
 
       {/* Map */}
@@ -621,8 +628,10 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
 
         {/* Floating Geosearch Bar */}
         <form onSubmit={handleSearch} className="irms-map-search-container" style={{
-          position: 'absolute', top: 20, right: 20, zIndex: 1000,
-          width: 300, maxWidth: 'calc(100vw - 40px)'
+          position: 'absolute', zIndex: 1000,
+          ...(isMobile
+            ? { top: 12, left: 12, right: 12, width: 'auto' }
+            : { top: 20, right: 20, width: 300, maxWidth: 'calc(100vw - 40px)' }),
         }}>
           <input
             type="text"
@@ -718,7 +727,7 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
           <div style={{
             position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 200,
             background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 10,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.08)', minWidth: 200, padding: 6,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.08)', minWidth: 200, maxWidth: 'calc(100vw - 24px)', padding: 6,
           }}>
             {options.map(o => (
               <label key={o} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 7, fontSize: 13, cursor: 'pointer' }}
@@ -740,6 +749,7 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
 // SCREEN 9 — ALL REPORTS
 // -----------------------------------------------------------
 export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
+  const isMobile = useIsMobile();
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
@@ -787,10 +797,10 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
         subtitle={`${filtered.length} incidents · Sorted by most recent`}
         actions={<GhostButton theme="light" size="sm"><Icon.download /> Export CSV</GhostButton>}
       />
-      <div style={{ padding: 32 }}>
+      <div style={{ padding: isMobile ? 16 : 32 }}>
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{
-            flex: 1, minWidth: 260, display: 'flex', alignItems: 'center', gap: 10,
+            flex: 1, minWidth: isMobile ? 160 : 260, display: 'flex', alignItems: 'center', gap: 10,
             padding: '0 14px', background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 10,
           }}>
             <Icon.search style={{ color: 'var(--brand-muted)' }} />
@@ -800,9 +810,9 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
               style={{ flex: 1, padding: '10px 0', border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }}
             />
           </div>
-          
+
           {/* Custom multi-field filters */}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: isMobile ? '1 1 100%' : undefined }}>
             {INCIDENT_TYPES.map(t => {
               const active = selectedTypes.includes(t.id);
               return (
@@ -849,8 +859,8 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
             <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>
               Showing {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1} – {Math.min(page * pageSize, filtered.length)} of {filtered.length}
             </div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button 
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)', background: 'none', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
@@ -888,6 +898,7 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
 // SCREEN 7 — INCIDENT DETAIL PANEL (slide-in from right)
 // -----------------------------------------------------------
 export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { incident: Incident; onClose: () => void; onUpdateIncident: (ref: string, updates: Partial<Incident>) => void }) {
+  const isMobile = useIsMobile();
   const [status, setStatus] = React.useState<IncidentStatus>(incident.status);
   const [assigned, setAssigned] = React.useState(!!incident.assignedTo);
   const t = getIncidentType(incident.type);
@@ -945,7 +956,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
         {/* Header */}
         <div style={{
           position: 'sticky', top: 0, background: 'white', zIndex: 10,
-          padding: '24px 32px 16px', borderBottom: '1px solid var(--brand-hairline)',
+          padding: isMobile ? '24px 20px 16px' : '24px 32px 16px', borderBottom: '1px solid var(--brand-hairline)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <div>
@@ -972,9 +983,9 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
           </div>
         </div>
 
-        <div style={{ padding: '24px 32px 40px' }}>
+        <div style={{ padding: isMobile ? '24px 20px 40px' : '24px 32px 40px' }}>
           {/* Status stepper */}
-          <div style={{ padding: '20px 4px', marginBottom: 24, borderBottom: '1px solid var(--brand-hairline)' }}>
+          <div style={{ padding: '20px 4px', marginBottom: 24, borderBottom: '1px solid var(--brand-hairline)', overflowX: 'auto' }}>
             <StatusStepper current={status} theme="light"
               timestamps={{
                 received: incident.reportedAt.split('·')[1]?.trim() || '14:32',
@@ -1046,7 +1057,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{incident.assignedTo || 'RCCG Camp Security'}</div>
 
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'white', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'white', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
                   {(['received', 'review', 'assigned', 'resolved'] as IncidentStatus[]).map(s => {
                     const map = { received: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
                                   review: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
@@ -1178,14 +1189,15 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
 }
 
 function SettingsTab() {
+  const isMobile = useIsMobile();
   const handleSave = () => {
     toast.success('Settings saved successfully!');
   };
   return (
     <div>
       <DashTopBar title="Settings" subtitle="Manage your agency profile and notification preferences" />
-      <div style={{ padding: 32, maxWidth: 720 }}>
-        <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: 28 }}>
+      <div style={{ padding: isMobile ? 16 : 32, maxWidth: 720 }}>
+        <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 20 : 28 }}>
           <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px' }}>Agency profile</h3>
           <p style={{ fontSize: 13, color: 'var(--brand-muted)', margin: '0 0 24px' }}>Visible to the public during incident assignment.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

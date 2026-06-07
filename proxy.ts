@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+// Renamed from middleware.ts → proxy.ts for the Next.js 16 "proxy" file convention.
+// Same behavior: gate the agency dashboard and citizen reports behind their auth cookies.
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protect Agency Dashboard

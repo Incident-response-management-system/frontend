@@ -479,7 +479,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                 }}
             />
             <div style={{
-                position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(580px, 94vw)',
+                position: 'fixed', top: 0, right: 0, bottom: 0, width: isMobile ? '100vw' : 'min(580px, 94vw)',
                 background: 'var(--brand-white)', borderLeft: '1px solid var(--brand-divider)',
                 zIndex: 1600, overflowY: 'auto',
                 animation: 'slideRight 0.3s cubic-bezier(.2,.8,.2,1)',
@@ -488,7 +488,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                 <div style={{
                     position: 'sticky', top: 0, background: 'rgba(255,255,255,0.95)',
                     backdropFilter: 'blur(8px)',
-                    padding: '20px 28px 16px', borderBottom: '1px solid var(--brand-hairline)', zIndex: 5,
+                    padding: isMobile ? '18px 16px 14px' : '20px 28px 16px', borderBottom: '1px solid var(--brand-hairline)', zIndex: 5,
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
@@ -513,7 +513,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                     </div>
                 </div>
 
-                <div style={{ padding: '24px 28px 48px' }}>
+                <div style={{ padding: isMobile ? '20px 16px 40px' : '24px 28px 48px' }}>
                     {/* Incident type row */}
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
@@ -544,7 +544,13 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                     {/* Status stepper */}
                     <div style={{ padding: '4px 0 24px', borderBottom: '1px solid var(--brand-hairline)', marginBottom: 24 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 18 }}>Status Timeline</div>
-                        <StatusStepper current={report.status} timestamps={getTimestamps(report)} theme="light" />
+                        {isMobile ? (
+                            <div style={{ overflowX: 'auto' }}>
+                                <StatusStepper current={report.status} timestamps={getTimestamps(report)} theme="light" />
+                            </div>
+                        ) : (
+                            <StatusStepper current={report.status} timestamps={getTimestamps(report)} theme="light" />
+                        )}
                     </div>
 
                     {/* Location */}
@@ -569,8 +575,8 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                     {report.assignedTo && (
                         <DetailRow label="Responding agency">
                             <div style={{
-                                display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-                                borderRadius: 10,
+                                display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14, padding: '14px 16px',
+                                borderRadius: 10, flexWrap: 'wrap',
                                 background: agencyMeta?.bg || 'var(--status-blue-bg)',
                                 border: `1px solid ${agencyMeta?.bd || 'var(--status-blue-bd)'}`,
                             }}>
@@ -602,7 +608,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                     {/* Evidence thumbnails */}
                     {report.media > 0 && (
                         <DetailRow label={`Evidence (${report.media} ${report.media === 1 ? 'file' : 'files'})`}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
                                 {Array.from({ length: report.media }).map((_, i) => (
                                     <div
                                         key={i}

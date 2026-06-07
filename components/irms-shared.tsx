@@ -1,4 +1,5 @@
 import React from 'react';
+import { useIsMobile } from '@/hooks/use-media-query';
 
 // Custom siren/civic mark — original IRMS glyph
 export function IRMSMark({ size = 24, color = '#E84A3F' }: { size?: number; color?: string }) {
@@ -130,6 +131,9 @@ export function StatusStepper({ current = 'received', timestamps = {}, theme = '
   ];
   const colors = { received: 'var(--status-red)', review: 'var(--status-amber)', assigned: 'var(--status-blue)', resolved: 'var(--status-green)' };
   const currentIdx = steps.findIndex(s => s.id === current);
+  const isMobile = useIsMobile();
+  // Shrink per-step label width on phones so all 4 steps fit at ~375px without horizontal scroll
+  const labelMinWidth = isMobile ? 56 : 90;
   const isLight = theme === 'light';
   const muted = isLight ? 'var(--brand-divider)' : 'var(--brand-muted)';
   const mutedText = isLight ? 'var(--brand-muted)' : 'var(--brand-divider)';
@@ -164,7 +168,7 @@ export function StatusStepper({ current = 'received', timestamps = {}, theme = '
                   }}/>
                 )}
               </div>
-              <div style={{ marginTop: 10, textAlign: 'center', minWidth: 90 }}>
+              <div style={{ marginTop: 10, textAlign: 'center', minWidth: labelMinWidth }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: (active || done) ? text : mutedText, letterSpacing: '0.01em' }}>{step.label}</div>
                 {timestamps[step.id] && (
                   <div style={{ fontSize: 10, color: mutedText, marginTop: 3, fontFamily: 'var(--font-mono)' }}>{timestamps[step.id]}</div>
@@ -172,7 +176,7 @@ export function StatusStepper({ current = 'received', timestamps = {}, theme = '
               </div>
             </div>
             {i < steps.length - 1 && (
-              <div style={{ flex: 1, height: 2, background: muted, marginTop: 13, position: 'relative', overflow: 'hidden', minWidth: 20 }}>
+              <div style={{ flex: 1, height: 2, background: muted, marginTop: 13, position: 'relative', overflow: 'hidden', minWidth: isMobile ? 8 : 20 }}>
                 <div style={{
                   position: 'absolute', inset: 0, background: done ? color : 'transparent',
                   transform: done ? 'scaleX(1)' : 'scaleX(0)', transformOrigin: 'left',

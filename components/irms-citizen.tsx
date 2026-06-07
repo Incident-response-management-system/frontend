@@ -31,6 +31,7 @@ interface ScreenProps {
 // -----------------------------------------------------------
 export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, 'params'>) {
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   return (
     <div style={{ background: 'var(--brand-cream)', color: 'var(--brand-ink)', minHeight: '100vh' }}>
       {/* Slim utility bar — official, civic feel */}
@@ -82,7 +83,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
       {/* HERO — restrained, two-column, informational */}
       <section style={{ padding: isMobile ? '48px 16px 40px' : '72px 48px 64px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 1fr', gap: isMobile ? 32 : 64, alignItems: 'flex-start' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.1fr 1fr', gap: isTablet ? 32 : 64, alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 18 }}>
               Incident Response Management System
@@ -191,7 +192,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
       {/* COVERAGE */}
       <section style={{ padding: isMobile ? '48px 16px' : '64px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? 32 : 64, alignItems: 'flex-start' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 1fr', gap: isTablet ? 32 : 64, alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>Coverage</div>
             <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 16px', lineHeight: 1.2 }}>
@@ -1095,6 +1096,7 @@ function Spinner() {
 // ─── Report Success ─────────────────────────────────────────
 
 function ReportSuccess({ refCode, pinLocation, trackReport, onClose, navigate }: any) {
+  const isMobile = useIsMobile();
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
@@ -1124,7 +1126,7 @@ function ReportSuccess({ refCode, pinLocation, trackReport, onClose, navigate }:
   };
 
   return (
-    <div style={{ maxWidth: 540, margin: '0 auto', padding: '40px 28px 36px', textAlign: 'center', animation: 'fadeIn 0.4s ease-out' }}>
+    <div style={{ maxWidth: 540, margin: '0 auto', padding: isMobile ? '40px 20px 36px' : '40px 28px 36px', textAlign: 'center', animation: 'fadeIn 0.4s ease-out' }}>
       {/* Animated success icon */}
       <div style={{
         width: 80, height: 80, borderRadius: '50%',
@@ -1237,6 +1239,7 @@ function ReportSuccess({ refCode, pinLocation, trackReport, onClose, navigate }:
 // SCREEN 3 — TRACK REPORT
 // -----------------------------------------------------------
 export function TrackScreen({ navigate, params }: any) {
+  const isMobile = useIsMobile();
   const ref = params?.ref || 'INC-2026-00142';
   const status = 'assigned';
   return (
@@ -1244,7 +1247,7 @@ export function TrackScreen({ navigate, params }: any) {
       {/* Nav */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '18px 32px', borderBottom: '1px solid var(--brand-hairline)',
+        padding: isMobile ? '16px 16px' : '18px 32px', borderBottom: '1px solid var(--brand-hairline)',
       }}>
         <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>
           <Icon.back />
@@ -1253,7 +1256,7 @@ export function TrackScreen({ navigate, params }: any) {
         <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Tracking Page</div>
       </nav>
 
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 80px' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: isMobile ? '40px 16px 60px' : '60px 32px 80px' }}>
         {/* Reference code */}
         <div style={{ marginBottom: 40 }}>
           <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>Report reference</div>
@@ -1276,24 +1279,26 @@ export function TrackScreen({ navigate, params }: any) {
         {/* Stepper card */}
         <div style={{
           background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)',
-          borderRadius: 16, padding: '36px 32px', marginBottom: 24,
+          borderRadius: 16, padding: isMobile ? '28px 20px' : '36px 32px', marginBottom: 24,
         }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', marginBottom: 28, letterSpacing: '0.02em' }}>STATUS TIMELINE</div>
-          <StatusStepper
-            current={status}
-            timestamps={{
-              received: '14:32 · 27 May',
-              review: '14:38 · 27 May',
-              assigned: '14:51 · 27 May',
-            }}
-          />
+          <div style={{ overflowX: 'auto' }}>
+            <StatusStepper
+              current={status}
+              timestamps={{
+                received: '14:32 · 27 May',
+                review: '14:38 · 27 May',
+                assigned: '14:51 · 27 May',
+              }}
+            />
+          </div>
         </div>
 
         {/* Assigned agency card */}
         <div style={{
           background: 'var(--brand-white)', border: '1px solid var(--status-blue-bd)',
           borderRadius: 16, padding: 24, marginBottom: 24,
-          display: 'flex', alignItems: 'center', gap: 20,
+          display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 20,
         }}>
           <div style={{
             width: 52, height: 52, borderRadius: 12, flexShrink: 0,

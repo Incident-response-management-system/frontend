@@ -9,9 +9,9 @@ interface CitizenAuthShellProps {
 
 export function CitizenAuthShell({ children, mode = 'signup', navigate }: CitizenAuthShellProps) {
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-            {/* Left: copy panel — warm cream */}
-            <div style={{ background: 'var(--brand-surface-alt)', padding: '40px 56px', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--brand-hairline)' }}>
+        <div className="irms-auth-shell-grid" style={{ minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+            {/* Left: copy panel — warm cream (hidden on mobile via .irms-auth-copy-panel) */}
+            <div className="irms-auth-copy-panel" style={{ background: 'var(--brand-surface-alt)', padding: '40px 56px', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--brand-hairline)' }}>
                 <IRMSLogo size={16} color="var(--brand-ink)" />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 440 }}>
                     <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 18 }}>
@@ -46,7 +46,7 @@ export function CitizenAuthShell({ children, mode = 'signup', navigate }: Citize
                 </div>
             </div>
             {/* Right: form on white */}
-            <div style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>{children}</div>
+            <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>{children}</div>
         </div>
     );
 }

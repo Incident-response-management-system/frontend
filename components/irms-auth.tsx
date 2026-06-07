@@ -2,6 +2,7 @@ import React from 'react';
 import { toast } from 'sonner';
 import { IRMSLogo, Icon } from './irms-shared';
 import { agencySignup, agencyLogin } from '@/lib/auth-api';
+import { useIsMobile } from '@/hooks/use-media-query';
 
 interface AuthShellProps {
   children: React.ReactNode;
@@ -10,12 +11,12 @@ interface AuthShellProps {
 
 export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
   return (
-    <div style={{
+    <div className="irms-auth-shell-grid" style={{
       minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)',
       display: 'grid', gridTemplateColumns: '1fr 1.1fr',
     }}>
-      {/* Left panel — warmer cream */}
-      <div style={{
+      {/* Left panel — warmer cream (hidden on mobile via .irms-auth-copy-panel) */}
+      <div className="irms-auth-copy-panel" style={{
         background: 'var(--brand-surface-alt)', color: 'var(--brand-ink)',
         padding: '40px 56px', display: 'flex', flexDirection: 'column',
         borderRight: '1px solid var(--brand-hairline)',
@@ -65,7 +66,7 @@ export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
       </div>
 
       {/* Right panel — pure white form area */}
-      <div style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>
+      <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
     </div>
@@ -155,6 +156,7 @@ function Spinner() {
 // AGENCY SIGNUP
 // ─────────────────────────────────────────────────────────────
 export function AgencySignupScreen({ navigate }: ScreenProps) {
+  const isMobile = useIsMobile();
   const [agencyName, setAgencyName] = React.useState('');
   const [agencyType, setAgencyType] = React.useState('police');
   const [email, setEmail] = React.useState('');
@@ -248,12 +250,12 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <FormInput label="Email" type="email" value={email} onChange={e => { setEmail(e.target.value); clearErr('email'); }} placeholder="ops@agency.org" error={errors.email} disabled={loading} />
             <FormInput label="Phone" value={phone} onChange={e => { setPhone(e.target.value); clearErr('phone'); }} placeholder="+234 ..." error={errors.phone} disabled={loading} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
             <PasswordInput label="Password" value={password} onChange={e => { setPassword(e.target.value); clearErr('password'); }} placeholder="Min. 8 characters" error={errors.password} disabled={loading} />
             <PasswordInput label="Confirm password" value={confirm} onChange={e => { setConfirm(e.target.value); clearErr('confirm'); }} placeholder="••••••••" error={errors.confirm} disabled={loading} />
           </div>
