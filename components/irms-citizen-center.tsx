@@ -416,7 +416,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                                 {/* Right: badge + chevron */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                                     <StatusBadge status={r.status} size="sm" />
-                                    <Icon.chev style={{ color: 'var(--brand-muted)' }} />
+                                    {!isMobile && <Icon.chev style={{ color: 'var(--brand-muted)' }} />}
                                 </div>
                             </button>
                         );
@@ -441,6 +441,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
 // CITIZEN REPORT DETAIL DRAWER
 // ─────────────────────────────────────────────────────────────
 function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; onClose: () => void; navigate: (to: string, params?: any) => void }) {
+    const isMobile = useIsMobile();
     const t = getIncidentType(report.type);
     const agencyMeta = report.assignedTo ? AGENCY_TYPE_MAP[report.assignedTo] : null;
 

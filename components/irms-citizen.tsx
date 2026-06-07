@@ -772,7 +772,7 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 28px 32px' }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: isMobile ? '20px 16px 28px' : '20px 28px 32px' }}>
       {/* Drag handle */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--brand-hairline)' }} />
@@ -800,7 +800,7 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
         <label style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 12 }}>
           What is happening? <span style={{ color: 'var(--status-red)', marginLeft: 2 }}>*</span>
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
           {INCIDENT_TYPES.map(t => {
             const selected = selectedType === t.id;
             return (

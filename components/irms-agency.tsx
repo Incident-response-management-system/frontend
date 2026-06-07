@@ -287,7 +287,7 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
         </div>
 
         {/* Activity feed + heatmap row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.4fr 1fr', gap: 16, marginBottom: 32 }}>
           {/* Incident distribution */}
           <div style={{ background: 'white', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
