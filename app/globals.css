@@ -264,10 +264,46 @@ body {
 
 /* ─── Responsive helpers ────────────────────────────────────── */
 
-@media (max-width: 768px) {
+/* Prevent horizontal scroll / zoomed-out rendering on small screens.
+   Inline-styled fixed pixel widths are the main offender across this app;
+   these global guards keep stray wide children from breaking the viewport. */
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
 
-    /* Auth shells go single column on mobile */
+/* Inputs at <16px font-size trigger iOS Safari auto-zoom on focus.
+   Bump the effective size on touch/phone widths to prevent the jump. */
+@media (max-width: 639px) {
+
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+}
+
+@media (max-width: 1023px) {
+
+    /* Auth shells (agency + citizen) collapse to a single column.
+       The decorative left/copy panel is hidden so the form gets full width. */
     .irms-auth-shell-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .irms-auth-copy-panel {
+        display: none !important;
+    }
+
+    .irms-auth-form-panel {
+        padding: 28px 20px !important;
+    }
+}
+
+/* Generic helper: any element tagged with this stacks its grid on mobile. */
+@media (max-width: 639px) {
+    .irms-stack-mobile {
         grid-template-columns: 1fr !important;
     }
 }

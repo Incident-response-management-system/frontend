@@ -12,6 +12,7 @@ import {
   getIncidentType,
 } from './irms-shared';
 import { submitReport } from '@/lib/incidents-api';
+import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
 let L: any;
 if (typeof window !== 'undefined') {
@@ -29,15 +30,16 @@ interface ScreenProps {
 // Civic, professional, restrained. Information-first.
 // -----------------------------------------------------------
 export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, 'params'>) {
+  const isMobile = useIsMobile();
   return (
     <div style={{ background: 'var(--brand-cream)', color: 'var(--brand-ink)', minHeight: '100vh' }}>
       {/* Slim utility bar — official, civic feel */}
       <div style={{
         background: 'var(--brand-surface-alt)', borderBottom: '1px solid var(--brand-hairline)',
-        padding: '7px 48px', display: 'flex', justifyContent: 'space-between',
+        padding: isMobile ? '7px 16px' : '7px 48px', display: 'flex', justifyContent: 'space-between',
         fontSize: 11, color: 'var(--brand-muted)',
       }}>
-        <span>A civic emergency reporting service · Pilot deployment, Ogun State</span>
+        <span style={{ display: isMobile ? 'none' : 'inline' }}>A civic emergency reporting service · Pilot deployment, Ogun State</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }} />
           Services operational
@@ -48,7 +50,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       <nav style={{
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 48px', borderBottom: '1px solid var(--brand-hairline)',
+        padding: isMobile ? '16px 16px' : '16px 48px', borderBottom: '1px solid var(--brand-hairline)',
         background: 'rgba(244, 242, 236, 0.88)', backdropFilter: 'blur(14px) saturate(140%)',
       }}>
         <IRMSLogo size={16} color="var(--brand-ink)" />
@@ -79,8 +81,8 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       </nav>
 
       {/* HERO — restrained, two-column, informational */}
-      <section style={{ padding: '72px 48px 64px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 64, alignItems: 'flex-start' }}>
+      <section style={{ padding: isMobile ? '48px 16px 40px' : '72px 48px 64px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 1fr', gap: isMobile ? 32 : 64, alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 18 }}>
               Incident Response Management System
@@ -140,7 +142,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: '80px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
+      <section style={{ padding: isMobile ? '56px 16px' : '80px 48px', borderBottom: '1px solid var(--brand-surface-alt)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 32, marginBottom: 56 }}>
             <div style={{ maxWidth: 640 }}>
