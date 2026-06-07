@@ -24,6 +24,32 @@ if (typeof window !== 'undefined') {
   L = require('leaflet');
 }
 
+// Build the base map layer for a given mode.
+//  - satellite: Esri World Imagery + a transparent reference overlay that adds
+//    place names, roads and boundaries (plain imagery has no labels).
+//  - streets: CARTO Voyager — a clean street map with strong, readable labels.
+function buildBaseLayer(mode: 'satellite' | 'streets') {
+  if (mode === 'streets') {
+    return L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap, © CARTO',
+      maxZoom: 22,
+      maxNativeZoom: 20,
+    });
+  }
+  const imagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS',
+    maxZoom: 22,
+    maxNativeZoom: 18,
+  });
+  // Transparent labels layer: roads, place/area names, boundaries.
+  const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 22,
+    maxNativeZoom: 18,
+    pane: 'overlayPane',
+  });
+  return L.layerGroup([imagery, labels]);
+}
+
 interface DashboardShellProps {
   navigate: (to: string, params?: Record<string, any>) => void;
   currentTab: string;
@@ -460,19 +486,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     const map = L.map(mapRef.current, { zoomControl: false }).setView([6.8912, 3.1720], 14);
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    const initialTileUrl = layerType === 'satellite'
-      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-    const initialAttr = layerType === 'satellite'
-      ? 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS'
-      : '© OpenStreetMap, © CARTO';
-
-    const tileLayer = L.tileLayer(initialTileUrl, {
-      attribution: initialAttr,
-      maxZoom: 22,
-      maxNativeZoom: layerType === 'satellite' ? 18 : 19,
-    }).addTo(map);
-    tileLayerRef.current = tileLayer;
+    tileLayerRef.current = buildBaseLayer(layerType).addTo(map);
 
     mapInstance.current = map;
     return () => { map.remove(); mapInstance.current = null; };
@@ -503,20 +517,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     if (!mapInstance.current || !L || !tileLayerRef.current) return;
     const map = mapInstance.current;
     tileLayerRef.current.remove();
-
-    const tileUrl = layerType === 'satellite'
-      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-    const attr = layerType === 'satellite'
-      ? 'Tiles &copy; Esri &mdash; Source: Esri, USDA, USGS'
-      : '© OpenStreetMap, © CARTO';
-
-    const tileLayer = L.tileLayer(tileUrl, {
-      attribution: attr,
-      maxZoom: 22,
-      maxNativeZoom: layerType === 'satellite' ? 18 : 19,
-    }).addTo(map);
-    tileLayerRef.current = tileLayer;
+    tileLayerRef.current = buildBaseLayer(layerType).addTo(map);
   }, [layerType]);
 
   const locateUser = () => {
