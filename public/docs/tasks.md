@@ -32,21 +32,21 @@ This document outlines the division of implementation tasks between **SAMKIEL** 
 ## 👤 Tobi — Public Portal, Forms & Caching (More citizen features)
 
 ### Phase 1: Auth Shells & Signin/Signup
-- `[ ]` Build visual two-tone layout shells (`AuthShell`, `CitizenAuthShell`).
-- `[ ]` Code Citizen Signup and Login forms with validator states.
-- `[ ]` Code Agency Signup and Login forms, including the Service Radius Range Slider.
-- `[ ]` Build HTTP auth interceptors to inject Bearer tokens for all protected requests.
+- `[x]` Build visual two-tone layout shells (`AuthShell`, `CitizenAuthShell`). (Citizen done)
+- `[x]` Code Citizen Signup and Login forms with validator states.
+- `[x]` Code Agency Signup and Login forms, including the Service Radius Range Slider.
+- `[x]` Build HTTP auth interceptors to inject Bearer tokens for all protected requests.
 
 ### Phase 2: Citizen Incident Report Flow
 - `[x]` Build reporting bottom sheet layout centering on custom Map coordinates.
-- `[ ]` Build the interactive Incident Type Selector Grid.
-- `[ ]` Implement description rich textareas and dynamic file upload inputs with attachment previews.
-- `[ ]` Create the success screen displaying reference tracking codes and clipboard actions.
+- `[x]` Build the interactive Incident Type Selector Grid.
+- `[x]` Implement description rich textareas and dynamic file upload inputs with attachment previews.
+- `[x]` Create the success screen displaying reference tracking codes and clipboard actions.
 
 ### Phase 3: Citizen Dashboard & Status Stepper
-- `[ ]` Build `MyReportsScreen` showing citizen reporting history and status filters (All, Open, Resolved).
-- `[ ]` Implement `StatusStepper` timeline matching the canonical status stepper transitions.
-- `[ ]` Create detail drawer displaying agency dispatch assignment and citizen note updaters.
+- `[x]` Build `MyReportsScreen` showing citizen reporting history and status filters (All, Open, Resolved).
+- `[x]` Implement `StatusStepper` timeline matching the canonical status stepper transitions.
+- `[x]` Create detail drawer displaying agency dispatch assignment and citizen note updaters.
 
 ### Phase 4: Offline Fallback & Session Caching
 - `[ ]` Implement IndexedDB and browser Service Workers to allow offline reporting.

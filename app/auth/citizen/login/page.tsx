@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CitizenLoginScreen } from '@/components/irms-citizen-center';
+import { CitizenLoginScreen } from '@/components/auth/citizen/CitizenLoginScreen';
 import { useRouter } from 'next/navigation';
 import { setCookie } from '@/lib/api-client';
 

@@ -1,202 +1,329 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 :root {
-  /* Warm cream + deep ink — civic, calm, professional */
-  --brand-cream: #F4F2EC;
-  --brand-ink: #14130D;
-  --brand-white: #FFFFFF;
-  --brand-surface-alt: #FAF8F2;
-  --brand-hairline: #E7E4DA;
-  --brand-divider: #D2CEC1;
-  --brand-muted: #6D6A5E;
-  
-  /* Status Colors */
-  --status-red: #C8463C;
-  --status-red-bg: rgba(200, 70, 60, 0.08);
-  --status-red-bd: rgba(200, 70, 60, 0.28);
-  
-  --status-amber: #B97A2A;
-  --status-amber-bg: rgba(185, 122, 42, 0.10);
-  --status-amber-bd: rgba(185, 122, 42, 0.30);
-  
-  --status-blue: #3B6FB8;
-  --status-blue-bg: rgba(59, 111, 184, 0.10);
-  --status-blue-bd: rgba(59, 111, 184, 0.30);
-  
-  --status-green: #3E8657;
-  --status-green-bg: rgba(62, 134, 87, 0.10);
-  --status-green-bd: rgba(62, 134, 87, 0.30);
+    /* Prestigious Pearl + Obsidian + Gold — high-end, elegant, refined */
+    --brand-cream: #FDFDFD;
+    --brand-ink: #0F1115;
+    --brand-white: #FFFFFF;
+    --brand-surface-alt: #F7F7F9;
+    --brand-hairline: #EBEBEF;
+    --brand-divider: #D3D4D9;
+    --brand-muted: #727680;
+    --brand-accent: #C5A880;
+    /* Elegant gold/bronze */
 
-  --background: var(--brand-cream);
-  --foreground: var(--brand-ink);
+    /* Status Colors */
+    --status-red: #C8463C;
+    --status-red-bg: rgba(200, 70, 60, 0.06);
+    --status-red-bd: rgba(200, 70, 60, 0.20);
+
+    --status-amber: #C5A880;
+    /* Muted gold for review states */
+    --status-amber-bg: rgba(197, 168, 128, 0.10);
+    --status-amber-bd: rgba(197, 168, 128, 0.30);
+
+    --status-blue: #3A5A7A;
+    /* Refined navy */
+    --status-blue-bg: rgba(58, 90, 122, 0.08);
+    --status-blue-bd: rgba(58, 90, 122, 0.25);
+
+    --status-green: #3E7350;
+    /* Refined forest green */
+    --status-green-bg: rgba(62, 115, 80, 0.08);
+    --status-green-bd: rgba(62, 115, 80, 0.25);
+
+    --background: var(--brand-cream);
+    --foreground: var(--brand-ink);
+
+    --font-serif: 'Playfair Display', serif;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  
-  /* Brand Theme Customizations */
-  --color-brand-cream: var(--brand-cream);
-  --color-brand-ink: var(--brand-ink);
-  --color-brand-white: var(--brand-white);
-  --color-brand-surface-alt: var(--brand-surface-alt);
-  --color-brand-hairline: var(--brand-hairline);
-  --color-brand-divider: var(--brand-divider);
-  --color-brand-muted: var(--brand-muted);
-  
-  --color-status-red: var(--status-red);
-  --color-status-red-bg: var(--status-red-bg);
-  --color-status-red-bd: var(--status-red-bd);
-  
-  --color-status-amber: var(--status-amber);
-  --color-status-amber-bg: var(--status-amber-bg);
-  --color-status-amber-bd: var(--status-amber-bd);
-  
-  --color-status-blue: var(--status-blue);
-  --color-status-blue-bg: var(--status-blue-bg);
-  --color-status-blue-bd: var(--status-blue-bd);
-  
-  --color-status-green: var(--status-green);
-  --color-status-green-bg: var(--status-green-bg);
-  --color-status-green-bd: var(--status-green-bd);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Brand Theme Customizations */
+    --color-brand-cream: var(--brand-cream);
+    --color-brand-ink: var(--brand-ink);
+    --color-brand-white: var(--brand-white);
+    --color-brand-surface-alt: var(--brand-surface-alt);
+    --color-brand-hairline: var(--brand-hairline);
+    --color-brand-divider: var(--brand-divider);
+    --color-brand-muted: var(--brand-muted);
+
+    --color-status-red: var(--status-red);
+    --color-status-red-bg: var(--status-red-bg);
+    --color-status-red-bd: var(--status-red-bd);
+
+    --color-status-amber: var(--status-amber);
+    --color-status-amber-bg: var(--status-amber-bg);
+    --color-status-amber-bd: var(--status-amber-bd);
+
+    --color-status-blue: var(--status-blue);
+    --color-status-blue-bg: var(--status-blue-bg);
+    --color-status-blue-bd: var(--status-blue-bd);
+
+    --color-status-green: var(--status-green);
+    --color-status-green-bg: var(--status-green-bg);
+    --color-status-green-bd: var(--status-green-bd);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 /* Custom Leaflet map markers styling */
 .irms-marker {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 3px solid white;
-  box-shadow: 0 3px 10px rgba(40, 35, 20, 0.25), 0 0 0 1px rgba(40, 35, 20, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 3px 10px rgba(40, 35, 20, 0.25), 0 0 0 1px rgba(40, 35, 20, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease;
 }
 
 .irms-marker:hover {
-  transform: scale(1.15);
+    transform: scale(1.15);
 }
 
 .irms-marker.received {
-  background: var(--status-red);
+    background: var(--status-red);
 }
 
 .irms-marker.review {
-  background: var(--status-amber);
+    background: var(--status-amber);
 }
 
 .irms-marker.assigned {
-  background: var(--status-blue);
+    background: var(--status-blue);
 }
 
 .irms-marker.resolved {
-  background: var(--status-green);
+    background: var(--status-green);
 }
 
 .pulse {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  animation: pulse 2s ease-out infinite;
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    animation: pulse 2s ease-out infinite;
 }
 
 @keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 currentColor;
-    opacity: 0.6;
-  }
-  100% {
-    box-shadow: 0 0 0 18px transparent;
-    opacity: 0;
-  }
+    0% {
+        box-shadow: 0 0 0 0 currentColor;
+        opacity: 0.6;
+    }
+
+    100% {
+        box-shadow: 0 0 0 18px transparent;
+        opacity: 0;
+    }
 }
 
 /* Leaflet container overrides */
 .leaflet-container {
-  background: var(--brand-surface-alt) !important;
-  font-family: var(--font-sans);
-  outline: none;
+    background: var(--brand-surface-alt) !important;
+    font-family: var(--font-sans);
+    outline: none;
 }
 
 .leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.85) !important;
-  color: var(--brand-muted) !important;
-  font-size: 10px !important;
-  border: 1px solid var(--brand-hairline) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    color: var(--brand-muted) !important;
+    font-size: 10px !important;
+    border: 1px solid var(--brand-hairline) !important;
 }
 
 .leaflet-control-zoom a {
-  background: white !important;
-  color: var(--brand-ink) !important;
-  border-color: var(--brand-hairline) !important;
+    background: white !important;
+    color: var(--brand-ink) !important;
+    border-color: var(--brand-hairline) !important;
 }
 
 /* Floating UI Controls on Map */
 .irms-map-control-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: white;
-  border: 1px solid var(--brand-divider);
-  color: var(--brand-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(40, 35, 20, 0.12);
-  cursor: pointer;
-  transition: all 0.2s ease;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid var(--brand-divider);
+    color: var(--brand-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(40, 35, 20, 0.12);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .irms-map-control-btn:hover {
-  transform: scale(1.05);
-  background: var(--brand-cream);
-  border-color: var(--brand-muted);
+    transform: scale(1.05);
+    background: var(--brand-cream);
+    border-color: var(--brand-muted);
 }
 
 .irms-map-search-container {
-  display: flex;
-  align-items: center;
-  background: white;
-  border: 1px solid var(--brand-divider);
-  border-radius: 10px;
-  padding: 2px 10px;
-  box-shadow: 0 8px 32px rgba(40, 35, 20, 0.15);
-  font-family: var(--font-sans);
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid var(--brand-divider);
+    border-radius: 10px;
+    padding: 2px 10px;
+    box-shadow: 0 8px 32px rgba(40, 35, 20, 0.15);
+    font-family: var(--font-sans);
 }
 
 .irms-map-search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 13.5px;
-  color: var(--brand-ink);
-  padding: 8px 4px;
-  background: transparent;
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 13.5px;
+    color: var(--brand-ink);
+    padding: 8px 4px;
+    background: transparent;
 }
 
 .irms-map-search-btn {
-  background: none;
-  border: none;
-  color: var(--brand-muted);
-  cursor: pointer;
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s;
+    background: none;
+    border: none;
+    color: var(--brand-muted);
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
 }
 
 .irms-map-search-btn:hover {
-  color: var(--brand-ink);
+    color: var(--brand-ink);
 }
 
+/* ─── Shared animation keyframes ───────────────────────────── */
 
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes sheetUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Responsive helpers ────────────────────────────────────── */
+
+@media (max-width: 768px) {
+
+    /* Auth shells go single column on mobile */
+    .irms-auth-shell-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ─── Slider thumb styling ──────────────────────────────────── */
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--brand-ink);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(40, 35, 20, 0.2);
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--brand-ink);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(40, 35, 20, 0.2);
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--brand-hairline);
+}
+
+/* ─── Textarea scrollbar ────────────────────────────────────── */
+
+textarea::-webkit-scrollbar {
+    width: 5px;
+}
+
+textarea::-webkit-scrollbar-track {
+    background: var(--brand-cream);
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background: var(--brand-divider);
+    border-radius: 3px;
+}
+
+/* ─── Smooth hover transitions for nav elements ─────────────── */
+
+button {
+    transition-property: background, color, border-color, box-shadow, transform;
+    transition-duration: 0.15s;
+}

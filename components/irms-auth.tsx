@@ -1,5 +1,7 @@
 import React from 'react';
+import { toast } from 'sonner';
 import { IRMSLogo, Icon } from './irms-shared';
+import { agencySignup, agencyLogin } from '@/lib/auth-api';
 
 interface AuthShellProps {
   children: React.ReactNode;
@@ -70,6 +72,8 @@ export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
   );
 }
 
+// ─── Shared form atoms ──────────────────────────────────────
+
 interface FormInputProps {
   label: string;
   type?: string;
@@ -77,36 +81,42 @@ interface FormInputProps {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   suffix?: React.ReactNode;
+  error?: string;
+  disabled?: boolean;
 }
 
-export function FormInput({ label, type = 'text', value, onChange, placeholder, suffix }: FormInputProps) {
+export function FormInput({ label, type = 'text', value, onChange, placeholder, suffix, error, disabled }: FormInputProps) {
   const [focused, setFocused] = React.useState(false);
   return (
     <div>
       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--brand-ink)' }}>{label}</label>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        background: 'var(--brand-white)', border: `1px solid ${focused ? 'var(--brand-ink)' : 'var(--brand-hairline)'}`,
+        background: disabled ? 'var(--brand-cream)' : 'var(--brand-white)',
+        border: `1px solid ${error ? 'var(--status-red)' : focused ? 'var(--brand-ink)' : 'var(--brand-hairline)'}`,
         borderRadius: 8, padding: '0 12px',
-        boxShadow: focused ? '0 0 0 3px rgba(20, 19, 13, 0.06)' : '0 1px 2px rgba(40, 35, 20, 0.04)',
+        boxShadow: focused ? (error ? '0 0 0 3px rgba(200,70,60,0.1)' : '0 0 0 3px rgba(20, 19, 13, 0.06)') : '0 1px 2px rgba(40, 35, 20, 0.04)',
         transition: 'all 0.15s',
+        opacity: disabled ? 0.6 : 1,
       }}>
         <input
           type={type} value={value || ''} onChange={onChange} placeholder={placeholder}
+          disabled={disabled}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
           style={{
             flex: 1, padding: '13px 0', border: 'none', outline: 'none',
             background: 'transparent', fontSize: 14, color: 'var(--brand-ink)',
-            fontFamily: 'inherit',
+            fontFamily: 'inherit', cursor: disabled ? 'not-allowed' : 'text',
           }}
         />
         {suffix}
       </div>
+      {error && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: 4, fontWeight: 500 }}>{error}</div>}
     </div>
   );
 }
 
-export function PasswordInput({ label, value, onChange, placeholder }: Omit<FormInputProps, 'type' | 'suffix'>) {
+export function PasswordInput({ label, value, onChange, placeholder, error, disabled }: Omit<FormInputProps, 'type' | 'suffix'>) {
   const [show, setShow] = React.useState(false);
   return (
     <FormInput
@@ -115,8 +125,10 @@ export function PasswordInput({ label, value, onChange, placeholder }: Omit<Form
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      error={error}
+      disabled={disabled}
       suffix={
-        <button onClick={() => setShow(!show)} style={{ color: 'var(--brand-muted)', padding: 4 }}>
+        <button type="button" onClick={() => setShow(!show)} style={{ color: 'var(--brand-muted)', padding: 4, background: 'none', border: 'none', cursor: 'pointer' }}>
           {show ? <Icon.eyeOff /> : <Icon.eye />}
         </button>
       }
@@ -128,9 +140,20 @@ interface ScreenProps {
   navigate: (to: string, params?: Record<string, any>) => void;
 }
 
-// -----------------------------------------------------------
-// SCREEN 4 — AGENCY SIGNUP
-// -----------------------------------------------------------
+// ─── Spinner ────────────────────────────────────────────────
+
+function Spinner() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AGENCY SIGNUP
+// ─────────────────────────────────────────────────────────────
 export function AgencySignupScreen({ navigate }: ScreenProps) {
   const [agencyName, setAgencyName] = React.useState('');
   const [agencyType, setAgencyType] = React.useState('police');
@@ -139,6 +162,8 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const [password, setPassword] = React.useState('');
   const [confirm, setConfirm] = React.useState('');
   const [radius, setRadius] = React.useState(25);
+  const [loading, setLoading] = React.useState(false);
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const agencyTypes = [
     { id: 'police', label: 'Police' },
@@ -147,14 +172,41 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     { id: 'security', label: 'Private Security' },
   ];
 
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!agencyName.trim()) e.agencyName = 'Agency name is required';
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) e.email = 'Valid email is required';
+    if (!phone.trim()) e.phone = 'Phone number is required';
+    if (password.length < 8) e.password = 'Password must be at least 8 characters';
+    if (password !== confirm) e.confirm = 'Passwords do not match';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      await agencySignup({ agencyName, agencyType, email, phone, password, radius });
+      toast.success('Agency account created! Pending verification within 24h.');
+      navigate('agency-dashboard');
+    } catch (err: any) {
+      toast.error(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
+
   return (
     <AuthShell mode="signup">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)' }}>
+        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <Icon.back style={{ width: 16, height: 16 }} /> Back to home
         </button>
         <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-          Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}>Sign in</button>
+          Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
         </div>
       </div>
 
@@ -167,53 +219,87 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <FormInput label="Agency name" value={agencyName} onChange={e => setAgencyName(e.target.value)} placeholder="e.g. Federal Road Safety Corps" />
+          <FormInput
+            label="Agency name"
+            value={agencyName}
+            onChange={e => { setAgencyName(e.target.value); clearErr('agencyName'); }}
+            placeholder="e.g. Federal Road Safety Corps"
+            error={errors.agencyName}
+            disabled={loading}
+          />
 
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--brand-ink)' }}>Agency type</label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, padding: 4, background: 'var(--brand-cream)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
               {agencyTypes.map(t => (
-                <button key={t.id} onClick={() => setAgencyType(t.id)} style={{
-                  padding: '9px 12px', borderRadius: 7, fontSize: 13, fontWeight: 600,
-                  background: agencyType === t.id ? 'var(--brand-white)' : 'transparent',
-                  color: agencyType === t.id ? 'var(--brand-ink)' : 'var(--brand-muted)',
-                  boxShadow: agencyType === t.id ? '0 1px 2px rgba(40, 35, 20, 0.04)' : 'none',
-                  transition: 'all 0.15s',
-                }}>{t.label}</button>
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => !loading && setAgencyType(t.id)}
+                  style={{
+                    padding: '9px 12px', borderRadius: 7, fontSize: 13, fontWeight: 600, border: 'none',
+                    background: agencyType === t.id ? 'var(--brand-white)' : 'transparent',
+                    color: agencyType === t.id ? 'var(--brand-ink)' : 'var(--brand-muted)',
+                    boxShadow: agencyType === t.id ? '0 1px 2px rgba(40, 35, 20, 0.04)' : 'none',
+                    transition: 'all 0.15s', cursor: loading ? 'not-allowed' : 'pointer',
+                  }}
+                >{t.label}</button>
               ))}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <FormInput label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ops@agency.org" />
-            <FormInput label="Phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234 ..." />
+            <FormInput label="Email" type="email" value={email} onChange={e => { setEmail(e.target.value); clearErr('email'); }} placeholder="ops@agency.org" error={errors.email} disabled={loading} />
+            <FormInput label="Phone" value={phone} onChange={e => { setPhone(e.target.value); clearErr('phone'); }} placeholder="+234 ..." error={errors.phone} disabled={loading} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <PasswordInput label="Password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-            <PasswordInput label="Confirm" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" />
+            <PasswordInput label="Password" value={password} onChange={e => { setPassword(e.target.value); clearErr('password'); }} placeholder="Min. 8 characters" error={errors.password} disabled={loading} />
+            <PasswordInput label="Confirm password" value={confirm} onChange={e => { setConfirm(e.target.value); clearErr('confirm'); }} placeholder="••••••••" error={errors.confirm} disabled={loading} />
           </div>
 
           {/* Service radius slider */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)' }}>Service coverage radius</label>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)' }}>{radius} km</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: 'var(--brand-ink)', background: 'var(--brand-cream)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--brand-divider)' }}>{radius} km</span>
             </div>
-            <input
-              type="range" min="5" max="100" value={radius}
-              onChange={e => setRadius(parseInt(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--brand-ink)', height: 4 }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type="range" min="5" max="100" value={radius}
+                onChange={e => setRadius(parseInt(e.target.value))}
+                disabled={loading}
+                style={{ width: '100%', accentColor: 'var(--brand-ink)', height: 4, cursor: loading ? 'not-allowed' : 'pointer' }}
+              />
+              {/* Filled track visual */}
+              <div style={{
+                position: 'absolute', top: '50%', left: 0, transform: 'translateY(-50%)',
+                height: 4, width: `${((radius - 5) / 95) * 100}%`,
+                background: 'var(--brand-ink)', borderRadius: 2, pointerEvents: 'none',
+              }} />
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
               <span>5 km</span><span>100 km</span>
             </div>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--brand-muted)', lineHeight: 1.5 }}>
+              Reports that fall within this radius and match your category will be routed to your dashboard.
+            </div>
           </div>
 
-          <button onClick={() => navigate('agency-dashboard')} style={{
-            background: 'var(--brand-ink)', color: 'var(--brand-cream)', padding: '13px 24px',
-            borderRadius: 9, fontWeight: 600, fontSize: 14, marginTop: 4, border: 'none', cursor: 'pointer'
-          }}>Create agency account</button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{
+              background: loading ? 'var(--brand-muted)' : 'var(--brand-ink)',
+              color: 'var(--brand-cream)', padding: '13px 24px',
+              borderRadius: 9, fontWeight: 600, fontSize: 14, marginTop: 4, border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 8, transition: 'background 0.2s',
+            }}
+          >
+            {loading ? <><Spinner /> Creating account…</> : 'Create agency account'}
+          </button>
 
           <p style={{ fontSize: 11, color: 'var(--brand-muted)', textAlign: 'center', margin: '4px 0 0', lineHeight: 1.5 }}>
             By creating an account you agree to the IRMS Agency Terms and acknowledge that misuse of dispatch data is a federal offense.
@@ -224,21 +310,47 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   );
 }
 
-// -----------------------------------------------------------
-// SCREEN 5 — AGENCY LOGIN
-// -----------------------------------------------------------
+// ─────────────────────────────────────────────────────────────
+// AGENCY LOGIN
+// ─────────────────────────────────────────────────────────────
 export function AgencyLoginScreen({ navigate }: ScreenProps) {
   const [email, setEmail] = React.useState('ops@rccg-security.org');
   const [password, setPassword] = React.useState('demo1234');
+  const [loading, setLoading] = React.useState(false);
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) e.email = 'Valid email is required';
+    if (!password) e.password = 'Password is required';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      const agency = await agencyLogin(email, password);
+      toast.success(`Welcome back, ${agency.agencyName}!`);
+      navigate('agency-dashboard');
+    } catch (err: any) {
+      toast.error(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
 
   return (
     <AuthShell mode="login">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)' }}>
+        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <Icon.back style={{ width: 16, height: 16 }} /> Back to home
         </button>
         <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-          New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>Register here</button>
+          New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>Register here</button>
         </div>
       </div>
 
@@ -249,8 +361,23 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <FormInput label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@agency.org" />
-          <PasswordInput label="Password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+          <FormInput
+            label="Email"
+            type="email"
+            value={email}
+            onChange={e => { setEmail(e.target.value); clearErr('email'); }}
+            placeholder="you@agency.org"
+            error={errors.email}
+            disabled={loading}
+          />
+          <PasswordInput
+            label="Password"
+            value={password}
+            onChange={e => { setPassword(e.target.value); clearErr('password'); }}
+            placeholder="••••••••"
+            error={errors.password}
+            disabled={loading}
+          />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: 'var(--brand-muted)' }}>
@@ -260,10 +387,20 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
             <a href="#" style={{ color: 'var(--brand-ink)', fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: 3 }}>Forgot password?</a>
           </div>
 
-          <button onClick={() => navigate('agency-dashboard')} style={{
-            background: 'var(--brand-ink)', color: 'var(--brand-cream)', padding: '13px 24px',
-            borderRadius: 9, fontWeight: 600, fontSize: 14, marginTop: 4, border: 'none', cursor: 'pointer'
-          }}>Sign in to dashboard</button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{
+              background: loading ? 'var(--brand-muted)' : 'var(--brand-ink)',
+              color: 'var(--brand-cream)', padding: '13px 24px',
+              borderRadius: 9, fontWeight: 600, fontSize: 14, marginTop: 4, border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 8, transition: 'background 0.2s',
+            }}
+          >
+            {loading ? <><Spinner /> Signing in…</> : 'Sign in to dashboard'}
+          </button>
 
           <div style={{
             padding: 14, borderRadius: 10, background: 'var(--brand-cream)',
