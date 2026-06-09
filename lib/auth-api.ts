@@ -1,11 +1,37 @@
 /**
- * Auth API Service
- * All functions are STUBBED — no live backend yet.
- * To activate: replace each stub block with an actual `apiFetch` call.
- * The Bearer token injection is already handled by `apiFetch` via cookies.
+ * Auth API Service — talks to the live backend.
+ * Bearer token injection is handled by `apiFetch` via cookies.
  */
 
 import { apiFetch, setCookie, deleteCookie } from './api-client';
+
+// Pull a human-readable error out of a failed Response. Handles DRF JSON
+// ({detail} / {message} / {field: [msg]}) and falls back to plain text /
+// non-JSON (e.g. a Django HTML error page) without throwing.
+async function extractError(res: Response, fallback: string): Promise<string> {
+  const body = await res.text().catch(() => '');
+  if (!body) return fallback;
+  try {
+    const data = JSON.parse(body);
+    if (typeof data === 'string') return data;
+    if (data.detail) return data.detail;
+    if (data.message) return data.message;
+    // Django field errors: { email: ["already exists"], ... }
+    const firstField = Object.keys(data)[0];
+    if (firstField) {
+      const v = data[firstField];
+      const msg = Array.isArray(v) ? v[0] : v;
+      return typeof msg === 'string' ? `${firstField}: ${msg}` : fallback;
+    }
+    return fallback;
+  } catch {
+    // Non-JSON (HTML error page etc.). Surface a short hint, not the markup.
+    if (/DisallowedHost|ALLOWED_HOSTS/i.test(body)) {
+      return 'Server rejected the request host (backend ALLOWED_HOSTS is misconfigured).';
+    }
+    return `${fallback} (HTTP ${res.status})`;
+  }
+}
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -128,9 +154,7 @@ export async function agencySignup(payload: AgencySignupPayload): Promise<Agency
     tokenType: 'agency',
   });
   if (!res.ok) {
-    let message = 'Registration failed. Please try again.';
-    try { const err = await res.json(); message = err.detail || err.message || message; } catch { /* non-JSON */ }
-    throw new Error(message);
+    throw new Error(await extractError(res, 'Registration failed. Please try again.'));
   }
   // Auto-login so the user lands in the dashboard without a second form.
   return agencyLogin(payload.email, payload.password);
@@ -146,9 +170,7 @@ export async function agencyLogin(
     tokenType: 'agency',
   });
   if (!res.ok) {
-    let message = 'Login failed. Please check your credentials.';
-    try { const err = await res.json(); message = err.detail || err.message || message; } catch { /* non-JSON */ }
-    throw new Error(message);
+    throw new Error(await extractError(res, 'Login failed. Please check your credentials.'));
   }
   const data = await res.json();
   // Store the access token in the agency_token cookie (apiFetch reads it back as Bearer).
