@@ -422,10 +422,10 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
                   cursor: (loading || locating) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
-                <Icon.pin style={{ width: 14, height: 14 }} /> {locating ? 'Locating…' : 'Use my current location'}
+                <Icon.pin style={{ width: 14, height: 14 }} /> {locating ? 'Locating…' : (isMobile ? 'My location' : 'Use my current location')}
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <FormInput label="Latitude" value={latitude} onChange={e => { setLatitude(e.target.value); clearErr('location'); }} placeholder="6.9342" disabled={loading} />
               <FormInput label="Longitude" value={longitude} onChange={e => { setLongitude(e.target.value); clearErr('location'); }} placeholder="3.4567" disabled={loading} />
             </div>
