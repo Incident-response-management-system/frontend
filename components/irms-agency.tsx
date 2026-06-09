@@ -246,22 +246,25 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
   const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[profile.agencyType] || profile.agencyType) : 'Agency';
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       padding, borderBottom: '1px solid var(--brand-hairline)', background: 'var(--brand-white)',
     }}>
-      <div>
+      <div style={{ minWidth: 0 }}>
         <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 4px' }}>{title}</h1>
         {subtitle && <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>{subtitle}</div>}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {actions}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flexShrink: 0 }}>
+        {/* On mobile, drop the per-tab actions and bell to keep the row from overflowing */}
+        {!isMobile && actions}
         <ThemeToggle />
-        <button style={{ position: 'relative', width: 38, height: 38, borderRadius: 10, border: '1px solid var(--brand-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-ink)', background: 'var(--brand-white)', cursor: 'pointer' }}>
-          <Icon.bell />
-          <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: '50%', background: 'var(--status-red)', border: '2px solid white' }}/>
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 12, borderLeft: '1px solid var(--brand-hairline)' }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--brand-ink)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>{agencyInitials}</div>
+        {!isMobile && (
+          <button type="button" aria-label="Notifications" style={{ position: 'relative', width: 38, height: 38, borderRadius: 10, border: '1px solid var(--brand-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-ink)', background: 'var(--brand-white)', cursor: 'pointer' }}>
+            <Icon.bell />
+            <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: '50%', background: 'var(--status-red)', border: '2px solid white' }}/>
+          </button>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: isMobile ? 0 : 12, borderLeft: isMobile ? 'none' : '1px solid var(--brand-hairline)' }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--brand-ink)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>{agencyInitials}</div>
           {!isMobile && (
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{agencyName}</div>
@@ -392,7 +395,7 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
                 const n = incidents.filter(r => r.status === s.key).length;
                 const pct = incidents.length ? Math.round((n / incidents.length) * 100) : 0;
                 return (
-                  <div key={s.key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 36px', gap: 12, alignItems: 'center' }}>
+                  <div key={s.key} style={{ display: 'grid', gridTemplateColumns: isMobile ? '90px 1fr 28px' : '110px 1fr 36px', gap: isMobile ? 8 : 12, alignItems: 'center' }}>
                     <div style={{ fontSize: 13, color: 'var(--brand-ink)', fontWeight: 500 }}>{s.label}</div>
                     <div style={{ height: 22, borderRadius: 4, overflow: 'hidden', background: 'var(--brand-cream)' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: s.color }} />
@@ -473,7 +476,7 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
                     <span style={{ fontSize: 13, fontWeight: 500 }}>{t.short}</span>
                   </div>
                 </td>
-                <td style={{ padding: cellPad, fontSize: 13, color: 'var(--brand-ink)', maxWidth: 260 }}>{r.location}</td>
+                <td style={{ padding: cellPad, fontSize: 13, color: 'var(--brand-ink)', maxWidth: isMobile ? 150 : 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.location}</td>
                 <td style={{ padding: cellPad }}><StatusBadge status={r.status} size="sm"/></td>
                 <td style={{ padding: cellPad, fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>{r.reported}</td>
                 {showAssigned && <td style={{ padding: cellPad, fontSize: 13, color: r.assignedTo ? 'var(--brand-ink)' : 'var(--brand-muted)' }}>{r.assignedTo || '— unassigned'}</td>}
@@ -1098,7 +1101,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
           {/* Media */}
           {incident.media > 0 && (
             <Section title={`Evidence (${incident.media} attachment${incident.media > 1 ? 's' : ''})`}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 10 }}>
                 {Array.from({ length: incident.media }).map((_, i) => (
                   <div key={i} style={{
                     aspectRatio: '1', borderRadius: 10,
