@@ -252,8 +252,30 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const [password, setPassword] = React.useState('');
   const [confirm, setConfirm] = React.useState('');
   const [radius, setRadius] = React.useState(25);
+  const [latitude, setLatitude] = React.useState('');
+  const [longitude, setLongitude] = React.useState('');
+  const [locating, setLocating] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const useMyLocation = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      toast.error('Location is not available on this device.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLatitude(pos.coords.latitude.toFixed(6));
+        setLongitude(pos.coords.longitude.toFixed(6));
+        setErrors(p => ({ ...p, location: '' }));
+        setLocating(false);
+        toast.success('Location captured.');
+      },
+      () => { setLocating(false); toast.error('Could not get your location. Enter it manually.'); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   // ids are the backend agency_type values
   const agencyTypes = [
@@ -270,6 +292,12 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     if (!phone.trim()) e.phone = 'Phone number is required';
     if (password.length < 8) e.password = 'Password must be at least 8 characters';
     if (password !== confirm) e.confirm = 'Passwords do not match';
+    const lat = parseFloat(latitude), lng = parseFloat(longitude);
+    if (!latitude.trim() || !longitude.trim() || isNaN(lat) || isNaN(lng)) {
+      e.location = 'Set your agency location (use current location or enter coordinates)';
+    } else if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      e.location = 'Coordinates are out of range';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -278,7 +306,10 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     if (!validate()) return;
     setLoading(true);
     try {
-      await agencySignup({ agencyName, agencyType, email, phone, password, radius });
+      await agencySignup({
+        agencyName, agencyType, email, phone, password, radius,
+        latitude: parseFloat(latitude), longitude: parseFloat(longitude),
+      });
       toast.success('Agency account created! Pending verification within 24h.');
       navigate('agency-dashboard');
     } catch (err: any) {
@@ -375,6 +406,30 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--brand-muted)', lineHeight: 1.5 }}>
               Reports that fall within this radius and match your category will be routed to your dashboard.
             </div>
+          </div>
+
+          {/* Agency location — required by the backend so reports can be geo-routed */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 12, flexWrap: 'wrap' }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)' }}>Agency location</label>
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={loading || locating}
+                style={{
+                  fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)', background: 'var(--brand-cream)',
+                  border: '1px solid var(--brand-divider)', borderRadius: 7, padding: '6px 10px',
+                  cursor: (loading || locating) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Icon.pin style={{ width: 14, height: 14 }} /> {locating ? 'Locating…' : 'Use my current location'}
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <FormInput label="Latitude" value={latitude} onChange={e => { setLatitude(e.target.value); clearErr('location'); }} placeholder="6.9342" disabled={loading} />
+              <FormInput label="Longitude" value={longitude} onChange={e => { setLongitude(e.target.value); clearErr('location'); }} placeholder="3.4567" disabled={loading} />
+            </div>
+            {errors.location && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: 6 }}>{errors.location}</div>}
           </div>
 
           <button

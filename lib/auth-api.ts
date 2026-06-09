@@ -136,14 +136,18 @@ export interface AgencySignupPayload {
   phone: string;
   password: string;
   radius: number;
+  latitude: number;
+  longitude: number;
 }
 
 export async function agencySignup(payload: AgencySignupPayload): Promise<AgencyUser> {
   // Registration does NOT return tokens — the agency logs in separately afterwards.
-  // latitude/longitude are optional on the backend; omit when not collected.
+  // latitude/longitude are REQUIRED by the backend.
   const res = await apiFetch('/auth/agency/register/', {
     method: 'POST',
     body: JSON.stringify({
+      latitude: payload.latitude,
+      longitude: payload.longitude,
       agency_name: payload.agencyName,
       agency_type: payload.agencyType,
       email: payload.email,
