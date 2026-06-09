@@ -1,6 +1,25 @@
 // Custom lightweight fetch-based API client for remote Backend URL integration
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+/**
+ * Normalize the configured backend base URL so it can never produce mixed-content
+ * or double-slash bugs regardless of how NEXT_PUBLIC_API_URL is set in the host
+ * environment (e.g. a Vercel env var pointing at "http://host/"):
+ *  - strip trailing slashes so `${BASE_URL}/path` never yields `//path`
+ *  - upgrade http -> https for non-localhost hosts when the page is served over
+ *    HTTPS, since browsers block insecure resources loaded from a secure page.
+ */
+function normalizeBaseUrl(raw: string): string {
+  let url = raw.trim().replace(/\/+$/, '');
+  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
+  const pageIsHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
+  if (url.startsWith('http://') && !isLocalhost && pageIsHttps) {
+    url = `https://${url.slice('http://'.length)}`;
+  }
+  return url;
+}
+
+const RAW_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // snake_case backend field -> friendly label for user-facing messages.
 const FIELD_LABELS: Record<string, string> = {
@@ -80,7 +99,10 @@ interface RequestOptions extends RequestInit {
 }
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
-  const url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  // Normalize per request so the protocol upgrade sees the live page context
+  // (window is undefined at module-load during SSR).
+  const baseUrl = normalizeBaseUrl(RAW_BASE_URL);
+  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
   // Headers configuration
   const headers = new Headers(options.headers || {});
