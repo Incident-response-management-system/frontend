@@ -167,8 +167,28 @@ export async function agencyLogin(
   };
 }
 
+// The backend has no logout endpoint — JWTs are stateless. Signing out just
+// clears the locally-stored access and refresh tokens.
 export async function agencySignOut(): Promise<void> {
-  // STUB — replace with:
-  // await apiFetch('/auth/agency/logout', { method: 'POST', tokenType: 'agency' });
   deleteCookie('agency_token');
+  deleteCookie('agency_refresh');
+}
+
+// ─── Agency profile (me) ─────────────────────────────────────
+
+export async function getAgencyProfile(): Promise<AgencyUser | null> {
+  const res = await apiFetch('/auth/agency/me/', { tokenType: 'agency' });
+  if (!res.ok) return null;
+  const data = await res.json();
+  // /me returns the agency object directly (same shape as login's `agency`).
+  const a = data.agency || data;
+  return {
+    id: a.id || '',
+    agencyName: a.agency_name || '',
+    agencyType: a.agency_type || '',
+    email: a.email || '',
+    phone: a.phone_number,
+    radius: a.profile?.service_radius ?? 0,
+    token: '',
+  };
 }

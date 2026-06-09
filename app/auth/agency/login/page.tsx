@@ -3,11 +3,12 @@
 import React from 'react';
 import { AgencyLoginScreen } from '@/components/irms-auth';
 import { useRouter } from 'next/navigation';
-import { setCookie } from '@/lib/api-client';
 
 export default function AgencyLoginPage() {
   const router = useRouter();
 
+  // The real JWT is set by agencyLogin() inside AgencyLoginScreen; this page
+  // only routes. (Previously it overwrote the token with a mock value.)
   const navigate = (to: string) => {
     const routeMap: Record<string, string> = {
       'landing': '/landing',
@@ -20,12 +21,6 @@ export default function AgencyLoginPage() {
       'agency-login': '/auth/agency/login',
       'agency-dashboard': '/agency/dashboard',
     };
-    
-    // Auto-login on mock login
-    if (to === 'agency-dashboard') {
-      setCookie('agency_token', 'mock-agency-token-xyz');
-    }
-    
     router.push(routeMap[to] || '/landing');
   };
 

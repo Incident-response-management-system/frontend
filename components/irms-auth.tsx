@@ -407,8 +407,8 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
 export function AgencyLoginScreen({ navigate }: ScreenProps) {
   const isTablet = useIsTablet();
   const isMobile = useIsMobile();
-  const [email, setEmail] = React.useState('ops@rccg-security.org');
-  const [password, setPassword] = React.useState('demo1234');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -494,17 +494,6 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
           >
             {loading ? <><Spinner /> Signing in…</> : 'Sign in to dashboard'}
           </button>
-
-          <div style={{
-            padding: 14, borderRadius: 10, background: 'var(--brand-cream)',
-            border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)',
-            display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 16, lineHeight: 1.5,
-          }}>
-            <Icon.bell style={{ color: 'var(--brand-ink)', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <strong style={{ color: 'var(--brand-ink)' }}>Demo credentials pre-filled.</strong> Press Sign in to enter the agency dashboard.
-            </div>
-          </div>
         </div>
       </div>
     </AuthShell>

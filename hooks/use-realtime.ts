@@ -1,7 +1,9 @@
 import React from 'react';
 import { toast } from 'sonner';
 
-// Real-time WebSocket hook using Pusher with mock simulation fallback
+// Real-time WebSocket hook using Pusher. With no Pusher key configured the
+// hook is a no-op (no fabricated incidents) — the dashboard relies on its
+// fetched data until live events are wired.
 export function useRealtimeEvents(
   agencyId: string,
   onIncidentCreated: (inc: any) => void,
@@ -14,41 +16,8 @@ export function useRealtimeEvents(
     const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1';
 
     if (!pusherKey) {
-      console.warn("Pusher configuration missing. WebSocket real-time subscription is running in Mock Mode.");
-
-      // Setup random mock incident arrivals to keep the dashboard responsive and lively in local sandbox
-      const mockArrival = setInterval(() => {
-        const rand = Math.random();
-        if (rand < 0.05) { // 5% chance every 45s
-          const randomType = ['medical', 'rta', 'fire', 'civil', 'flood'][Math.floor(Math.random() * 5)];
-          const newIncident = {
-            ref: `INC-2026-00${Math.floor(Math.random() * 900 + 150)}`,
-            type: randomType,
-            location: ['Holy Ghost Arena', 'Road 5 Gate', 'Camp Health Center', 'Youth Center Block B'][Math.floor(Math.random() * 4)],
-            lat: 6.890 + (Math.random() - 0.5) * 0.015,
-            lng: 3.170 + (Math.random() - 0.5) * 0.015,
-            status: 'received' as const,
-            reported: 'Just now',
-            reportedAt: `Today · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-            desc: 'A live emergency coordinate has been registered on the camp system. Response unit is requested.',
-            media: Math.floor(Math.random() * 3),
-            assignedTo: null
-          };
-
-          toast.warning("⚠️ New Incident Received!", {
-            description: `${newIncident.location} — ${newIncident.desc.slice(0, 45)}...`,
-            action: {
-              label: 'Assess Case',
-              onClick: () => onIncidentCreated(newIncident),
-            },
-            duration: 10000,
-          });
-
-          onIncidentCreated(newIncident);
-        }
-      }, 45000);
-
-      return () => clearInterval(mockArrival);
+      console.warn('Pusher not configured — real-time updates are disabled.');
+      return;
     }
 
     // Attempt real connection if Pusher config is set

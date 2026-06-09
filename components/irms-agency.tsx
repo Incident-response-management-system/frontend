@@ -6,18 +6,45 @@ import {
   INCIDENT_TYPES,
   StatusBadge,
   StatusStepper,
-  PrimaryButton,
   GhostButton,
-  SAMPLE_INCIDENTS,
   getIncidentType,
   Incident,
   IncidentStatus,
 } from './irms-shared';
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
-import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats } from '@/lib/agency-api';
+import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats, type IncidentTab } from '@/lib/agency-api';
+import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
+
+// Real logged-in agency profile, provided by DashboardScreen and consumed by
+// the sidebar badge, top bar and settings. null until /auth/agency/me/ resolves.
+const AgencyProfileContext = React.createContext<AgencyUser | null>(null);
+function useAgencyProfile() { return React.useContext(AgencyProfileContext); }
+
+// Human label for a backend agency_type value.
+const AGENCY_TYPE_LABELS: Record<string, string> = {
+  police: 'Police Service',
+  hospital: 'Hospital / Medical',
+  fire_rescue: 'Fire & Rescue',
+  private_security: 'Private Security',
+};
+
+// Shared empty/loading/error placeholder for the dashboard tables.
+function DashEmptyState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--brand-muted)', fontSize: 14 }}>
+      <div>{message}</div>
+      {onRetry && (
+        <button type="button" onClick={onRetry} style={{
+          marginTop: 14, padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          color: 'var(--brand-ink)', background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-divider)', cursor: 'pointer',
+        }}>Retry</button>
+      )}
+    </div>
+  );
+}
 
 let L: any;
 if (typeof window !== 'undefined') {
@@ -63,6 +90,14 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
   const [mobileOpen, setMobileOpen] = React.useState(false);
   // In drawer mode (tablet/mobile) the sidebar is always shown expanded.
   const drawerCollapsed = isTablet ? false : collapsed;
+
+  const profile = useAgencyProfile();
+  const agencyName = profile?.agencyName || 'Your Agency';
+  const agencyInitials = (profile?.agencyName || 'AG')
+    .split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'AG';
+  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[profile.agencyType] || profile.agencyType) : '';
+  const agencyMeta = [typeLabel, profile?.radius ? `${profile.radius}km` : '']
+    .filter(Boolean).join(' · ') || 'Agency';
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Icon.grid },
     { id: 'map', label: 'Map View', icon: Icon.map },
@@ -120,7 +155,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
           )}
         </div>
 
-        {/* Agency badge */}
+        {/* Agency badge — real logged-in agency */}
         {!drawerCollapsed && (
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--brand-hairline)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -129,10 +164,10 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
                 background: 'var(--status-blue-bg)', border: '1px solid var(--status-blue-bd)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-blue)',
                 fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-mono)',
-              }}>RC</div>
+              }}>{agencyInitials}</div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>RCCG Camp Security</div>
-                <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>Private Security · 25km</div>
+                <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agencyName}</div>
+                <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>{agencyMeta}</div>
               </div>
             </div>
           </div>
@@ -203,7 +238,12 @@ interface DashTopBarProps {
 export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const profile = useAgencyProfile();
   const padding = isMobile ? '18px 16px 18px 56px' : (isTablet ? '20px 20px 20px 60px' : '24px 32px');
+  const agencyName = profile?.agencyName || 'Your Agency';
+  const agencyInitials = (profile?.agencyName || 'AG')
+    .split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'AG';
+  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[profile.agencyType] || profile.agencyType) : 'Agency';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -221,11 +261,11 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
           <span style={{ position: 'absolute', top: 8, right: 9, width: 8, height: 8, borderRadius: '50%', background: 'var(--status-red)', border: '2px solid white' }}/>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 12, borderLeft: '1px solid var(--brand-hairline)' }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--brand-ink)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>AO</div>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--brand-ink)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>{agencyInitials}</div>
           {!isMobile && (
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Adebayo Olamide</div>
-              <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>Dispatch Lead</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{agencyName}</div>
+              <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>{typeLabel}</div>
             </div>
           )}
         </div>
@@ -237,27 +277,22 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
 // -----------------------------------------------------------
 // SCREEN 6 — OVERVIEW
 // -----------------------------------------------------------
-export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
+export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident }: { incidents: Incident[]; loading?: boolean; error?: string | null; onRetry?: () => void; onViewIncident: (inc: Incident) => void }) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
-  const [stats, setStats] = React.useState([
-    { label: 'Total Incidents', value: incidents.length.toString(), delta: '+12 today', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
-    { label: 'Open Incidents', value: incidents.filter(r => r.status !== 'resolved').length.toString(), delta: `${incidents.filter(r => r.status === 'received').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
-    { label: 'Assigned to Us', value: incidents.filter(r => r.assignedTo && r.status === 'assigned').length.toString(), delta: '2 in progress', color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
-    { label: 'Resolved This Month', value: incidents.filter(r => r.status === 'resolved').length.toString(), delta: '+18% vs last', color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
-  ]);
-  const [sparklinePath, setSparklinePath] = React.useState("M0 50 L40 35 L80 42 L120 28 L160 38 L200 22 L240 30 L280 18");
-  const [pointsList, setPointsList] = React.useState([[0,50],[40,35],[80,42],[120,28],[160,38],[200,22],[240,30],[280,18]]);
+
+  // Derive cards from the incidents we have; replaced by /agencies/stats below.
+  const deriveStats = React.useCallback((list: Incident[]) => ([
+    { label: 'Total Incidents', value: String(list.length), delta: 'total', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
+    { label: 'Open Incidents', value: String(list.filter(r => r.status !== 'resolved').length), delta: `${list.filter(r => r.status === 'received').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
+    { label: 'Assigned to You', value: String(list.filter(r => r.isMine || r.status === 'assigned').length), delta: `${list.filter(r => r.status === 'review').length} in progress`, color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
+    { label: 'Resolved', value: String(list.filter(r => r.status === 'resolved').length), delta: 'this month', color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
+  ]), []);
+
+  const [stats, setStats] = React.useState(() => deriveStats(incidents));
 
   React.useEffect(() => {
-    // Sync calculations based on dynamic incidents state
-    setStats([
-      { label: 'Total Incidents', value: incidents.length.toString(), delta: '+2 today', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
-      { label: 'Open Incidents', value: incidents.filter(r => r.status !== 'resolved').length.toString(), delta: `${incidents.filter(r => r.status === 'received').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
-      { label: 'Assigned to Us', value: incidents.filter(r => r.assignedTo?.includes('RCCG') || r.assignedTo?.includes('Camp')).length.toString(), delta: '2 in progress', color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
-      { label: 'Resolved This Month', value: incidents.filter(r => r.status === 'resolved').length.toString(), delta: '+18% vs last', color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
-    ]);
-
+    setStats(deriveStats(incidents));
     async function loadStats() {
       try {
         const s = await fetchAgencyStats();
@@ -265,22 +300,22 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
         setStats([
           { label: 'Total Incidents', value: String(s.totalThisMonth), delta: 'this month', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
           { label: 'Open Incidents', value: String(open), delta: `${s.pending} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
-          { label: 'Assigned to Us', value: String(s.assignedToAgency), delta: `${s.inProgress} in progress`, color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
-          { label: 'Resolved This Month', value: String(s.resolvedThisMonth), delta: `${s.closed} closed`, color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
+          { label: 'Assigned to You', value: String(s.assignedToAgency), delta: `${s.inProgress} in progress`, color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
+          { label: 'Resolved', value: String(s.resolvedThisMonth), delta: `${s.closed} closed`, color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
         ]);
       } catch (err) {
-        // Safe silent catch: keep the locally-computed offline stats above
+        // keep the locally-derived stats
       }
     }
     loadStats();
-  }, [incidents]);
+  }, [incidents, deriveStats]);
 
   return (
     <div>
       <DashTopBar
         title="Operations overview"
-        subtitle="Live incidents across your service radius · Updated 12s ago"
-        actions={<GhostButton theme="light" size="sm"><Icon.filter /> Today</GhostButton>}
+        subtitle="Live incidents across your service radius"
+        actions={<GhostButton theme="light" size="sm" onClick={onRetry}><Icon.filter /> Refresh</GhostButton>}
       />
 
       <div style={{ padding: isMobile ? 16 : 32 }}>
@@ -317,15 +352,18 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
-                { type: 'medical', label: 'Medical Emergency', open: incidents.filter(r => r.type === 'medical' && r.status !== 'resolved').length || 8, resolved: incidents.filter(r => r.type === 'medical' && r.status === 'resolved').length || 34 },
-                { type: 'rta', label: 'Road Traffic Accident', open: incidents.filter(r => r.type === 'rta' && r.status !== 'resolved').length || 5, resolved: incidents.filter(r => r.type === 'rta' && r.status === 'resolved').length || 28 },
-                { type: 'civil', label: 'Civil Disturbance', open: incidents.filter(r => r.type === 'civil' && r.status !== 'resolved').length || 4, resolved: incidents.filter(r => r.type === 'civil' && r.status === 'resolved').length || 19 },
-                { type: 'fire', label: 'Fire Outbreak', open: incidents.filter(r => r.type === 'fire' && r.status !== 'resolved').length || 3, resolved: incidents.filter(r => r.type === 'fire' && r.status === 'resolved').length || 12 },
-                { type: 'flood', label: 'Flood Incident', open: incidents.filter(r => r.type === 'flood' && r.status !== 'resolved').length || 2, resolved: incidents.filter(r => r.type === 'flood' && r.status === 'resolved').length || 14 },
-                { type: 'missing', label: 'Missing Person', open: incidents.filter(r => r.type === 'missing' && r.status !== 'resolved').length || 1, resolved: incidents.filter(r => r.type === 'missing' && r.status === 'resolved').length || 12 },
-              ].map(r => {
-                const total = r.open + r.resolved;
-                const max = 42;
+                { type: 'medical', label: 'Medical Emergency' },
+                { type: 'rta', label: 'Road Traffic Accident' },
+                { type: 'civil', label: 'Civil Disturbance' },
+                { type: 'fire', label: 'Fire Outbreak' },
+                { type: 'flood', label: 'Flood Incident' },
+                { type: 'missing', label: 'Missing Person' },
+              ].map(({ type, label }) => {
+                const open = incidents.filter(r => r.type === type && r.status !== 'resolved').length;
+                const resolved = incidents.filter(r => r.type === type && r.status === 'resolved').length;
+                const r = { type, label, open, resolved };
+                const total = open + resolved;
+                const max = Math.max(1, ...incidents.length ? [incidents.length] : [1]);
                 return (
                   <div key={r.type} style={{ display: 'grid', gridTemplateColumns: isMobile ? '80px 1fr 32px' : '140px 1fr 60px', gap: isMobile ? 8 : 12, alignItems: 'center' }}>
                     <div style={{ fontSize: isMobile ? 11 : 13, color: 'var(--brand-ink)', fontWeight: 500 }}>{r.label}</div>
@@ -340,30 +378,29 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
             </div>
           </div>
 
-          {/* Response times */}
+          {/* Status breakdown — derived from current incidents */}
           <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 16 : 24 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Response performance</h3>
-            <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginBottom: 24 }}>This week</div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 40, fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1 }}>3m 42s</div>
-              <div style={{ fontSize: 12, color: 'var(--status-green)', fontWeight: 600, marginTop: 6 }}>↓ 22s faster than last week</div>
-            </div>
-            {/* Sparkline */}
-            <svg viewBox="0 0 280 80" style={{ width: '100%', height: 80 }}>
-              <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--status-red)" stopOpacity="0.3"/>
-                  <stop offset="100%" stopColor="var(--status-red)" stopOpacity="0"/>
-                </linearGradient>
-              </defs>
-              <path d={`${sparklinePath} L280 80 L0 80 Z`} fill="url(#grad)"/>
-              <path d={sparklinePath} stroke="var(--status-red)" strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round"/>
-              {pointsList.map(([x,y],i) => (
-                <circle key={i} cx={x} cy={y} r="2.5" fill="var(--status-red)" />
-              ))}
-            </svg>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)', marginTop: 6 }}>
-              <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Status breakdown</h3>
+            <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginBottom: 24 }}>Across your current incidents</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { key: 'received', label: 'Received', color: 'var(--status-red)' },
+                { key: 'review', label: 'Under Review', color: 'var(--status-amber)' },
+                { key: 'assigned', label: 'Assigned', color: 'var(--status-blue)' },
+                { key: 'resolved', label: 'Resolved', color: 'var(--status-green)' },
+              ].map(s => {
+                const n = incidents.filter(r => r.status === s.key).length;
+                const pct = incidents.length ? Math.round((n / incidents.length) * 100) : 0;
+                return (
+                  <div key={s.key} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 36px', gap: 12, alignItems: 'center' }}>
+                    <div style={{ fontSize: 13, color: 'var(--brand-ink)', fontWeight: 500 }}>{s.label}</div>
+                    <div style={{ height: 22, borderRadius: 4, overflow: 'hidden', background: 'var(--brand-cream)' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: s.color }} />
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, textAlign: 'right' }}>{n}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -373,11 +410,18 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--brand-hairline)' }}>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>Recent incidents</h3>
-              <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Showing the 6 most recent reports in your radius</div>
+              <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Most recent reports in your radius</div>
             </div>
-            <GhostButton theme="light" size="sm">View all →</GhostButton>
           </div>
-          <IncidentsTable rows={incidents.slice(0, 6)} onView={onViewIncident} />
+          {loading ? (
+            <DashEmptyState message="Loading incidents…" />
+          ) : error ? (
+            <DashEmptyState message={error} onRetry={onRetry} />
+          ) : incidents.length === 0 ? (
+            <DashEmptyState message="No incidents in your service radius yet." />
+          ) : (
+            <IncidentsTable rows={incidents.slice(0, 6)} onView={onViewIncident} />
+          )}
         </div>
       </div>
     </div>
@@ -592,7 +636,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <DashTopBar
         title="Live map"
-        subtitle={`${SAMPLE_INCIDENTS.length} incidents · 25km service radius`}
+        subtitle={`${incidents.length} incident${incidents.length === 1 ? '' : 's'} in your service radius`}
         actions={null}
       />
       {/* Filter toolbar */}
@@ -738,7 +782,17 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
 // -----------------------------------------------------------
 // SCREEN 9 — ALL REPORTS
 // -----------------------------------------------------------
-export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
+export function ReportsTab({
+  incidents, loading, error, onRetry, incidentTab, onIncidentTabChange, onViewIncident,
+}: {
+  incidents: Incident[];
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  incidentTab: IncidentTab;
+  onIncidentTabChange: (t: IncidentTab) => void;
+  onViewIncident: (inc: Incident) => void;
+}) {
   const isMobile = useIsMobile();
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
@@ -788,6 +842,30 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
         actions={<GhostButton theme="light" size="sm"><Icon.download /> Export CSV</GhostButton>}
       />
       <div style={{ padding: isMobile ? 16 : 32 }}>
+        {/* Backend-filtered scope: available (unclaimed, in radius) / mine / all */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-hairline)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+          {([
+            { id: 'all', label: 'All' },
+            { id: 'available', label: 'Available' },
+            { id: 'mine', label: 'Mine' },
+          ] as { id: IncidentTab; label: string }[]).map(t => {
+            const active = incidentTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onIncidentTabChange(t.id)}
+                style={{
+                  padding: '7px 16px', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  background: active ? 'var(--brand-white)' : 'transparent',
+                  color: active ? 'var(--brand-ink)' : 'var(--brand-muted)',
+                  border: active ? '1px solid var(--brand-divider)' : '1px solid transparent',
+                }}
+              >{t.label}</button>
+            );
+          })}
+        </div>
+
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
           <div style={{
             flex: 1, minWidth: isMobile ? 160 : 260, display: 'flex', alignItems: 'center', gap: 10,
@@ -843,8 +921,17 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
         </div>
 
         <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
-          <IncidentsTable rows={paginatedRows} onView={onViewIncident} showAssigned />
+          {loading ? (
+            <DashEmptyState message="Loading incidents…" />
+          ) : error ? (
+            <DashEmptyState message={error} onRetry={onRetry} />
+          ) : filtered.length === 0 ? (
+            <DashEmptyState message={incidents.length === 0 ? 'No incidents to show for this view.' : 'No incidents match your filters.'} />
+          ) : (
+            <IncidentsTable rows={paginatedRows} onView={onViewIncident} showAssigned />
+          )}
           {/* Pagination controls */}
+          {!loading && !error && filtered.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderTop: '1px solid var(--brand-hairline)' }}>
             <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>
               Showing {filtered.length === 0 ? 0 : (page - 1) * pageSize + 1} – {Math.min(page * pageSize, filtered.length)} of {filtered.length}
@@ -871,13 +958,14 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
                   >{n}</button>
                 );
               })}
-              <button 
+              <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)', background: 'none', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}
               >→</button>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>
@@ -889,6 +977,8 @@ export function ReportsTab({ incidents, onViewIncident }: { incidents: Incident[
 // -----------------------------------------------------------
 export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { incident: Incident; onClose: () => void; onUpdateIncident: (ref: string, updates: Partial<Incident>) => void }) {
   const isMobile = useIsMobile();
+  const profile = useAgencyProfile();
+  const myAgencyName = profile?.agencyName || 'your agency';
   const [status, setStatus] = React.useState<IncidentStatus>(incident.status);
   const [assigned, setAssigned] = React.useState(!!incident.assignedTo);
   const t = getIncidentType(incident.type);
@@ -912,14 +1002,10 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
         return;
       } catch (err: any) {
         toast.error(err.message || 'Could not claim this incident.');
-        return;
       }
+      return;
     }
-    // Offline / seeded incident (no backend id): keep the local demo behaviour.
-    toast.info(`Incident ${incident.ref} assigned to RCCG Camp Security (Offline Mode).`);
-    setAssigned(true);
-    setStatus('assigned');
-    onUpdateIncident(incident.ref, { assignedTo: 'RCCG Camp Security', status: 'assigned' });
+    toast.error('This incident cannot be claimed (missing backend id).');
   };
 
   const handleStatusUpdate = async () => {
@@ -928,15 +1014,12 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
         const updated = await updateIncidentStatus(incident.id, status);
         toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
         onUpdateIncident(incident.ref, { ...updated });
-        return;
       } catch (err: any) {
         toast.error(err.message || 'Could not update this incident.');
-        return;
       }
+      return;
     }
-    // Offline / seeded incident.
-    toast.success(`Incident ${incident.ref} status updated to "${status.charAt(0).toUpperCase() + status.slice(1)}" (Offline Mode)!`);
-    onUpdateIncident(incident.ref, { status });
+    toast.error('This incident cannot be updated (missing backend id).');
   };
 
   return (
@@ -986,10 +1069,10 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
           <div style={{ padding: '20px 4px', marginBottom: 24, borderBottom: '1px solid var(--brand-hairline)', overflowX: 'auto' }}>
             <StatusStepper current={status} theme="light"
               timestamps={{
-                received: incident.reportedAt.split('·')[1]?.trim() || '14:32',
-                review: status === 'review' || status === 'assigned' || status === 'resolved' ? '14:38' : null,
-                assigned: status === 'assigned' || status === 'resolved' ? '14:51' : null,
-                resolved: status === 'resolved' ? '15:12' : null,
+                received: incident.reportedAt || null,
+                review: null,
+                assigned: null,
+                resolved: null,
               }}
             />
           </div>
@@ -1018,11 +1101,11 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {Array.from({ length: incident.media }).map((_, i) => (
                   <div key={i} style={{
-                    aspectRatio: '1', borderRadius: 10, overflow: 'hidden',
-                    background: `linear-gradient(135deg, oklch(0.6 0.1 ${i*60+30}), oklch(0.4 0.08 ${i*60+60}))`,
-                    border: '1px solid var(--brand-hairline)', position: 'relative', cursor: 'pointer',
+                    aspectRatio: '1', borderRadius: 10,
+                    background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-muted)',
                   }}>
-                    <div style={{ position: 'absolute', bottom: 6, left: 8, color: 'white', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600 }}>IMG_{i+1}.JPG</div>
+                    <Icon.upload style={{ width: 18, height: 18 }} />
                   </div>
                 ))}
               </div>
@@ -1043,7 +1126,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                   width: '100%', justifyContent: 'center', border: 'none', cursor: 'pointer',
                   boxShadow: '0 4px 14px rgba(232,74,63,0.25)',
                 }}>
-                  Assign to RCCG Camp Security <Icon.arrow />
+                  Claim this incident <Icon.arrow />
                 </button>
               </>
             ) : (
@@ -1052,7 +1135,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-blue)' }}/>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-blue)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Assigned to your agency</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{incident.assignedTo || 'RCCG Camp Security'}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{incident.assignedTo || myAgencyName}</div>
 
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
@@ -1084,9 +1167,6 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 }}>
                   <Icon.check /> Update to {status === 'resolved' ? 'Resolved' : 'New Status'}
                 </button>
-                <div style={{ fontSize: 11, color: 'var(--brand-muted)', marginTop: 12, textAlign: 'center' }}>
-                  Last updated: Today at 4:15 PM by Adebayo Olamide
-                </div>
               </>
             )}
           </div>
@@ -1111,27 +1191,39 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigate: (to: string) => void; initialTab?: string }) {
   const [tab, setTab] = React.useState(initialTab);
   const [activeIncident, setActiveIncident] = React.useState<Incident | null>(null);
-  const [incidents, setIncidents] = React.useState<Incident[]>(SAMPLE_INCIDENTS);
+  const [incidents, setIncidents] = React.useState<Incident[]>([]);
+  const [incidentTab, setIncidentTab] = React.useState<IncidentTab>('all');
+  const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [profile, setProfile] = React.useState<AgencyUser | null>(null);
 
-  React.useEffect(() => {
-    // Fetch the agency's incidents (available + mine) from the backend.
-    // Soft-fallback to the pre-seeded sample list on offline/sandbox/error.
-    let cancelled = false;
-    async function loadIncidents() {
-      try {
-        const list = await fetchAgencyIncidents('all');
-        if (!cancelled && list.length) setIncidents(list);
-      } catch (err) {
-        // keep SAMPLE_INCIDENTS
-      }
+  const reload = React.useCallback(async (which: IncidentTab) => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const list = await fetchAgencyIncidents(which);
+      setIncidents(list);
+    } catch (err: any) {
+      setLoadError(err?.message || 'Could not load incidents.');
+      setIncidents([]);
+    } finally {
+      setLoading(false);
     }
-    loadIncidents();
+  }, []);
+
+  // Load the agency's real profile once.
+  React.useEffect(() => {
+    let cancelled = false;
+    getAgencyProfile().then(p => { if (!cancelled && p) setProfile(p); }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
+  // (Re)load incidents whenever the available/mine filter changes.
+  React.useEffect(() => { reload(incidentTab); }, [incidentTab, reload]);
+
   // Connect live WebSocket event listener (Pusher) for real-time dispatch updates
   useRealtimeEvents(
-    'rccg-camp-ops',
+    profile?.id || 'agency',
     // onIncidentCreated
     (newInc) => {
       setIncidents(prev => {
@@ -1166,49 +1258,60 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
   };
 
   return (
-    <DashboardShell navigate={navigate} currentTab={tab} onTabChange={setTab}>
-      {tab === 'overview' && <OverviewTab incidents={incidents} onViewIncident={setActiveIncident} />}
-      {tab === 'map' && <MapTab incidents={incidents} onViewIncident={setActiveIncident} />}
-      {tab === 'reports' && <ReportsTab incidents={incidents} onViewIncident={setActiveIncident} />}
-      {tab === 'settings' && <SettingsTab />}
-      {activeIncident && (
-        <IncidentDetailPanel 
-          incident={activeIncident} 
-          onClose={() => setActiveIncident(null)} 
-          onUpdateIncident={handleUpdateIncident}
-        />
-      )}
-    </DashboardShell>
+    <AgencyProfileContext.Provider value={profile}>
+      <DashboardShell navigate={navigate} currentTab={tab} onTabChange={setTab}>
+        {tab === 'overview' && <OverviewTab incidents={incidents} loading={loading} error={loadError} onRetry={() => reload(incidentTab)} onViewIncident={setActiveIncident} />}
+        {tab === 'map' && <MapTab incidents={incidents} onViewIncident={setActiveIncident} />}
+        {tab === 'reports' && (
+          <ReportsTab
+            incidents={incidents}
+            loading={loading}
+            error={loadError}
+            onRetry={() => reload(incidentTab)}
+            incidentTab={incidentTab}
+            onIncidentTabChange={setIncidentTab}
+            onViewIncident={setActiveIncident}
+          />
+        )}
+        {tab === 'settings' && <SettingsTab />}
+        {activeIncident && (
+          <IncidentDetailPanel
+            incident={activeIncident}
+            onClose={() => setActiveIncident(null)}
+            onUpdateIncident={handleUpdateIncident}
+          />
+        )}
+      </DashboardShell>
+    </AgencyProfileContext.Provider>
   );
 }
 
 function SettingsTab() {
   const isMobile = useIsMobile();
-  const handleSave = () => {
-    toast.success('Settings saved successfully!');
-  };
+  const profile = useAgencyProfile();
+  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[profile.agencyType] || profile.agencyType) : '';
   return (
     <div>
-      <DashTopBar title="Settings" subtitle="Manage your agency profile and notification preferences" />
+      <DashTopBar title="Settings" subtitle="Your agency profile" />
       <div style={{ padding: isMobile ? 16 : 32, maxWidth: 720 }}>
         <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: isMobile ? 20 : 28 }}>
           <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px' }}>Agency profile</h3>
           <p style={{ fontSize: 13, color: 'var(--brand-muted)', margin: '0 0 24px' }}>Visible to the public during incident assignment.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <FormInput label="Agency name" value="RCCG Camp Security" onChange={() => {}} />
-            <FormInput label="Email" value="ops@rccg-security.org" onChange={() => {}} />
-            <FormInput label="Phone" value="+234 803 555 0142" onChange={() => {}} />
+            <FormInput label="Agency name" value={profile?.agencyName || ''} onChange={() => {}} disabled />
+            <FormInput label="Agency type" value={typeLabel} onChange={() => {}} disabled />
+            <FormInput label="Email" value={profile?.email || ''} onChange={() => {}} disabled />
+            <FormInput label="Phone" value={profile?.phone || ''} onChange={() => {}} disabled />
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <label style={{ fontSize: 13, fontWeight: 600 }}>Service coverage radius</label>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--status-red)' }}>25 km</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--status-red)' }}>{profile?.radius ?? 0} km</span>
               </div>
-              <input type="range" min="5" max="100" defaultValue="25" style={{ width: '100%', accentColor: 'var(--status-red)' }} />
+              <input type="range" min="5" max="100" value={profile?.radius ?? 25} disabled readOnly style={{ width: '100%', accentColor: 'var(--status-red)' }} />
             </div>
-            <button onClick={handleSave} style={{
-              background: 'var(--brand-ink)', color: 'var(--brand-cream)', padding: '11px 18px', borderRadius: 9,
-              fontWeight: 600, fontSize: 14, width: '100%', border: 'none', cursor: 'pointer', marginTop: 10
-            }}>Save settings</button>
+            <p style={{ fontSize: 12, color: 'var(--brand-muted)', margin: '6px 0 0' }}>
+              Profile details are managed by your administrator and cannot be edited here.
+            </p>
           </div>
         </div>
       </div>
