@@ -157,6 +157,89 @@ function Spinner() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// SHARED AGENCY AUTH HEADER
+// On desktop/tablet: logo (when copy panel hidden) + "Back to home" and the
+// alt action inline. On mobile: logo + back-arrow only, with the alt action
+// and theme toggle collapsed into a hamburger menu so nothing wraps.
+// ─────────────────────────────────────────────────────────────
+function AgencyAuthHeader({
+  navigate, isTablet, isMobile, altLabel, altActionLabel, altAction,
+}: {
+  navigate: (to: string) => void;
+  isTablet: boolean;
+  isMobile: boolean;
+  altLabel: string;
+  altActionLabel: string;
+  altAction: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16 }}>
+        {/* Logo shown here only when the copy panel (and its logo) is hidden */}
+        {isTablet && (
+          <button type="button" onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <IRMSLogo size={15} color="var(--brand-ink)" />
+          </button>
+        )}
+        <button type="button" onClick={() => navigate('landing')} aria-label="Back to home" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <Icon.back style={{ width: 16, height: 16 }} />{!isMobile && ' Back to home'}
+        </button>
+      </div>
+
+      {isMobile ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, position: 'relative' }}>
+          <ThemeToggle size={34} />
+          <button
+            type="button"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen ? 'true' : 'false'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 38, height: 38, borderRadius: 9, color: 'var(--brand-ink)',
+              background: menuOpen ? 'var(--brand-surface-alt)' : 'none',
+              border: '1px solid var(--brand-divider)', cursor: 'pointer',
+            }}
+          >
+            {menuOpen ? <Icon.close style={{ width: 18, height: 18 }} /> : <Icon.list style={{ width: 18, height: 18 }} />}
+          </button>
+          {menuOpen && (
+            <>
+              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 8, zIndex: 70,
+                minWidth: 220, padding: 6,
+                background: 'var(--brand-white)', border: '1px solid var(--brand-divider)',
+                borderRadius: 12, boxShadow: '0 16px 36px rgba(0,0,0,0.16)',
+              }}>
+                <div style={{ padding: '8px 12px 6px', fontSize: 12, color: 'var(--brand-muted)' }}>{altLabel}</div>
+                <button type="button" onClick={() => { setMenuOpen(false); altAction(); }} style={{
+                  width: '100%', padding: '10px 12px', fontSize: 14, fontWeight: 600, color: 'var(--brand-ink)',
+                  borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}>{altActionLabel}</button>
+                <div style={{ height: 1, background: 'var(--brand-hairline)', margin: '4px 8px' }} />
+                <button type="button" onClick={() => { setMenuOpen(false); navigate('landing'); }} style={{
+                  width: '100%', padding: '10px 12px', fontSize: 14, fontWeight: 500, color: 'var(--brand-muted)',
+                  borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}>Back to home</button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
+            {altLabel} <button type="button" onClick={altAction} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>{altActionLabel}</button>
+          </div>
+          <ThemeToggle size={34} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // AGENCY SIGNUP
 // ─────────────────────────────────────────────────────────────
 export function AgencySignupScreen({ navigate }: ScreenProps) {
@@ -208,25 +291,14 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
 
   return (
     <AuthShell mode="signup" navigate={navigate}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* Logo shown here only when the copy panel (and its logo) is hidden */}
-          {isTablet && (
-            <button onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              <IRMSLogo size={15} color="var(--brand-ink)" />
-            </button>
-          )}
-          <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
-          </div>
-          <ThemeToggle size={34} />
-        </div>
-      </div>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="Already registered?"
+        altActionLabel="Sign in"
+        altAction={() => navigate('agency-login')}
+      />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 480, width: '100%', margin: '40px auto' }}>
         <div style={{ marginBottom: 28 }}>
@@ -333,6 +405,7 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
 // ─────────────────────────────────────────────────────────────
 export function AgencyLoginScreen({ navigate }: ScreenProps) {
   const isTablet = useIsTablet();
+  const isMobile = useIsMobile();
   const [email, setEmail] = React.useState('ops@rccg-security.org');
   const [password, setPassword] = React.useState('demo1234');
   const [loading, setLoading] = React.useState(false);
@@ -364,25 +437,14 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
 
   return (
     <AuthShell mode="login" navigate={navigate}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* Logo shown here only when the copy panel (and its logo) is hidden */}
-          {isTablet && (
-            <button onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              <IRMSLogo size={15} color="var(--brand-ink)" />
-            </button>
-          )}
-          <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>Register here</button>
-          </div>
-          <ThemeToggle size={34} />
-        </div>
-      </div>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="New agency?"
+        altActionLabel="Register here"
+        altAction={() => navigate('agency-signup')}
+      />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 420, width: '100%', margin: '40px auto' }}>
         <div style={{ marginBottom: 28 }}>
