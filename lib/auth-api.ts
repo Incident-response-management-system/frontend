@@ -113,60 +113,57 @@ export interface AgencySignupPayload {
 }
 
 export async function agencySignup(payload: AgencySignupPayload): Promise<AgencyUser> {
-  // STUB — replace with:
-  // const res = await apiFetch('/auth/agency/signup', {
-  //   method: 'POST',
-  //   body: JSON.stringify(payload),
-  //   tokenType: 'agency',
-  // });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Agency signup failed'); }
-  // const data = await res.json();
-  // setCookie('agency_token', data.token);
-  // return data.agency;
-
-  await new Promise(r => setTimeout(r, 1000));
-
-  const mockToken = `mock-agency-token-${Date.now()}`;
-  setCookie('agency_token', mockToken);
-
-  return {
-    id: `agency_${Date.now()}`,
-    agencyName: payload.agencyName,
-    agencyType: payload.agencyType,
-    email: payload.email,
-    phone: payload.phone,
-    radius: payload.radius,
-    token: mockToken,
-  };
+  // Registration does NOT return tokens — the agency logs in separately afterwards.
+  // latitude/longitude are optional on the backend; omit when not collected.
+  const res = await apiFetch('/auth/agency/register/', {
+    method: 'POST',
+    body: JSON.stringify({
+      agency_name: payload.agencyName,
+      agency_type: payload.agencyType,
+      email: payload.email,
+      password: payload.password,
+      phone_number: payload.phone,
+      service_radius: payload.radius,
+    }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    let message = 'Registration failed. Please try again.';
+    try { const err = await res.json(); message = err.detail || err.message || message; } catch { /* non-JSON */ }
+    throw new Error(message);
+  }
+  // Auto-login so the user lands in the dashboard without a second form.
+  return agencyLogin(payload.email, payload.password);
 }
 
 export async function agencyLogin(
   email: string,
   password: string,
 ): Promise<AgencyUser> {
-  // STUB — replace with:
-  // const res = await apiFetch('/auth/agency/login', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ email, password }),
-  //   tokenType: 'agency',
-  // });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Login failed'); }
-  // const data = await res.json();
-  // setCookie('agency_token', data.token);
-  // return data.agency;
+  const res = await apiFetch('/auth/agency/login/', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    let message = 'Login failed. Please check your credentials.';
+    try { const err = await res.json(); message = err.detail || err.message || message; } catch { /* non-JSON */ }
+    throw new Error(message);
+  }
+  const data = await res.json();
+  // Store the access token in the agency_token cookie (apiFetch reads it back as Bearer).
+  setCookie('agency_token', data.access);
+  if (data.refresh) setCookie('agency_refresh', data.refresh, 7);
 
-  await new Promise(r => setTimeout(r, 800));
-
-  const mockToken = `mock-agency-token-${Date.now()}`;
-  setCookie('agency_token', mockToken);
-
+  const a = data.agency || {};
   return {
-    id: 'agency_demo_001',
-    agencyName: 'RCCG Camp Security',
-    agencyType: 'security',
-    email,
-    radius: 25,
-    token: mockToken,
+    id: a.id || '',
+    agencyName: a.agency_name || '',
+    agencyType: a.agency_type || '',
+    email: a.email || email,
+    phone: a.phone_number,
+    radius: a.profile?.service_radius ?? 0,
+    token: data.access,
   };
 }
 

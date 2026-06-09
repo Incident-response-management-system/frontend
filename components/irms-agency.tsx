@@ -15,7 +15,7 @@ import {
 } from './irms-shared';
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
-import { apiFetch } from '@/lib/api-client';
+import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats } from '@/lib/agency-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
@@ -260,29 +260,16 @@ export function OverviewTab({ incidents, onViewIncident }: { incidents: Incident
 
     async function loadStats() {
       try {
-        const res = await apiFetch('/agency/stats');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.stats) setStats(data.stats);
-          if (data.sparkline) {
-            const points = data.sparkline.map((val: number, i: number) => {
-              const x = (i / (data.sparkline.length - 1)) * 280;
-              const y = 80 - ((val / 10) * 50 + 15);
-              return [x, y];
-            });
-            setPointsList(points);
-            let pathStr = `M ${points[0][0]} ${points[0][1]}`;
-            for (let i = 0; i < points.length - 1; i++) {
-              const p0 = points[i];
-              const p1 = points[i+1];
-              const cpX = (p0[0] + p1[0]) / 2;
-              pathStr += ` C ${cpX} ${p0[1]}, ${cpX} ${p1[1]}, ${p1[0]} ${p1[1]}`;
-            }
-            setSparklinePath(pathStr);
-          }
-        }
+        const s = await fetchAgencyStats();
+        const open = s.pending + s.inProgress + s.assigned;
+        setStats([
+          { label: 'Total Incidents', value: String(s.totalThisMonth), delta: 'this month', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
+          { label: 'Open Incidents', value: String(open), delta: `${s.pending} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
+          { label: 'Assigned to Us', value: String(s.assignedToAgency), delta: `${s.inProgress} in progress`, color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
+          { label: 'Resolved This Month', value: String(s.resolvedThisMonth), delta: `${s.closed} closed`, color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
+        ]);
       } catch (err) {
-        // Safe silent catch: use the calculated offline stats
+        // Safe silent catch: keep the locally-computed offline stats above
       }
     }
     loadStats();
@@ -911,36 +898,44 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
     setAssigned(!!incident.assignedTo);
   }, [incident]);
 
+  // Claiming an incident = moving it to "review" (backend in_progress). The
+  // backend has no separate assign endpoint; the strict flow is
+  // pending -> in_progress -> assigned -> resolved | closed.
   const handleAssign = async () => {
-    try {
-      const res = await apiFetch(`/agency/incidents/${incident.ref}/assign`, { method: 'POST' });
-      if (res.ok) {
-        toast.success(`Incident ${incident.ref} assigned successfully!`);
-      } else {
-        toast.info(`Incident ${incident.ref} assigned to RCCG Camp Security (Offline Mode).`);
+    if (incident.id) {
+      try {
+        const updated = await updateIncidentStatus(incident.id, 'review');
+        toast.success(`Incident ${incident.ref} claimed — now under review.`);
+        setAssigned(true);
+        setStatus(updated.status);
+        onUpdateIncident(incident.ref, { ...updated });
+        return;
+      } catch (err: any) {
+        toast.error(err.message || 'Could not claim this incident.');
+        return;
       }
-    } catch (err) {
-      toast.info(`Incident ${incident.ref} assigned to RCCG Camp Security (Offline Mode).`);
     }
+    // Offline / seeded incident (no backend id): keep the local demo behaviour.
+    toast.info(`Incident ${incident.ref} assigned to RCCG Camp Security (Offline Mode).`);
     setAssigned(true);
     setStatus('assigned');
     onUpdateIncident(incident.ref, { assignedTo: 'RCCG Camp Security', status: 'assigned' });
   };
 
   const handleStatusUpdate = async () => {
-    try {
-      const res = await apiFetch(`/agency/incidents/${incident.ref}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) {
-        toast.success(`Incident ${incident.ref} status updated to "${status}"!`);
-      } else {
-        toast.success(`Incident ${incident.ref} status updated to "${status.charAt(0).toUpperCase() + status.slice(1)}" (Offline Mode)!`);
+    if (incident.id) {
+      try {
+        const updated = await updateIncidentStatus(incident.id, status);
+        toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
+        onUpdateIncident(incident.ref, { ...updated });
+        return;
+      } catch (err: any) {
+        toast.error(err.message || 'Could not update this incident.');
+        return;
       }
-    } catch (err) {
-      toast.success(`Incident ${incident.ref} status updated to "${status.charAt(0).toUpperCase() + status.slice(1)}" (Offline Mode)!`);
     }
+    // Offline / seeded incident.
+    toast.success(`Incident ${incident.ref} status updated to "${status.charAt(0).toUpperCase() + status.slice(1)}" (Offline Mode)!`);
     onUpdateIncident(incident.ref, { status });
   };
 
@@ -1119,19 +1114,19 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
   const [incidents, setIncidents] = React.useState<Incident[]>(SAMPLE_INCIDENTS);
 
   React.useEffect(() => {
-    // Fetch initial reports list from the backend
+    // Fetch the agency's incidents (available + mine) from the backend.
+    // Soft-fallback to the pre-seeded sample list on offline/sandbox/error.
+    let cancelled = false;
     async function loadIncidents() {
       try {
-        const res = await apiFetch('/agency/incidents');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.incidents) setIncidents(data.incidents);
-        }
+        const list = await fetchAgencyIncidents('all');
+        if (!cancelled && list.length) setIncidents(list);
       } catch (err) {
-        // Soft fallback to pre-seeded incidents on offline/sandbox
+        // keep SAMPLE_INCIDENTS
       }
     }
     loadIncidents();
+    return () => { cancelled = true; };
   }, []);
 
   // Connect live WebSocket event listener (Pusher) for real-time dispatch updates

@@ -255,11 +255,12 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  // ids are the backend agency_type values
   const agencyTypes = [
     { id: 'police', label: 'Police' },
-    { id: 'medical', label: 'Hospital / Medical' },
-    { id: 'fire', label: 'Fire & Rescue' },
-    { id: 'security', label: 'Private Security' },
+    { id: 'hospital', label: 'Hospital / Medical' },
+    { id: 'fire_rescue', label: 'Fire & Rescue' },
+    { id: 'private_security', label: 'Private Security' },
   ];
 
   const validate = () => {
