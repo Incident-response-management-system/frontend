@@ -63,19 +63,6 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
   const initials = (user?.name || 'U').split(' ').map((w: string) => w[0]).slice(0, 2).join('');
   return (
     <div style={{ background: 'var(--brand-cream)', color: 'var(--brand-ink)', minHeight: '100vh' }}>
-      {/* Slim utility bar — official, civic feel */}
-      <div style={{
-        background: 'var(--brand-surface-alt)', borderBottom: '1px solid var(--brand-hairline)',
-        padding: isMobile ? '7px 16px' : '7px 48px', display: 'flex', justifyContent: 'space-between',
-        fontSize: 11, color: 'var(--brand-muted)',
-      }}>
-        <span style={{ display: isMobile ? 'none' : 'inline' }}>A civic emergency reporting service · Pilot deployment, Ogun State</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }} />
-          Services operational
-        </span>
-      </div>
-
       {/* Navbar */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 50,
