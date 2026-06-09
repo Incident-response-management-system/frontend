@@ -10,7 +10,7 @@
  * into the frontend `Incident` shape the dashboard renders.
  */
 
-import { apiFetch } from './api-client';
+import { apiFetch, extractApiError } from './api-client';
 import type { Incident } from '@/components/irms-shared';
 import {
   mapBackendIncident,
@@ -59,14 +59,7 @@ export async function updateIncidentStatus(
     tokenType: 'agency',
   });
   if (!res.ok) {
-    let message = 'Failed to update incident';
-    try {
-      const err = await res.json();
-      message = err.detail || err.message || message;
-    } catch {
-      /* non-JSON error body */
-    }
-    throw new Error(message);
+    throw new Error(await extractApiError(res, 'Could not update this incident.'));
   }
   const data = await res.json();
   return mapBackendIncident(data.incident as BackendIncident);
