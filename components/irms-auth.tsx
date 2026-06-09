@@ -3,14 +3,15 @@ import { toast } from 'sonner';
 import { IRMSLogo, Icon } from './irms-shared';
 import { ThemeToggle } from './ThemeToggle';
 import { agencySignup, agencyLogin } from '@/lib/auth-api';
-import { useIsMobile } from '@/hooks/use-media-query';
+import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
 interface AuthShellProps {
   children: React.ReactNode;
   mode?: 'signup' | 'login';
+  navigate?: (to: string) => void;
 }
 
-export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
+export function AuthShell({ children, mode = 'signup', navigate }: AuthShellProps) {
   return (
     <div className="irms-auth-shell-grid" style={{
       minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)',
@@ -22,7 +23,9 @@ export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
         padding: '40px 56px', display: 'flex', flexDirection: 'column',
         borderRight: '1px solid var(--brand-hairline)',
       }}>
-        <div><IRMSLogo size={16} color="var(--brand-ink)" /></div>
+        <button onClick={() => navigate?.('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: navigate ? 'pointer' : 'default', padding: 0, alignSelf: 'flex-start' }}>
+          <IRMSLogo size={16} color="var(--brand-ink)" />
+        </button>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 460 }}>
           <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 18 }}>
@@ -68,10 +71,6 @@ export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
 
       {/* Right panel — pure white form area */}
       <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>
-        {/* Logo header — only shown on mobile, where the copy panel (and its logo) is hidden */}
-        <div className="irms-auth-mobile-logo" style={{ marginBottom: 24 }}>
-          <IRMSLogo size={15} color="var(--brand-ink)" />
-        </div>
         {children}
       </div>
     </div>
@@ -162,6 +161,7 @@ function Spinner() {
 // ─────────────────────────────────────────────────────────────
 export function AgencySignupScreen({ navigate }: ScreenProps) {
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const [agencyName, setAgencyName] = React.useState('');
   const [agencyType, setAgencyType] = React.useState('police');
   const [email, setEmail] = React.useState('');
@@ -207,11 +207,19 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
 
   return (
-    <AuthShell mode="signup">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-        </button>
+    <AuthShell mode="signup" navigate={navigate}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Logo shown here only when the copy panel (and its logo) is hidden */}
+          {isTablet && (
+            <button onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <IRMSLogo size={15} color="var(--brand-ink)" />
+            </button>
+          )}
+          <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <Icon.back style={{ width: 16, height: 16 }} /> Back to home
+          </button>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
             Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
@@ -324,6 +332,7 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
 // AGENCY LOGIN
 // ─────────────────────────────────────────────────────────────
 export function AgencyLoginScreen({ navigate }: ScreenProps) {
+  const isTablet = useIsTablet();
   const [email, setEmail] = React.useState('ops@rccg-security.org');
   const [password, setPassword] = React.useState('demo1234');
   const [loading, setLoading] = React.useState(false);
@@ -354,11 +363,19 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
 
   return (
-    <AuthShell mode="login">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-        </button>
+    <AuthShell mode="login" navigate={navigate}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Logo shown here only when the copy panel (and its logo) is hidden */}
+          {isTablet && (
+            <button onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <IRMSLogo size={15} color="var(--brand-ink)" />
+            </button>
+          )}
+          <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <Icon.back style={{ width: 16, height: 16 }} /> Back to home
+          </button>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
             New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>Register here</button>
