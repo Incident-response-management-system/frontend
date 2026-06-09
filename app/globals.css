@@ -385,6 +385,17 @@ body {
     .irms-auth-form-panel {
         padding: 28px 20px !important;
     }
+
+    /* The copy panel (which carries the logo) is hidden on mobile, so the
+       form panel shows its own logo header to keep the app name visible. */
+    .irms-auth-mobile-logo {
+        display: flex !important;
+    }
+}
+
+/* Hidden on desktop — the copy panel's logo is shown there instead. */
+.irms-auth-mobile-logo {
+    display: none;
 }
 
 /* Generic helper: any element tagged with this stacks its grid on mobile. */

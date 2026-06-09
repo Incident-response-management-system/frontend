@@ -68,6 +68,10 @@ export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
 
       {/* Right panel — pure white form area */}
       <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>
+        {/* Logo header — only shown on mobile, where the copy panel (and its logo) is hidden */}
+        <div className="irms-auth-mobile-logo" style={{ marginBottom: 24 }}>
+          <IRMSLogo size={15} color="var(--brand-ink)" />
+        </div>
         {children}
       </div>
     </div>

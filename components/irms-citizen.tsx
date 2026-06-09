@@ -654,15 +654,18 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
         padding: isMobile ? '12px 16px' : '14px 24px', background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)',
         borderBottom: '1px solid var(--brand-hairline)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 20 }}>
           <button onClick={() => navigate('landing')} style={{
             width: 36, height: 36, borderRadius: 10, border: '1px solid var(--brand-divider)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer'
+            display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer', flexShrink: 0,
           }}><Icon.back /></button>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>Tap a location to report an incident</div>
-            <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>REDEMPTION CAMP · OGUN STATE · NIGERIA</div>
-          </div>
+          <IRMSLogo size={15} color="var(--brand-ink)" />
+          {!isMobile && (
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Tap a location to report an incident</div>
+              <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>REDEMPTION CAMP · OGUN STATE · NIGERIA</div>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <ThemeToggle />

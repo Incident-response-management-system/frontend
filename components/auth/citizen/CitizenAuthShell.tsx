@@ -48,7 +48,12 @@ export function CitizenAuthShell({ children, mode = 'signup', navigate }: Citize
             </div>
             {/* Right: form on white */}
             <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}><ThemeToggle size={34} /></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <button type="button" aria-label="IRMS home" onClick={() => navigate('landing')} className="irms-auth-mobile-logo" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                        <IRMSLogo size={15} color="var(--brand-ink)" />
+                    </button>
+                    <ThemeToggle size={34} />
+                </div>
                 {children}
             </div>
         </div>
