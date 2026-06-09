@@ -59,6 +59,8 @@ interface ScreenProps {
 export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, 'params'>) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const initials = (user?.name || 'U').split(' ').map((w: string) => w[0]).slice(0, 2).join('');
   return (
     <div style={{ background: 'var(--brand-cream)', color: 'var(--brand-ink)', minHeight: '100vh' }}>
       {/* Slim utility bar — official, civic feel */}
@@ -78,35 +80,100 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
       <nav style={{
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: isMobile ? '16px 16px' : '16px 48px', borderBottom: '1px solid var(--brand-hairline)',
+        padding: isMobile ? '14px 16px' : '16px 48px', borderBottom: '1px solid var(--brand-hairline)',
         background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)',
       }}>
         <IRMSLogo size={16} color="var(--brand-ink)" />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <ThemeToggle />
-          {user ? (
-            <button onClick={() => navigate('my-reports')} style={{
-              padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', borderRadius: 8,
-              display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer'
-            }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: '50%', background: 'var(--brand-surface-alt)',
-                border: '1px solid var(--brand-divider)', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: 10, fontWeight: 600
-              }}>
-                {(user.name || 'U').split(' ').map((w: string) => w[0]).slice(0, 2).join('')}
-              </div>
-              My reports
+
+        {isMobile ? (
+          /* Mobile: keep the bar uncluttered — theme toggle + a menu that holds the actions */
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <ThemeToggle />
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 38, height: 38, borderRadius: 9, color: 'var(--brand-ink)',
+                background: menuOpen ? 'var(--brand-surface-alt)' : 'none',
+                border: '1px solid var(--brand-divider)', cursor: 'pointer',
+              }}
+            >
+              {menuOpen ? <Icon.close style={{ width: 18, height: 18 }} /> : <Icon.list style={{ width: 18, height: 18 }} />}
             </button>
-          ) : (
-            <>
-              <button onClick={() => navigate('citizen-login')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
-              <button onClick={() => navigate('citizen-signup')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', background: 'none', border: 'none', cursor: 'pointer' }}>Create account</button>
-            </>
-          )}
-          <div style={{ width: 1, height: 20, background: 'var(--brand-hairline)', margin: '0 12px' }} />
-          <button onClick={() => navigate('agency-login')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>For agencies</button>
-        </div>
+
+            {menuOpen && (
+              <>
+                {/* Click-away overlay */}
+                <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+                <div style={{
+                  position: 'absolute', top: '100%', right: 16, marginTop: 8, zIndex: 70,
+                  minWidth: 220, padding: 6,
+                  background: 'var(--brand-white)', border: '1px solid var(--brand-divider)',
+                  borderRadius: 12, boxShadow: '0 16px 36px rgba(0,0,0,0.16)',
+                }}>
+                  {user ? (
+                    <button onClick={() => { setMenuOpen(false); navigate('my-reports'); }} style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px',
+                      fontSize: 14, fontWeight: 500, color: 'var(--brand-ink)', borderRadius: 8,
+                      background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%', background: 'var(--brand-surface-alt)',
+                        border: '1px solid var(--brand-divider)', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: 10, fontWeight: 600, flexShrink: 0,
+                      }}>{initials}</div>
+                      My reports
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => { setMenuOpen(false); navigate('citizen-login'); }} style={{
+                        width: '100%', padding: '11px 12px', fontSize: 14, fontWeight: 500, color: 'var(--brand-ink)',
+                        borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                      }}>Sign in</button>
+                      <button onClick={() => { setMenuOpen(false); navigate('citizen-signup'); }} style={{
+                        width: '100%', padding: '11px 12px', fontSize: 14, fontWeight: 500, color: 'var(--brand-ink)',
+                        borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                      }}>Create account</button>
+                    </>
+                  )}
+                  <div style={{ height: 1, background: 'var(--brand-hairline)', margin: '4px 8px' }} />
+                  <button onClick={() => { setMenuOpen(false); navigate('agency-login'); }} style={{
+                    width: '100%', padding: '11px 12px', fontSize: 14, fontWeight: 500, color: 'var(--brand-muted)',
+                    borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                  }}>For agencies</button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <ThemeToggle />
+            {user ? (
+              <button onClick={() => navigate('my-reports')} style={{
+                padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', borderRadius: 8,
+                display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer'
+              }}>
+                <div style={{
+                  width: 22, height: 22, borderRadius: '50%', background: 'var(--brand-surface-alt)',
+                  border: '1px solid var(--brand-divider)', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 10, fontWeight: 600
+                }}>
+                  {initials}
+                </div>
+                My reports
+              </button>
+            ) : (
+              <>
+                <button onClick={() => navigate('citizen-login')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
+                <button onClick={() => navigate('citizen-signup')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', background: 'none', border: 'none', cursor: 'pointer' }}>Create account</button>
+              </>
+            )}
+            <div style={{ width: 1, height: 20, background: 'var(--brand-hairline)', margin: '0 12px' }} />
+            <button onClick={() => navigate('agency-login')} style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>For agencies</button>
+          </div>
+        )}
       </nav>
 
       {/* HERO — restrained, two-column, informational */}
