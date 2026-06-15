@@ -27,34 +27,19 @@ export type BackendIncidentType =
   | 'flood'
   | 'fire_outbreak';
 
-// ─── Status mapping (FE has 4 values, BE has 5) ──────────────
-//   BE pending     -> FE received
-//   BE in_progress -> FE review
-//   BE assigned    -> FE assigned
-//   BE resolved    -> FE resolved
-//   BE closed      -> FE resolved (FE has no distinct "closed" visual)
+// ─── Status mapping ──────────────────────────────────────────
+// The frontend and backend now share one status vocabulary
+// (pending | in_progress | assigned | resolved | closed), so these helpers
+// just validate the value and pass it through, with a safe fallback.
 
-const BE_TO_FE_STATUS: Record<BackendStatus, IncidentStatus> = {
-  pending: 'received',
-  in_progress: 'review',
-  assigned: 'assigned',
-  resolved: 'resolved',
-  closed: 'resolved',
-};
-
-const FE_TO_BE_STATUS: Record<IncidentStatus, BackendStatus> = {
-  received: 'pending',
-  review: 'in_progress',
-  assigned: 'assigned',
-  resolved: 'resolved',
-};
+const STATUSES: IncidentStatus[] = ['pending', 'in_progress', 'assigned', 'resolved', 'closed'];
 
 export function toFeStatus(status: string): IncidentStatus {
-  return BE_TO_FE_STATUS[status as BackendStatus] ?? 'received';
+  return STATUSES.includes(status as IncidentStatus) ? (status as IncidentStatus) : 'pending';
 }
 
 export function toBeStatus(status: IncidentStatus): BackendStatus {
-  return FE_TO_BE_STATUS[status] ?? 'pending';
+  return status;
 }
 
 /**

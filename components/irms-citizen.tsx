@@ -33,8 +33,6 @@ import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
 import { ThemeToggle } from './ThemeToggle';
 
-import { Clock, Plus, X } from 'lucide-react';
-
 
 
 let L: any;
@@ -1004,7 +1002,7 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
       }}>
         {reverseGeocoding ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--brand-muted)' }}>
-            <Clock size={20} style={{ animation: 'spin 1s linear infinite' }} />
+            <Icon.clock width={20} height={20} style={{ animation: 'spin 1s linear infinite' }} />
             <span>Resolving location...</span>
           </div>
         ) : (
@@ -1099,7 +1097,7 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
                 cursor: 'pointer',
               }}
             >
-              <X size={20} />
+              <Icon.close width={20} height={20} />
             </button>
           )}
         </div>
@@ -1184,7 +1182,7 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
 
       {fetchingNearbyPlaces && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--brand-muted)', marginBottom: 20, fontSize: 13 }}>
-          <Clock size={16} style={{ animation: 'spin 1s linear infinite' }} />
+          <Icon.clock width={16} height={16} style={{ animation: 'spin 1s linear infinite' }} />
           <span>Finding nearby locations...</span>
         </div>
       )}
@@ -1210,7 +1208,7 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
             gap: 8,
           }}
         >
-          <Plus size={20} />
+          <Icon.plus width={20} height={20} />
           {showManualEntry ? 'Hide Manual Entry' : 'Enter Custom Location Description'}
         </button>
       </div>
@@ -3748,7 +3746,7 @@ export function TrackScreen({ navigate, params }: any) {
 
         <div style={{ textAlign: 'center' }}>
 
-          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Clock size={32} style={{ color: 'var(--brand-muted)' }} /></div>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon.clock width={32} height={32} style={{ color: 'var(--brand-muted)' }} /></div>
 
           <div style={{ fontSize: 15, fontWeight: 600 }}>Loading incident...</div>
 

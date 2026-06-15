@@ -12,7 +12,6 @@ import {
 import { getMyReports } from '@/lib/incidents-api';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { ThemeToggle } from './ThemeToggle';
-import { Clock, Search } from 'lucide-react';
 
 // -----------------------------------------------------------
 // SEEDED DEMO DATA — MY REPORTS
@@ -474,12 +473,12 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                 }}>
                     {loading ? (
                         <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Clock size={32} style={{ color: 'var(--brand-muted)' }} /></div>
+                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon.clock width={32} height={32} style={{ color: 'var(--brand-muted)' }} /></div>
                             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Loading reports...</div>
                         </div>
                     ) : filtered.length === 0 ? (
                         <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Search size={32} style={{ color: 'var(--brand-muted)' }} /></div>
+                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon.search width={32} height={32} style={{ color: 'var(--brand-muted)' }} /></div>
                             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>No reports found</div>
                             <div style={{ fontSize: 13, color: 'var(--brand-muted)', marginBottom: 20 }}>
                                 {search ? `No results for "${search}"` : `You have no ${tab === 'all' ? '' : tab} reports yet.`}

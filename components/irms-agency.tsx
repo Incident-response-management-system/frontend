@@ -287,8 +287,8 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
   // Derive cards from the incidents we have; replaced by /agencies/stats below.
   const deriveStats = React.useCallback((list: Incident[]) => ([
     { label: 'Total Incidents', value: String(list.length), delta: 'total', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
-    { label: 'Open Incidents', value: String(list.filter(r => r.status !== 'resolved').length), delta: `${list.filter(r => r.status === 'received').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
-    { label: 'Assigned to You', value: String(list.filter(r => r.isMine || r.status === 'assigned').length), delta: `${list.filter(r => r.status === 'review').length} in progress`, color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
+    { label: 'Open Incidents', value: String(list.filter(r => r.status !== 'resolved').length), delta: `${list.filter(r => r.status === 'pending').length} unassigned`, color: 'var(--status-red)', accent: 'var(--status-red-bd)' },
+    { label: 'Assigned to You', value: String(list.filter(r => r.isMine || r.status === 'assigned').length), delta: `${list.filter(r => r.status === 'in_progress').length} in progress`, color: 'var(--status-amber)', accent: 'var(--status-amber-bd)' },
     { label: 'Resolved', value: String(list.filter(r => r.status === 'resolved').length), delta: 'this month', color: 'var(--status-green)', accent: 'var(--status-green-bd)' },
   ]), []);
 
@@ -387,8 +387,8 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
             <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginBottom: 24 }}>Across your current incidents</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { key: 'received', label: 'Received', color: 'var(--status-red)' },
-                { key: 'review', label: 'Under Review', color: 'var(--status-amber)' },
+                { key: 'pending', label: 'Received', color: 'var(--status-red)' },
+                { key: 'in_progress', label: 'Under Review', color: 'var(--status-amber)' },
                 { key: 'assigned', label: 'Assigned', color: 'var(--status-blue)' },
                 { key: 'resolved', label: 'Resolved', color: 'var(--status-green)' },
               ].map(s => {
@@ -902,9 +902,9 @@ export function ReportsTab({
               );
             })}
 
-            {['received', 'review', 'assigned', 'resolved'].map(s => {
+            {['pending', 'in_progress', 'assigned', 'resolved'].map(s => {
               const active = selectedStatuses.includes(s);
-              const labelMap: Record<string, string> = { received: 'Received', review: 'Review', assigned: 'Assigned', resolved: 'Resolved' };
+              const labelMap: Record<string, string> = { pending: 'Received', in_progress: 'Review', assigned: 'Assigned', resolved: 'Resolved' };
               return (
                 <button
                   key={s}
@@ -997,7 +997,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
   const handleAssign = async () => {
     if (incident.id) {
       try {
-        const updated = await updateIncidentStatus(incident.id, 'review');
+        const updated = await updateIncidentStatus(incident.id, 'in_progress');
         toast.success(`Incident ${incident.ref} claimed — now under review.`);
         setAssigned(true);
         setStatus(updated.status);
@@ -1142,10 +1142,10 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
 
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
-                  {(['received', 'review', 'assigned', 'resolved'] as IncidentStatus[]).map(s => {
+                  {(['pending', 'in_progress', 'assigned', 'resolved'] as const).map(s => {
                     const map = {
-                      received: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
-                      review: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
+                      pending: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
+                      in_progress: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
                       assigned: { c: 'var(--status-blue)', bg: 'var(--status-blue-bg)', l: 'Assigned' },
                       resolved: { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' }
                     };

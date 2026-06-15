@@ -3,7 +3,7 @@
  * Bearer token injection is handled by `apiFetch` via cookies.
  */
 
-import { apiFetch, setCookie, deleteCookie, extractApiError } from './api-client';
+import { apiFetch, getCookie, setCookie, deleteCookie, extractApiError } from './api-client';
 
 // ─── Types ───────────────────────────────────────────────────
 
