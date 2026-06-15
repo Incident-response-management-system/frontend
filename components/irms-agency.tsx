@@ -14,6 +14,7 @@ import {
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
 import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats, type IncidentTab } from '@/lib/agency-api';
+import { toBeType } from '@/lib/agency-types';
 import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
@@ -514,6 +515,24 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
   const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [searching, setSearching] = React.useState(false);
+  const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
+
+  const toggleType = (value: string) =>
+    setSelectedTypes(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value]);
+  const toggleStatus = (value: string) =>
+    setSelectedStatuses(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value]);
+  const resetFilters = () => { setSelectedTypes([]); setSelectedStatuses([]); };
+  const hasFilters = selectedTypes.length > 0 || selectedStatuses.length > 0;
+
+  // Markers honour the type/status filters. Type is normalized to the backend
+  // id since an incident may carry either the backend value or the FE short form.
+  const visibleIncidents = React.useMemo(() => incidents.filter(inc => {
+    const typeOk = selectedTypes.length === 0 || selectedTypes.includes(toBeType(inc.type));
+    const st = inc.status === 'closed' ? 'resolved' : inc.status;
+    const statusOk = selectedStatuses.length === 0 || selectedStatuses.includes(st);
+    return typeOk && statusOk;
+  }), [incidents, selectedTypes, selectedStatuses]);
 
   React.useEffect(() => {
     if (!mapRef.current || mapInstance.current || !L) return;
@@ -535,7 +554,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    incidents.forEach(inc => {
+    visibleIncidents.forEach(inc => {
       const icon = L.divIcon({
         html: `<div class="irms-marker ${inc.status}"></div>`,
         className: '', iconSize: [26, 26], iconAnchor: [13, 26],
@@ -544,7 +563,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       marker.on('click', () => onViewIncident(inc));
       markersRef.current.push(marker);
     });
-  }, [incidents]);
+  }, [visibleIncidents]);
 
   // Update map layer dynamically
   React.useEffect(() => {
@@ -639,7 +658,9 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <DashTopBar
         title="Live map"
-        subtitle={`${incidents.length} incident${incidents.length === 1 ? '' : 's'} in your service radius`}
+        subtitle={hasFilters
+          ? `${visibleIncidents.length} of ${incidents.length} incident${incidents.length === 1 ? '' : 's'} shown`
+          : `${incidents.length} incident${incidents.length === 1 ? '' : 's'} in your service radius`}
         actions={null}
       />
       {/* Filter toolbar */}
@@ -648,9 +669,25 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         background: 'var(--brand-white)', borderBottom: '1px solid var(--brand-hairline)',
         flexWrap: isMobile ? 'wrap' : 'nowrap',
       }}>
-        <FilterDropdown label="Incident Type" options={INCIDENT_TYPES.map(t => t.label)} />
-        <FilterDropdown label="Status" options={['Received', 'Under Review', 'Assigned', 'Resolved']} />
-        <button style={{ fontSize: 13, color: 'var(--brand-muted)', fontWeight: 500, padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer' }}>Reset filters</button>
+        <FilterDropdown
+          label="Incident Type"
+          options={INCIDENT_TYPES.map(t => ({ value: t.id, label: t.label }))}
+          selected={selectedTypes}
+          onToggle={toggleType}
+        />
+        <FilterDropdown
+          label="Status"
+          options={MAP_STATUS_FILTERS}
+          selected={selectedStatuses}
+          onToggle={toggleStatus}
+        />
+        <button
+          onClick={resetFilters}
+          disabled={!hasFilters}
+          style={{ fontSize: 13, color: 'var(--brand-muted)', fontWeight: 500, padding: '8px 12px', background: 'none', border: 'none', cursor: hasFilters ? 'pointer' : 'default', opacity: hasFilters ? 1 : 0.45 }}
+        >
+          Reset filters
+        </button>
         <div style={{ flex: 1 }} />
         {!isMobile && (
           <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -747,16 +784,24 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
   );
 }
 
-function FilterDropdown({ label, options }: { label: string; options: string[] }) {
+function FilterDropdown({ label, options, selected, onToggle }: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
   const [open, setOpen] = React.useState(false);
+  const count = selected.length;
   return (
     <div style={{ position: 'relative' }}>
       <button onClick={() => setOpen(!open)} style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-        borderRadius: 9, border: '1px solid var(--brand-hairline)', background: 'var(--brand-white)',
-        fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', cursor: 'pointer'
+        borderRadius: 9,
+        border: `1px solid ${count > 0 ? 'var(--brand-ink)' : 'var(--brand-hairline)'}`,
+        background: count > 0 ? 'var(--brand-surface-alt)' : 'var(--brand-white)',
+        fontSize: 13, fontWeight: count > 0 ? 600 : 500, color: 'var(--brand-ink)', cursor: 'pointer'
       }}>
-        {label} <Icon.chevDown />
+        {label}{count > 0 ? ` · ${count}` : ''} <Icon.chevDown />
       </button>
       {open && (
         <>
@@ -767,12 +812,17 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
             boxShadow: '0 8px 24px rgba(0,0,0,0.08)', minWidth: 200, maxWidth: 'calc(100vw - 24px)', padding: 6,
           }}>
             {options.map(o => (
-              <label key={o} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 7, fontSize: 13, cursor: 'pointer' }}
+              <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 7, fontSize: 13, cursor: 'pointer' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-cream)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <input type="checkbox" style={{ accentColor: 'var(--status-red)' }} />
-                {o}
+                <input
+                  type="checkbox"
+                  checked={selected.includes(o.value)}
+                  onChange={() => onToggle(o.value)}
+                  style={{ accentColor: 'var(--status-red)' }}
+                />
+                {o.label}
               </label>
             ))}
           </div>
@@ -781,6 +831,14 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
     </div>
   );
 }
+
+// Status filter options for the map toolbar (value = backend status, label = UI).
+const MAP_STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: 'pending', label: 'Received' },
+  { value: 'in_progress', label: 'Under Review' },
+  { value: 'assigned', label: 'Assigned' },
+  { value: 'resolved', label: 'Resolved' },
+];
 
 // -----------------------------------------------------------
 // SCREEN 9 — ALL REPORTS
@@ -810,7 +868,7 @@ export function ReportsTab({
       getIncidentType(r.type).label.toLowerCase().includes(search.toLowerCase()) ||
       (r.desc && r.desc.toLowerCase().includes(search.toLowerCase()));
 
-    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(r.type);
+    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(toBeType(r.type));
     const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.status);
 
     return matchesSearch && matchesType && matchesStatus;
