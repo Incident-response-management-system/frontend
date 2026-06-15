@@ -14,15 +14,13 @@ function Spinner() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" strokeLinecap="round" />
     </svg>
   );
 }
 
 export function CitizenSignupScreen({ navigate, onAuth }: CitizenAuthProps) {
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +28,6 @@ export function CitizenSignupScreen({ navigate, onAuth }: CitizenAuthProps) {
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
-    if (!name.trim()) newErrors.name = 'Full name is required';
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) newErrors.email = 'Valid email is required';
     if (password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     if (password !== confirm) newErrors.confirm = 'Passwords do not match';
@@ -42,9 +39,9 @@ export function CitizenSignupScreen({ navigate, onAuth }: CitizenAuthProps) {
     if (!validate()) return;
     setLoading(true);
     try {
-      const user = await citizenSignup(name, email, password, phone || undefined);
-      onAuth({ name: user.name, email: user.email, phone: user.phone });
-      toast.success('Account created successfully!');
+      const response = await citizenSignup(email, password);
+      onAuth({ name: response.user.email.split('@')[0], email: response.user.email });
+      toast.success(response.message || 'Account created successfully!');
       navigate('my-reports');
     } catch (err: any) {
       toast.error(err.message || 'Sign-up failed. Please try again.');
@@ -70,27 +67,12 @@ export function CitizenSignupScreen({ navigate, onAuth }: CitizenAuthProps) {
         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 500, margin: '0 0 24px', letterSpacing: '0' }}>Create account</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <DarkInput
-            label="Full name"
-            value={name}
-            onChange={e => { setName(e.target.value); clearErr('name'); }}
-            placeholder="Your name"
-            error={errors.name}
-            disabled={loading}
-          />
-          <DarkInput
             label="Email"
             type="email"
             value={email}
             onChange={e => { setEmail(e.target.value); clearErr('email'); }}
             placeholder="you@example.com"
             error={errors.email}
-            disabled={loading}
-          />
-          <DarkInput
-            label="Phone (optional)"
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-            placeholder="+234 ..."
             disabled={loading}
           />
           <DarkInput

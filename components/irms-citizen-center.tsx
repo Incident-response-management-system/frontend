@@ -9,9 +9,10 @@ import {
     Incident,
     IncidentStatus,
 } from './irms-shared';
-import { addCitizenNote } from '@/lib/incidents-api';
+import { getMyReports } from '@/lib/incidents-api';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { ThemeToggle } from './ThemeToggle';
+import { Clock, Search } from 'lucide-react';
 
 // -----------------------------------------------------------
 // SEEDED DEMO DATA — MY REPORTS
@@ -21,7 +22,7 @@ const MY_REPORTS: Incident[] = [
         ref: 'INC-2026-00149',
         type: 'medical',
         location: 'Auditorium 3, Main Bowl',
-        status: 'received',
+        status: 'pending',
         reportedAt: 'Today · 14:32',
         desc: 'Elderly man collapsed during service. Witnesses report chest pain. Crowd gathered, space cleared.',
         media: 2,
@@ -74,13 +75,12 @@ const MY_REPORTS: Incident[] = [
 // ─── Status timeline metadata ───────────────────────────────
 
 function getTimestamps(report: Incident): Record<string, string | null> {
-    const time = report.reportedAt.split('·')[1]?.trim() || '14:32';
     const s = report.status;
-    const idx = ['received', 'review', 'assigned', 'resolved'].indexOf(s);
+    const idx = ['pending', 'in_progress', 'assigned', 'resolved'].indexOf(s);
     const times = ['14:32', '14:38', '14:51', '15:30'];
     return {
-        received: times[0],
-        review: idx >= 1 ? times[1] : null,
+        pending: times[0],
+        in_progress: idx >= 1 ? times[1] : null,
         assigned: idx >= 2 ? times[2] : null,
         resolved: idx >= 3 ? times[3] : null,
     };
@@ -112,15 +112,49 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
     const [search, setSearch] = React.useState('');
     const [selected, setSelected] = React.useState<Incident | null>(null);
     const [profileOpen, setProfileOpen] = React.useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+    const [reports, setReports] = React.useState<Incident[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        loadReports();
+    }, [tab]);
+
+    const loadReports = async () => {
+        setLoading(true);
+        try {
+            const status = tab === 'all' ? undefined : tab === 'open' ? 'pending' : 'resolved';
+            const response = await getMyReports(status);
+            const mappedReports = response.results.map(r => ({
+                ref: r.reference,
+                type: r.incident_type,
+                location: r.location_name,
+                lat: r.latitude,
+                lng: r.longitude,
+                status: r.status as IncidentStatus,
+                reported: new Date(r.created_at).toLocaleDateString(),
+                reportedAt: new Date(r.created_at).toLocaleString(),
+                desc: r.description,
+                media: r.media.length,
+                assignedTo: r.responding_agency?.name || null,
+            }));
+            setReports(mappedReports);
+        } catch (err) {
+            console.error('Failed to load reports:', err);
+            setReports([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filters = [
-        { id: 'all', label: 'All', count: MY_REPORTS.length },
-        { id: 'open', label: 'Open', count: MY_REPORTS.filter(r => r.status !== 'resolved').length },
-        { id: 'resolved', label: 'Resolved', count: MY_REPORTS.filter(r => r.status === 'resolved').length },
+        { id: 'all', label: 'All', count: reports.length },
+        { id: 'open', label: 'Open', count: reports.filter(r => r.status !== 'resolved' && r.status !== 'closed').length },
+        { id: 'resolved', label: 'Resolved', count: reports.filter(r => r.status === 'resolved' || r.status === 'closed').length },
     ];
 
-    const filtered = MY_REPORTS
-        .filter(r => tab === 'all' || (tab === 'open' ? r.status !== 'resolved' : r.status === 'resolved'))
+    const filtered = reports
+        .filter(r => tab === 'all' || (tab === 'open' ? r.status !== 'resolved' && r.status !== 'closed' : r.status === 'resolved' || r.status === 'closed'))
         .filter(r => {
             if (!search.trim()) return true;
             const q = search.toLowerCase();
@@ -147,7 +181,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                     <button onClick={() => navigate('landing')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                         <IRMSLogo size={15} color="var(--brand-ink)" />
                     </button>
-                    <nav style={{ display: 'flex', gap: 4 }}>
+                    <nav style={{ display: isMobile ? 'none' : 'flex', gap: 4 }}>
                         <button style={{
                             padding: '7px 12px', fontSize: 13, fontWeight: 600,
                             color: 'var(--brand-ink)', borderRadius: 7,
@@ -166,8 +200,8 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                     </nav>
                 </div>
 
-                {/* Right cluster: theme toggle + user menu */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Desktop: theme toggle + user menu */}
+                <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 12 }}>
                 <ThemeToggle />
                 {/* User menu */}
                 <div style={{ position: 'relative' }}>
@@ -223,7 +257,76 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                     )}
                 </div>
                 </div>
+
+                {/* Mobile: hamburger menu */}
+                <div style={{ display: isMobile ? 'flex' : 'none', alignItems: 'center', gap: 12 }}>
+                    <ThemeToggle />
+                    <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        style={{
+                            width: 36, height: 36, borderRadius: 8, border: '1px solid var(--brand-divider)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer'
+                        }}
+                    >
+                        {mobileMenuOpen ? <Icon.close /> : <Icon.menu />}
+                    </button>
+                </div>
             </header>
+
+            {/* Mobile menu dropdown */}
+            {mobileMenuOpen && isMobile && (
+                <>
+                    <div onClick={() => setMobileMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'var(--scrim)', backdropFilter: 'blur(2px)' }} />
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+                        background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)',
+                        borderBottom: '1px solid var(--brand-hairline)',
+                        padding: '16px', animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <button
+                                onClick={() => { navigate('report'); setMobileMenuOpen(false); }}
+                                style={{ padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                            >
+                                Report new
+                            </button>
+                            <div style={{ width: 1, height: 20, background: 'var(--brand-hairline)', margin: '4px 12px' }} />
+                            <button
+                                onClick={() => { setProfileOpen(!profileOpen); }}
+                                style={{
+                                    padding: '8px 14px', fontSize: 13, fontWeight: 500, color: 'var(--brand-ink)', borderRadius: 8,
+                                    display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer'
+                                }}
+                            >
+                                <div style={{
+                                    width: 22, height: 22, borderRadius: '50%',
+                                    background: 'var(--brand-ink)', color: 'var(--brand-cream)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 10, fontWeight: 700, letterSpacing: '0.01em',
+                                }}>
+                                    {initials}
+                                </div>
+                                <span>{user?.name?.split(' ')[0] || 'You'}</span>
+                            </button>
+                            {profileOpen && (
+                                <div style={{ marginLeft: 16, marginTop: 4 }}>
+                                    <div style={{ padding: '4px 12px', fontSize: 11, color: 'var(--brand-muted)' }}>{user?.email}</div>
+                                    {user?.phone && <div style={{ padding: '2px 12px', fontSize: 11, color: 'var(--brand-muted)' }}>{user.phone}</div>}
+                                    <button
+                                        onClick={() => { onSignOut(); navigate('landing'); setMobileMenuOpen(false); }}
+                                        style={{
+                                            marginTop: 8, padding: '8px 12px', fontSize: 13, color: 'var(--status-red)',
+                                            background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8
+                                        }}
+                                    >
+                                        <Icon.logout style={{ width: 14, height: 14 }} /> Sign out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
 
             <div style={{ maxWidth: 1120, margin: '0 auto', padding: isMobile ? '28px 16px 56px' : '40px 32px 80px' }}>
                 {/* Page header */}
@@ -256,10 +359,10 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                     marginBottom: 24, overflow: 'hidden',
                 }}>
                     {[
-                        { l: 'Total submitted', v: MY_REPORTS.length, c: 'var(--brand-ink)' },
-                        { l: 'Currently open', v: MY_REPORTS.filter(r => r.status !== 'resolved').length, c: 'var(--status-red)' },
-                        { l: 'In progress', v: MY_REPORTS.filter(r => r.status === 'review' || r.status === 'assigned').length, c: 'var(--status-amber)' },
-                        { l: 'Resolved', v: MY_REPORTS.filter(r => r.status === 'resolved').length, c: 'var(--status-green)' },
+                        { l: 'Total submitted', v: reports.length, c: 'var(--brand-ink)' },
+                        { l: 'Currently open', v: reports.filter(r => ['pending', 'in_progress', 'assigned'].includes(r.status)).length, c: 'var(--status-red)' },
+                        { l: 'In progress', v: reports.filter(r => ['in_progress', 'assigned'].includes(r.status)).length, c: 'var(--status-amber)' },
+                        { l: 'Resolved', v: reports.filter(r => ['resolved', 'closed'].includes(r.status)).length, c: 'var(--status-green)' },
                     ].map((s, i) => (
                         <div key={i} style={{
                             padding: isMobile ? '16px 14px' : '22px 24px',
@@ -339,9 +442,14 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                     borderTop: 'none', borderRadius: '0 0 12px 12px', overflow: 'hidden',
                     marginTop: 0,
                 }}>
-                    {filtered.length === 0 ? (
+                    {loading ? (
                         <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-                            <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Clock size={32} style={{ color: 'var(--brand-muted)' }} /></div>
+                            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Loading reports...</div>
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div style={{ padding: '64px 24px', textAlign: 'center' }}>
+                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Search size={32} style={{ color: 'var(--brand-muted)' }} /></div>
                             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>No reports found</div>
                             <div style={{ fontSize: 13, color: 'var(--brand-muted)', marginBottom: 20 }}>
                                 {search ? `No results for "${search}"` : `You have no ${tab === 'all' ? '' : tab} reports yet.`}
@@ -374,7 +482,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                                 onClick={() => setSelected(r)}
                                 style={{
                                     width: '100%', textAlign: 'left', padding: isMobile ? '14px 16px' : '16px 24px',
-                                    borderBottom: idx < filtered.length - 1 ? '1px solid var(--brand-hairline)' : 'none',
+                                    borderBottom: '1px solid var(--brand-hairline)',
                                     display: 'grid', gridTemplateColumns: '40px 1fr auto', gap: 16, alignItems: 'center',
                                     transition: 'background 0.1s', background: 'none', border: 'none', cursor: 'pointer',
                                 }}
@@ -461,7 +569,7 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
         if (!note.trim()) return;
         setNoteLoading(true);
         try {
-            await addCitizenNote(report.ref, note.trim());
+            // TODO: Implement citizen note API endpoint when available
             setNotes(prev => [{ text: note.trim(), time: 'Just now' }, ...prev]);
             setNote('');
             setNoteSent(true);
