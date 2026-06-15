@@ -3,14 +3,15 @@ import { toast } from 'sonner';
 import { IRMSLogo, Icon } from './irms-shared';
 import { ThemeToggle } from './ThemeToggle';
 import { agencySignup, agencyLogin } from '@/lib/auth-api';
-import { useIsMobile } from '@/hooks/use-media-query';
+import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
 interface AuthShellProps {
   children: React.ReactNode;
   mode?: 'signup' | 'login';
+  navigate?: (to: string) => void;
 }
 
-export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
+export function AuthShell({ children, mode = 'signup', navigate }: AuthShellProps) {
   return (
     <div className="irms-auth-shell-grid" style={{
       minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)',
@@ -22,7 +23,9 @@ export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
         padding: '40px 56px', display: 'flex', flexDirection: 'column',
         borderRight: '1px solid var(--brand-hairline)',
       }}>
-        <div><IRMSLogo size={16} color="var(--brand-ink)" /></div>
+        <button onClick={() => navigate?.('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: navigate ? 'pointer' : 'default', padding: 0, alignSelf: 'flex-start' }}>
+          <IRMSLogo size={16} color="var(--brand-ink)" />
+        </button>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 460 }}>
           <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 18 }}>
@@ -154,10 +157,94 @@ function Spinner() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// SHARED AGENCY AUTH HEADER
+// On desktop/tablet: logo (when copy panel hidden) + "Back to home" and the
+// alt action inline. On mobile: logo + back-arrow only, with the alt action
+// and theme toggle collapsed into a hamburger menu so nothing wraps.
+// ─────────────────────────────────────────────────────────────
+function AgencyAuthHeader({
+  navigate, isTablet, isMobile, altLabel, altActionLabel, altAction,
+}: {
+  navigate: (to: string) => void;
+  isTablet: boolean;
+  isMobile: boolean;
+  altLabel: string;
+  altActionLabel: string;
+  altAction: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16 }}>
+        {/* Logo shown here only when the copy panel (and its logo) is hidden */}
+        {isTablet && (
+          <button type="button" onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <IRMSLogo size={15} color="var(--brand-ink)" />
+          </button>
+        )}
+        <button type="button" onClick={() => navigate('landing')} aria-label="Back to home" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <Icon.back style={{ width: 16, height: 16 }} />{!isMobile && ' Back to home'}
+        </button>
+      </div>
+
+      {isMobile ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, position: 'relative' }}>
+          <ThemeToggle size={34} />
+          <button
+            type="button"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen ? 'true' : 'false'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 38, height: 38, borderRadius: 9, color: 'var(--brand-ink)',
+              background: menuOpen ? 'var(--brand-surface-alt)' : 'none',
+              border: '1px solid var(--brand-divider)', cursor: 'pointer',
+            }}
+          >
+            {menuOpen ? <Icon.close style={{ width: 18, height: 18 }} /> : <Icon.list style={{ width: 18, height: 18 }} />}
+          </button>
+          {menuOpen && (
+            <>
+              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 8, zIndex: 70,
+                minWidth: 220, padding: 6,
+                background: 'var(--brand-white)', border: '1px solid var(--brand-divider)',
+                borderRadius: 12, boxShadow: '0 16px 36px rgba(0,0,0,0.16)',
+              }}>
+                <div style={{ padding: '8px 12px 6px', fontSize: 12, color: 'var(--brand-muted)' }}>{altLabel}</div>
+                <button type="button" onClick={() => { setMenuOpen(false); altAction(); }} style={{
+                  width: '100%', padding: '10px 12px', fontSize: 14, fontWeight: 600, color: 'var(--brand-ink)',
+                  borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}>{altActionLabel}</button>
+                <div style={{ height: 1, background: 'var(--brand-hairline)', margin: '4px 8px' }} />
+                <button type="button" onClick={() => { setMenuOpen(false); navigate('landing'); }} style={{
+                  width: '100%', padding: '10px 12px', fontSize: 14, fontWeight: 500, color: 'var(--brand-muted)',
+                  borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}>Back to home</button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
+            {altLabel} <button type="button" onClick={altAction} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>{altActionLabel}</button>
+          </div>
+          <ThemeToggle size={34} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // AGENCY SIGNUP
 // ─────────────────────────────────────────────────────────────
 export function AgencySignupScreen({ navigate }: ScreenProps) {
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const [agencyName, setAgencyName] = React.useState('');
   const [agencyType, setAgencyType] = React.useState('police');
   const [email, setEmail] = React.useState('');
@@ -165,14 +252,37 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const [password, setPassword] = React.useState('');
   const [confirm, setConfirm] = React.useState('');
   const [radius, setRadius] = React.useState(25);
+  const [latitude, setLatitude] = React.useState('');
+  const [longitude, setLongitude] = React.useState('');
+  const [locating, setLocating] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  const useMyLocation = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      toast.error('Location is not available on this device.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLatitude(pos.coords.latitude.toFixed(6));
+        setLongitude(pos.coords.longitude.toFixed(6));
+        setErrors(p => ({ ...p, location: '' }));
+        setLocating(false);
+        toast.success('Location captured.');
+      },
+      () => { setLocating(false); toast.error('Could not get your location. Enter it manually.'); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  // ids are the backend agency_type values
   const agencyTypes = [
     { id: 'police', label: 'Police' },
-    { id: 'medical', label: 'Hospital / Medical' },
-    { id: 'fire', label: 'Fire & Rescue' },
-    { id: 'security', label: 'Private Security' },
+    { id: 'hospital', label: 'Hospital / Medical' },
+    { id: 'fire_rescue', label: 'Fire & Rescue' },
+    { id: 'private_security', label: 'Private Security' },
   ];
 
   const validate = () => {
@@ -182,6 +292,12 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     if (!phone.trim()) e.phone = 'Phone number is required';
     if (password.length < 8) e.password = 'Password must be at least 8 characters';
     if (password !== confirm) e.confirm = 'Passwords do not match';
+    const lat = parseFloat(latitude), lng = parseFloat(longitude);
+    if (!latitude.trim() || !longitude.trim() || isNaN(lat) || isNaN(lng)) {
+      e.location = 'Set your agency location (use current location or enter coordinates)';
+    } else if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      e.location = 'Coordinates are out of range';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -190,7 +306,10 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     if (!validate()) return;
     setLoading(true);
     try {
-      await agencySignup({ agencyName, agencyType, email, phone, password, radius });
+      await agencySignup({
+        agencyName, agencyType, email, phone, password, radius,
+        latitude: parseFloat(latitude), longitude: parseFloat(longitude),
+      });
       toast.success('Agency account created! Pending verification within 24h.');
       navigate('agency-dashboard');
     } catch (err: any) {
@@ -203,18 +322,15 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
 
   return (
-    <AuthShell mode="signup">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
-          </div>
-          <ThemeToggle size={34} />
-        </div>
-      </div>
+    <AuthShell mode="signup" navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="Already registered?"
+        altActionLabel="Sign in"
+        altAction={() => navigate('agency-login')}
+      />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 480, width: '100%', margin: '40px auto' }}>
         <div style={{ marginBottom: 28 }}>
@@ -292,6 +408,30 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
             </div>
           </div>
 
+          {/* Agency location — required by the backend so reports can be geo-routed */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 12, flexWrap: 'wrap' }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)' }}>Agency location</label>
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={loading || locating}
+                style={{
+                  fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)', background: 'var(--brand-cream)',
+                  border: '1px solid var(--brand-divider)', borderRadius: 7, padding: '6px 10px',
+                  cursor: (loading || locating) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Icon.pin style={{ width: 14, height: 14 }} /> {locating ? 'Locating…' : (isMobile ? 'My location' : 'Use my current location')}
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+              <FormInput label="Latitude" value={latitude} onChange={e => { setLatitude(e.target.value); clearErr('location'); }} placeholder="6.9342" disabled={loading} />
+              <FormInput label="Longitude" value={longitude} onChange={e => { setLongitude(e.target.value); clearErr('location'); }} placeholder="3.4567" disabled={loading} />
+            </div>
+            {errors.location && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: 6 }}>{errors.location}</div>}
+          </div>
+
           <button
             type="button"
             onClick={handleSubmit}
@@ -320,8 +460,10 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
 // AGENCY LOGIN
 // ─────────────────────────────────────────────────────────────
 export function AgencyLoginScreen({ navigate }: ScreenProps) {
-  const [email, setEmail] = React.useState('ops@rccg-security.org');
-  const [password, setPassword] = React.useState('demo1234');
+  const isTablet = useIsTablet();
+  const isMobile = useIsMobile();
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -350,18 +492,15 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
 
   return (
-    <AuthShell mode="login">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>Register here</button>
-          </div>
-          <ThemeToggle size={34} />
-        </div>
-      </div>
+    <AuthShell mode="login" navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="New agency?"
+        altActionLabel="Register here"
+        altAction={() => navigate('agency-signup')}
+      />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 420, width: '100%', margin: '40px auto' }}>
         <div style={{ marginBottom: 28 }}>
@@ -410,17 +549,6 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
           >
             {loading ? <><Spinner /> Signing in…</> : 'Sign in to dashboard'}
           </button>
-
-          <div style={{
-            padding: 14, borderRadius: 10, background: 'var(--brand-cream)',
-            border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)',
-            display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 16, lineHeight: 1.5,
-          }}>
-            <Icon.bell style={{ color: 'var(--brand-ink)', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <strong style={{ color: 'var(--brand-ink)' }}>Demo credentials pre-filled.</strong> Press Sign in to enter the agency dashboard.
-            </div>
-          </div>
         </div>
       </div>
     </AuthShell>

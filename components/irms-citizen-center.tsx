@@ -207,8 +207,10 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                 <div style={{ position: 'relative' }}>
                     <button
                         onClick={() => setProfileOpen(!profileOpen)}
+                        aria-label="Account menu"
                         style={{
-                            display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px 6px 6px',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: isMobile ? 4 : '6px 12px 6px 6px',
                             borderRadius: 999, border: '1px solid var(--brand-divider)', background: 'var(--brand-white)', cursor: 'pointer',
                             transition: 'border-color 0.15s',
                         }}
@@ -223,8 +225,8 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                         }}>
                             {initials}
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 500 }}>{user?.name?.split(' ')[0] || 'You'}</span>
-                        <Icon.chevDown style={{ color: 'var(--brand-muted)' }} />
+                        {!isMobile && <span style={{ fontSize: 13, fontWeight: 500 }}>{user?.name?.split(' ')[0] || 'You'}</span>}
+                        {!isMobile && <Icon.chevDown style={{ color: 'var(--brand-muted)' }} />}
                     </button>
 
                     {profileOpen && (
@@ -240,6 +242,34 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                                     <div style={{ fontSize: 11, color: 'var(--brand-muted)', marginTop: 2 }}>{user?.email}</div>
                                     {user?.phone && <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>{user.phone}</div>}
                                 </div>
+                                {/* Nav links live here on mobile (they're inline in the header on desktop) */}
+                                {isMobile && (
+                                    <>
+                                        <button
+                                            onClick={() => setProfileOpen(false)}
+                                            style={{
+                                                width: '100%', textAlign: 'left', padding: '9px 12px', borderRadius: 7,
+                                                fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)', display: 'flex', alignItems: 'center', gap: 10,
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                            }}
+                                        >
+                                            <Icon.list style={{ width: 14, height: 14 }} /> My Reports
+                                        </button>
+                                        <button
+                                            onClick={() => { setProfileOpen(false); navigate('report'); }}
+                                            style={{
+                                                width: '100%', textAlign: 'left', padding: '9px 12px', borderRadius: 7,
+                                                fontSize: 13, color: 'var(--brand-ink)', display: 'flex', alignItems: 'center', gap: 10,
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-surface-alt)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <Icon.pin style={{ width: 14, height: 14 }} /> Report new
+                                        </button>
+                                        <div style={{ height: 1, background: 'var(--brand-hairline)', margin: '4px 8px' }} />
+                                    </>
+                                )}
                                 <button
                                     onClick={() => { onSignOut(); navigate('landing'); }}
                                     style={{

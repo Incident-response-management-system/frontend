@@ -90,6 +90,10 @@ export interface Incident {
   desc: string;
   media: number;
   assignedTo: string | null;
+  // Backend-provided extras (optional — absent on seeded/mock data).
+  id?: string;            // backend incident UUID, used for PATCH /incidents/{id}/
+  distanceKm?: number;    // distance from the agency, when provided by /agencies/incidents
+  isMine?: boolean;       // true when this agency has claimed the incident
 }
 
 // ============================================================

@@ -1,6 +1,74 @@
 // Custom lightweight fetch-based API client for remote Backend URL integration
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+/**
+ * Normalize the configured backend base URL so it can never produce mixed-content
+ * or double-slash bugs regardless of how NEXT_PUBLIC_API_URL is set in the host
+ * environment (e.g. a Vercel env var pointing at "http://host/"):
+ *  - strip trailing slashes so `${BASE_URL}/path` never yields `//path`
+ *  - upgrade http -> https for non-localhost hosts when the page is served over
+ *    HTTPS, since browsers block insecure resources loaded from a secure page.
+ */
+function normalizeBaseUrl(raw: string): string {
+  let url = raw.trim().replace(/\/+$/, '');
+  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
+  const pageIsHttps =
+    typeof window !== 'undefined' && window.location.protocol === 'https:';
+  if (url.startsWith('http://') && !isLocalhost && pageIsHttps) {
+    url = `https://${url.slice('http://'.length)}`;
+  }
+  return url;
+}
+
+const RAW_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+// snake_case backend field -> friendly label for user-facing messages.
+const FIELD_LABELS: Record<string, string> = {
+  agency_name: 'Agency name',
+  agency_type: 'Agency type',
+  email: 'Email',
+  password: 'Password',
+  phone_number: 'Phone number',
+  service_radius: 'Service radius',
+  latitude: 'Latitude',
+  longitude: 'Longitude',
+  status: 'Status',
+};
+
+function humanizeField(field: string): string {
+  if (FIELD_LABELS[field]) return FIELD_LABELS[field];
+  return field.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+}
+
+/**
+ * Pull a clean, NON-TECHNICAL message out of a failed Response. Handles DRF
+ * JSON ({detail} / {message} / {field: [msg]} / {non_field_errors:[...]}) and
+ * degrades gracefully on non-JSON (e.g. a server HTML error page) without
+ * leaking field names, status codes, or backend internals to the user.
+ */
+export async function extractApiError(res: Response, fallback: string): Promise<string> {
+  const body = await res.text().catch(() => '');
+  if (!body) return fallback;
+  try {
+    const data = JSON.parse(body);
+    if (typeof data === 'string') return data;
+    if (typeof data.detail === 'string') return data.detail;
+    if (typeof data.message === 'string') return data.message;
+
+    const firstField = Object.keys(data)[0];
+    if (firstField) {
+      const v = data[firstField];
+      const msg = Array.isArray(v) ? v[0] : v;
+      if (typeof msg !== 'string') return fallback;
+      // non_field_errors / detail are generic buckets — show the message alone.
+      if (firstField === 'non_field_errors' || firstField === 'detail') return msg;
+      return `${humanizeField(firstField)}: ${msg}`;
+    }
+    return fallback;
+  } catch {
+    // Non-JSON (HTML error page, gateway error, etc.) — never show the markup.
+    return fallback;
+  }
+}
 
 // Helper to get cookies in browser/server context
 export function getCookie(name: string): string | null {
@@ -45,8 +113,11 @@ interface RequestOptions extends RequestInit {
 }
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
-  const url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-
+  // Normalize per request so the protocol upgrade sees the live page context
+  // (window is undefined at module-load during SSR).
+  const baseUrl = normalizeBaseUrl(RAW_BASE_URL);
+  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  
   // Headers configuration
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
