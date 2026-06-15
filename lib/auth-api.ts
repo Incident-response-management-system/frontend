@@ -9,10 +9,18 @@ import { apiFetch, setCookie, deleteCookie, extractApiError } from './api-client
 
 export interface CitizenUser {
   id: string;
-  name: string;
   email: string;
-  phone?: string;
-  token: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message?: string;
+  access: string;
+  refresh: string;
+  account_type: string;
+  user: CitizenUser;
 }
 
 export interface AgencyUser {
@@ -33,70 +41,84 @@ export interface AuthError {
 // ─── Citizen Auth ────────────────────────────────────────────
 
 export async function citizenSignup(
-  name: string,
   email: string,
   password: string,
-  phone?: string,
-): Promise<CitizenUser> {
-  // STUB — replace with:
-  // const res = await apiFetch('/auth/citizen/signup', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ name, email, password, phone }),
-  //   tokenType: 'citizen',
-  // });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Signup failed'); }
-  // const data = await res.json();
-  // setCookie('citizen_token', data.token);
-  // return data.user;
+): Promise<AuthResponse> {
+  const res = await apiFetch('/auth/user/signup/', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    tokenType: 'citizen',
+  });
 
-  // STUB: simulate network delay
-  await new Promise(r => setTimeout(r, 900));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Signup failed' }));
+    throw new Error(err.message || err.detail || 'Signup failed');
+  }
 
-  const mockToken = `mock-citizen-token-${Date.now()}`;
-  setCookie('citizen_token', mockToken);
-
-  return {
-    id: `usr_${Date.now()}`,
-    name,
-    email,
-    phone,
-    token: mockToken,
-  };
+  const data: AuthResponse = await res.json();
+  setCookie('citizen_token', data.access, 7);
+  setCookie('citizen_refresh', data.refresh, 30);
+  return data;
 }
 
 export async function citizenLogin(
   email: string,
   password: string,
-): Promise<CitizenUser> {
-  // STUB — replace with:
-  // const res = await apiFetch('/auth/citizen/login', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ email, password }),
-  //   tokenType: 'citizen',
-  // });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Login failed'); }
-  // const data = await res.json();
-  // setCookie('citizen_token', data.token);
-  // return data.user;
+): Promise<AuthResponse> {
+  const res = await apiFetch('/auth/user/login/', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    tokenType: 'citizen',
+  });
 
-  await new Promise(r => setTimeout(r, 800));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Login failed' }));
+    throw new Error(err.message || err.detail || 'Login failed');
+  }
 
-  const mockToken = `mock-citizen-token-${Date.now()}`;
-  setCookie('citizen_token', mockToken);
+  const data: AuthResponse = await res.json();
+  setCookie('citizen_token', data.access, 7);
+  setCookie('citizen_refresh', data.refresh, 30);
+  return data;
+}
 
-  return {
-    id: 'usr_demo_001',
-    name: 'Chinedu Okafor',
-    email,
-    phone: '+234 803 555 0184',
-    token: mockToken,
-  };
+export async function getCurrentUser(): Promise<CitizenUser> {
+  const res = await apiFetch('/auth/user/me/', {
+    tokenType: 'citizen',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch user');
+  }
+
+  return await res.json();
+}
+
+export async function refreshToken(): Promise<string> {
+  const refresh = getCookie('citizen_refresh');
+  if (!refresh) {
+    throw new Error('No refresh token available');
+  }
+
+  const res = await apiFetch('/auth/token/refresh/', {
+    method: 'POST',
+    body: JSON.stringify({ refresh }),
+  });
+
+  if (!res.ok) {
+    deleteCookie('citizen_token');
+    deleteCookie('citizen_refresh');
+    throw new Error('Token refresh failed');
+  }
+
+  const data = await res.json();
+  setCookie('citizen_token', data.access, 7);
+  return data.access;
 }
 
 export async function citizenSignOut(): Promise<void> {
-  // STUB — replace with:
-  // await apiFetch('/auth/citizen/logout', { method: 'POST', tokenType: 'citizen' });
   deleteCookie('citizen_token');
+  deleteCookie('citizen_refresh');
 }
 
 // ─── Agency Auth ─────────────────────────────────────────────

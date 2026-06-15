@@ -14,14 +14,14 @@ function Spinner() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40 20" strokeLinecap="round" />
     </svg>
   );
 }
 
 export function CitizenLoginScreen({ navigate, onAuth }: CitizenAuthProps) {
-  const [email, setEmail] = useState('chinedu.okafor@example.com');
-  const [password, setPassword] = useState('demo1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -37,9 +37,9 @@ export function CitizenLoginScreen({ navigate, onAuth }: CitizenAuthProps) {
     if (!validate()) return;
     setLoading(true);
     try {
-      const user = await citizenLogin(email, password);
-      onAuth({ name: user.name, email: user.email, phone: user.phone });
-      toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+      const response = await citizenLogin(email, password);
+      onAuth({ name: response.user.email.split('@')[0], email: response.user.email });
+      toast.success('Welcome back!');
       navigate('my-reports');
     } catch (err: any) {
       toast.error(err.message || 'Login failed. Please check your credentials.');
@@ -104,12 +104,6 @@ export function CitizenLoginScreen({ navigate, onAuth }: CitizenAuthProps) {
           >
             {loading ? <><Spinner /> Signing in…</> : 'Sign in'}
           </button>
-          <div style={{
-            padding: 14, borderRadius: 10, background: 'var(--brand-cream)', border: '1px solid var(--brand-divider)',
-            fontSize: 12, color: 'var(--brand-muted)', marginTop: 16, lineHeight: 1.5,
-          }}>
-            Demo credentials are pre-filled. Press Sign in to view a sample My Reports page with seeded incidents.
-          </div>
         </div>
       </div>
     </CitizenAuthShell>

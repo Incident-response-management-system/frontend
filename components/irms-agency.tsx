@@ -111,7 +111,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
       {isTablet && mobileOpen && (
         <div onClick={() => setMobileOpen(false)} style={{
           position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 1999,
-        }}/>
+        }} />
       )}
 
       {/* Fixed hamburger button (drawer mode, drawer closed) */}
@@ -123,7 +123,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--brand-ink)', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
         </button>
       )}
 
@@ -192,7 +192,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
               >
                 <item.icon />
                 {!drawerCollapsed && <span>{item.label}</span>}
-                {active && !drawerCollapsed && <div style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: 3, background: 'var(--status-red)' }}/>}
+                {active && !drawerCollapsed && <div style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: 3, background: 'var(--status-red)' }} />}
               </button>
             );
           })}
@@ -329,7 +329,7 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
               background: 'var(--brand-white)', border: `1px solid var(--brand-hairline)`,
               borderRadius: 12, padding: 20, position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.color, opacity: 0.9 }}/>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.color, opacity: 0.9 }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <span style={{ fontSize: 12, color: 'var(--brand-muted)', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>{s.label}</span>
               </div>
@@ -349,8 +349,8 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
                 <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Last 30 days · By type</div>
               </div>
               <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--brand-muted)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--status-red)' }}/> Open</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--status-green)' }}/> Resolved</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--status-red)' }} /> Open</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--status-green)' }} /> Resolved</span>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -651,7 +651,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         <FilterDropdown label="Incident Type" options={INCIDENT_TYPES.map(t => t.label)} />
         <FilterDropdown label="Status" options={['Received', 'Under Review', 'Assigned', 'Resolved']} />
         <button style={{ fontSize: 13, color: 'var(--brand-muted)', fontWeight: 500, padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer' }}>Reset filters</button>
-        <div style={{ flex: 1 }}/>
+        <div style={{ flex: 1 }} />
         {!isMobile && (
           <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
             REDEMPTION CAMP · 6.8932° N · 3.1721° E
@@ -696,9 +696,9 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
             type="button"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-              <polyline points="2 17 12 22 22 17"/>
-              <polyline points="2 12 12 17 22 12"/>
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
             </svg>
           </button>
 
@@ -711,12 +711,12 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
             style={{ background: 'var(--status-blue)', color: 'white', borderColor: 'var(--status-blue-bd)' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <circle cx="12" cy="12" r="3"/>
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
             </svg>
           </button>
         </div>
@@ -736,7 +736,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
               { c: 'var(--status-green)', l: 'Resolved' },
             ].map(x => (
               <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--brand-ink)' }}>
-                <span style={{ width: 12, height: 12, borderRadius: '50%', background: x.c, border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}/>
+                <span style={{ width: 12, height: 12, borderRadius: '50%', background: x.c, border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
                 {x.l}
               </div>
             ))}
@@ -760,7 +760,7 @@ function FilterDropdown({ label, options }: { label: string; options: string[] }
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }}/>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }} />
           <div style={{
             position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 200,
             background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 10,
@@ -804,15 +804,15 @@ export function ReportsTab({
 
   // Client-side paginated & filtered list (syncs live with parent state)
   const filtered = incidents.filter(r => {
-    const matchesSearch = !search || 
+    const matchesSearch = !search ||
       r.ref.toLowerCase().includes(search.toLowerCase()) ||
       r.location.toLowerCase().includes(search.toLowerCase()) ||
       getIncidentType(r.type).label.toLowerCase().includes(search.toLowerCase()) ||
       (r.desc && r.desc.toLowerCase().includes(search.toLowerCase()));
-      
+
     const matchesType = selectedTypes.length === 0 || selectedTypes.includes(r.type);
     const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.status);
-    
+
     return matchesSearch && matchesType && matchesStatus;
   });
 
@@ -826,13 +826,13 @@ export function ReportsTab({
 
   // Handler for dynamic multi-field filter drops
   const toggleTypeFilter = (typeId: string) => {
-    setSelectedTypes(prev => 
+    setSelectedTypes(prev =>
       prev.includes(typeId) ? prev.filter(x => x !== typeId) : [...prev, typeId]
     );
   };
 
   const toggleStatusFilter = (statusId: string) => {
-    setSelectedStatuses(prev => 
+    setSelectedStatuses(prev =>
       prev.includes(statusId) ? prev.filter(x => x !== statusId) : [...prev, statusId]
     );
   };
@@ -901,7 +901,7 @@ export function ReportsTab({
                 </button>
               );
             })}
-            
+
             {['received', 'review', 'assigned', 'resolved'].map(s => {
               const active = selectedStatuses.includes(s);
               const labelMap: Record<string, string> = { received: 'Received', review: 'Review', assigned: 'Assigned', resolved: 'Resolved' };
@@ -948,8 +948,8 @@ export function ReportsTab({
               {Array.from({ length: totalPages }).map((_, i) => {
                 const n = i + 1;
                 return (
-                  <button 
-                    key={n} 
+                  <button
+                    key={n}
                     onClick={() => setPage(n)}
                     style={{
                       width: 32, height: 32, borderRadius: 7,
@@ -1030,7 +1030,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
       <div onClick={onClose} style={{
         position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 1500,
         animation: 'fadeIn 0.2s ease-out',
-      }}/>
+      }} />
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(620px, 92vw)',
         background: 'var(--brand-white)', zIndex: 1600, overflowY: 'auto',
@@ -1135,7 +1135,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-blue)' }}/>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-blue)' }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-blue)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Assigned to your agency</span>
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{incident.assignedTo || myAgencyName}</div>
@@ -1143,10 +1143,12 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
                   {(['received', 'review', 'assigned', 'resolved'] as IncidentStatus[]).map(s => {
-                    const map = { received: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
-                                  review: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
-                                  assigned: { c: 'var(--status-blue)', bg: 'var(--status-blue-bg)', l: 'Assigned' },
-                                  resolved: { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' } };
+                    const map = {
+                      received: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
+                      review: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
+                      assigned: { c: 'var(--status-blue)', bg: 'var(--status-blue-bg)', l: 'Assigned' },
+                      resolved: { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' }
+                    };
                     const m = map[s];
                     const active = status === s;
                     return (
@@ -1236,7 +1238,7 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
     },
     // onIncidentUpdated
     (updatedInc) => {
-      setIncidents(prev => 
+      setIncidents(prev =>
         prev.map(x => x.ref === updatedInc.ref ? { ...x, ...updatedInc } : x)
       );
       setActiveIncident(prev => {
@@ -1249,7 +1251,7 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
   );
 
   const handleUpdateIncident = (ref: string, updates: Partial<Incident>) => {
-    setIncidents(prev => 
+    setIncidents(prev =>
       prev.map(x => x.ref === ref ? { ...x, ...updates } as Incident : x)
     );
     setActiveIncident(prev => {

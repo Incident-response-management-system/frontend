@@ -1,122 +1,213 @@
 /**
  * Incidents API Service
- * All functions are STUBBED — no live backend yet.
+ * Integrated with live backend endpoints.
  * Bearer token injection is handled automatically by `apiFetch` via cookies.
+ * Anonymous users use X-Reporter-Session-Id header.
  */
 
-import { apiFetch } from './api-client';
-import type { IncidentStatus } from '@/components/irms-shared';
+import { apiFetch, getCookie } from './api-client';
 
 // ─── Types ───────────────────────────────────────────────────
 
 export interface ReportPayload {
-  incidentType: string;
+  incident_type: string;
   description: string;
-  lat: number;
-  lng: number;
-  locationLabel?: string;
-  attachments?: File[];
-  trackReport?: boolean;
+  latitude: number;
+  longitude: number;
+  location_name: string;
+  media?: File[];
 }
 
 export interface ReportResponse {
-  ref: string;
-  status: IncidentStatus;
-  submittedAt: string;
-  estimatedResponseMin: number;
+  success: boolean;
+  reference: string;
+  incident_id: string;
+  message: string;
+  media: MediaItem[];
+}
+
+export interface MediaItem {
+  id: string;
+  media_type: string;
+  file_url: string;
+  created_at: string;
 }
 
 export interface MyReport {
-  ref: string;
-  type: string;
-  location: string;
-  lat: number;
-  lng: number;
-  status: IncidentStatus;
-  reportedAt: string;
-  desc: string;
-  media: number;
-  assignedTo: string | null;
-  reported: string;
-  notes?: CitizenNote[];
+  id: string;
+  reference: string;
+  incident_type: string;
+  incident_type_display: string;
+  status: string;
+  status_display: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  description: string;
+  created_at: string;
+  media: MediaItem[];
+  responding_agency?: any;
+  timeline?: any[];
+  activity_log?: any[];
 }
 
-export interface CitizenNote {
-  id: string;
-  text: string;
-  submittedAt: string;
+export interface TrackResponse {
+  success: boolean;
+  reference: string;
+  incident_type: string;
+  incident_type_display: string;
+  status: string;
+  status_display: string;
+  location_name: string;
+  created_at: string;
+  responding_agency?: any;
+  timeline?: any[];
+  activity_log?: any[];
+}
+
+export interface NearbyResponse {
+  success: boolean;
+  radius_km: number;
+  count: number;
+  results: MyReport[];
+}
+
+export interface MyReportsResponse {
+  success: boolean;
+  count: number;
+  results: MyReport[];
 }
 
 // ─── Submit Report ────────────────────────────────────────────
 
 export async function submitReport(payload: ReportPayload): Promise<ReportResponse> {
-  // STUB — replace with:
-  // const formData = new FormData();
-  // formData.append('incidentType', payload.incidentType);
-  // formData.append('description', payload.description);
-  // formData.append('lat', String(payload.lat));
-  // formData.append('lng', String(payload.lng));
-  // if (payload.locationLabel) formData.append('locationLabel', payload.locationLabel);
-  // payload.attachments?.forEach(f => formData.append('attachments', f));
-  // const res = await apiFetch('/incidents', { method: 'POST', body: formData });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Submission failed'); }
-  // return await res.json();
+  const formData = new FormData();
+  formData.append('incident_type', payload.incident_type);
+  formData.append('description', payload.description);
+  formData.append('latitude', String(payload.latitude));
+  formData.append('longitude', String(payload.longitude));
+  formData.append('location_name', payload.location_name);
+  
+  if (payload.media) {
+    payload.media.forEach(file => {
+      formData.append('media', file);
+    });
+  }
 
-  await new Promise(r => setTimeout(r, 1200));
+  const hasToken = !!getCookie('citizen_token');
+  const res = await apiFetch('/incidents/report/', {
+    method: 'POST',
+    body: formData,
+    tokenType: 'citizen',
+    useReporterSession: !hasToken,
+  });
 
-  const num = String(149 + Math.floor(Math.random() * 10)).padStart(5, '0');
-  return {
-    ref: `INC-2026-${num}`,
-    status: 'received',
-    submittedAt: new Date().toISOString(),
-    estimatedResponseMin: 4,
-  };
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Submission failed' }));
+    throw new Error(err.message || err.detail || 'Submission failed');
+  }
+
+  return await res.json();
+}
+
+// ─── Upload Additional Media ───────────────────────────────────
+
+export async function uploadMedia(incidentId: string, media: File[]): Promise<{ success: boolean; message: string; media: MediaItem[] }> {
+  const formData = new FormData();
+  media.forEach(file => {
+    formData.append('media', file);
+  });
+
+  const hasToken = !!getCookie('citizen_token');
+  const res = await apiFetch(`/incidents/${incidentId}/upload-media/`, {
+    method: 'POST',
+    body: formData,
+    tokenType: 'citizen',
+    useReporterSession: !hasToken,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Media upload failed' }));
+    throw new Error(err.message || err.detail || 'Media upload failed');
+  }
+
+  return await res.json();
+}
+
+// ─── Track Incident By Reference ───────────────────────────────
+
+export async function trackIncident(ref: string): Promise<TrackResponse> {
+  const res = await apiFetch(`/incidents/track/?ref=${encodeURIComponent(ref)}`);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Tracking failed' }));
+    throw new Error(err.message || err.detail || 'Tracking failed');
+  }
+
+  return await res.json();
+}
+
+// ─── Get Nearby Incidents ───────────────────────────────────────
+
+export async function getNearbyIncidents(
+  latitude: number,
+  longitude: number,
+  radiusKm: number = 5,
+  status?: string
+): Promise<NearbyResponse> {
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    radius_km: String(radiusKm),
+  });
+  
+  if (status) {
+    params.append('status', status);
+  }
+
+  const res = await apiFetch(`/incidents/nearby/?${params.toString()}`);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Failed to fetch nearby incidents' }));
+    throw new Error(err.message || err.detail || 'Failed to fetch nearby incidents');
+  }
+
+  return await res.json();
 }
 
 // ─── Get My Reports ───────────────────────────────────────────
 
-export async function getMyReports(): Promise<MyReport[]> {
-  // STUB — replace with:
-  // const res = await apiFetch('/incidents/mine', { tokenType: 'citizen' });
-  // if (!res.ok) throw new Error('Failed to load reports');
-  // return await res.json();
+export async function getMyReports(status?: string): Promise<MyReportsResponse> {
+  const hasToken = !!getCookie('citizen_token');
+  const params = status ? `?status=${status}` : '';
+  
+  const res = await apiFetch(`/incidents/my-reports/${params}`, {
+    tokenType: 'citizen',
+    useReporterSession: !hasToken,
+  });
 
-  await new Promise(r => setTimeout(r, 600));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Failed to load reports' }));
+    throw new Error(err.message || err.detail || 'Failed to load reports');
+  }
 
-  // Returns seeded demo data — remove when backend is live
-  return [];
+  return await res.json();
 }
 
-// ─── Get Report By Ref ────────────────────────────────────────
+// ─── Get Single Report ────────────────────────────────────────
 
-export async function getReportByRef(ref: string): Promise<MyReport | null> {
-  // STUB — replace with:
-  // const res = await apiFetch(`/incidents/${ref}`);
-  // if (res.status === 404) return null;
-  // if (!res.ok) throw new Error('Failed to load report');
-  // return await res.json();
+export async function getReportById(incidentId: string): Promise<{ success: boolean; incident: MyReport }> {
+  const hasToken = !!getCookie('citizen_token');
+  
+  const res = await apiFetch(`/incidents/my-reports/${incidentId}/`, {
+    tokenType: 'citizen',
+    useReporterSession: !hasToken,
+  });
 
-  await new Promise(r => setTimeout(r, 400));
-  return null;
-}
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Failed to load report' }));
+    throw new Error(err.message || err.detail || 'Failed to load report');
+  }
 
-// ─── Add Citizen Note ─────────────────────────────────────────
-
-export async function addCitizenNote(ref: string, note: string): Promise<CitizenNote> {
-  // STUB — replace with:
-  // const res = await apiFetch(`/incidents/${ref}/notes`, {
-  //   method: 'POST',
-  //   body: JSON.stringify({ text: note }),
-  //   tokenType: 'citizen',
-  // });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Failed to submit note'); }
-  // return await res.json();
-
-  await new Promise(r => setTimeout(r, 500));
-
-  return {
-    id: `note_${Date.now()}`,
-    text: note,
-    submittedAt: new Date().toISOString(),
-  };
+  return await res.json();
 }

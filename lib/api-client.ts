@@ -94,8 +94,22 @@ export function deleteCookie(name: string) {
   document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
 }
 
+// Anonymous reporter session management
+const SESSION_KEY = 'irms_reporter_session_id';
+
+export function getReporterSessionId(): string {
+  if (typeof window === 'undefined') return '';
+  let id = localStorage.getItem(SESSION_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(SESSION_KEY, id);
+  }
+  return id;
+}
+
 interface RequestOptions extends RequestInit {
   tokenType?: 'agency' | 'citizen';
+  useReporterSession?: boolean;
 }
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
@@ -113,9 +127,14 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
   // Auto-inject tokens if they exist in cookies
   const tokenType = options.tokenType || (url.includes('/agency') ? 'agency' : 'citizen');
   const token = getCookie(`${tokenType}_token`);
-  
+
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  // Inject reporter session ID for anonymous users
+  if (options.useReporterSession && !token) {
+    headers.set('X-Reporter-Session-Id', getReporterSessionId());
   }
 
   const response = await fetch(url, {
