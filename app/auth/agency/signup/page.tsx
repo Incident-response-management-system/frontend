@@ -19,6 +19,7 @@ export default function AgencySignupPage() {
       'my-reports': '/citizen/my-reports',
       'agency-signup': '/auth/agency/signup',
       'agency-login': '/auth/agency/login',
+      'agency-forgot': '/auth/agency/forgot',
       'agency-dashboard': '/agency/dashboard',
     };
     router.push(routeMap[to] || '/landing');

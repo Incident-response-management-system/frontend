@@ -2,7 +2,15 @@ import React from 'react';
 import { toast } from 'sonner';
 import { IRMSLogo, Icon } from './irms-shared';
 import { ThemeToggle } from './ThemeToggle';
-import { agencySignup, agencyLogin } from '@/lib/auth-api';
+import {
+  agencySignup,
+  agencyLogin,
+  agencyVerifyEmail,
+  agencyResendOtp,
+  agencyForgotPassword,
+  agencyResetPassword,
+  EmailNotVerifiedError,
+} from '@/lib/auth-api';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
 interface AuthShellProps {
@@ -156,6 +164,116 @@ function Spinner() {
   );
 }
 
+// ─── OTP input + resend cooldown (shared by verify + reset) ─────────────────
+
+const OTP_LENGTH = 6;
+
+// Six single-digit cells with auto-advance, backspace-to-previous, and paste.
+function OtpInput({ value, onChange, disabled, autoFocus }: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  autoFocus?: boolean;
+}) {
+  const refs = React.useRef<Array<HTMLInputElement | null>>([]);
+  const digits = Array.from({ length: OTP_LENGTH }, (_, i) => value[i] || '');
+
+  const fillFrom = (start: number, text: string) => {
+    const clean = text.replace(/\D/g, '');
+    if (!clean) return;
+    const next = digits.slice();
+    clean.split('').slice(0, OTP_LENGTH - start).forEach((c, k) => { next[start + k] = c; });
+    onChange(next.join('').slice(0, OTP_LENGTH));
+    refs.current[Math.min(start + clean.length, OTP_LENGTH - 1)]?.focus();
+  };
+
+  const handleChange = (i: number, raw: string) => {
+    if (raw.length > 1) { fillFrom(i, raw); return; }
+    const d = raw.replace(/\D/g, '');
+    const next = digits.slice();
+    next[i] = d;
+    onChange(next.join('').slice(0, OTP_LENGTH));
+    if (d && i < OTP_LENGTH - 1) refs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) {
+      e.preventDefault();
+      refs.current[i - 1]?.focus();
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={el => { refs.current[i] = el; }}
+          value={d}
+          onChange={e => handleChange(i, e.target.value)}
+          onKeyDown={e => handleKeyDown(i, e)}
+          onPaste={e => { e.preventDefault(); fillFrom(i, e.clipboardData.getData('text')); }}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={1}
+          disabled={disabled}
+          autoFocus={autoFocus && i === 0}
+          aria-label={`Digit ${i + 1}`}
+          style={{
+            width: '100%', minWidth: 0, aspectRatio: '1 / 1',
+            textAlign: 'center', fontSize: 22, fontWeight: 700,
+            fontFamily: 'var(--font-mono)', color: 'var(--brand-ink)',
+            background: disabled ? 'var(--brand-cream)' : 'var(--brand-white)',
+            border: `1px solid ${d ? 'var(--brand-ink)' : 'var(--brand-hairline)'}`,
+            borderRadius: 10, outline: 'none', transition: 'border 0.15s',
+            cursor: disabled ? 'not-allowed' : 'text', opacity: disabled ? 0.6 : 1,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Countdown used to gate the "resend code" button (matches the backend's 60s rule).
+function useCooldown(): [number, () => void] {
+  const [left, setLeft] = React.useState(0);
+  React.useEffect(() => {
+    if (left <= 0) return;
+    const t = setTimeout(() => setLeft(l => l - 1), 1000);
+    return () => clearTimeout(t);
+  }, [left]);
+  return [left, React.useCallback(() => setLeft(60), [])];
+}
+
+// Shared "resend code" control: shows a live countdown, then becomes a button.
+function ResendRow({ cooldown, resending, onResend }: {
+  cooldown: number;
+  resending: boolean;
+  onResend: () => void;
+}) {
+  return (
+    <div style={{ fontSize: 13, color: 'var(--brand-muted)', textAlign: 'center' }}>
+      Didn&apos;t get the code?{' '}
+      {cooldown > 0 ? (
+        <span>Resend in {cooldown}s</span>
+      ) : (
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={resending}
+          style={{
+            color: 'var(--brand-ink)', fontWeight: 600, background: 'none', border: 'none',
+            textDecoration: 'underline', textUnderlineOffset: 3,
+            cursor: resending ? 'not-allowed' : 'pointer', padding: 0, font: 'inherit',
+          }}
+        >
+          {resending ? 'Sending…' : 'Resend code'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // SHARED AGENCY AUTH HEADER
 // On desktop/tablet: logo (when copy panel hidden) + "Back to home" and the
@@ -257,6 +375,9 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const [locating, setLocating] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Once registration succeeds the backend emails an OTP; we swap to the
+  // verification step (keeping the email in memory for verify/resend).
+  const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
 
   const useMyLocation = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -310,8 +431,8 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
         agencyName, agencyType, email, phone, password, radius,
         latitude: parseFloat(latitude), longitude: parseFloat(longitude),
       });
-      toast.success('Agency account created! Pending verification within 24h.');
-      navigate('agency-dashboard');
+      toast.success('Account created — we emailed you a 6-digit verification code.');
+      setVerifyEmail(email);
     } catch (err: any) {
       toast.error(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -320,6 +441,18 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   };
 
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
+
+  // OTP verification step (after a successful registration).
+  if (verifyEmail) {
+    return (
+      <AgencyVerifyScreen
+        email={verifyEmail}
+        navigate={navigate}
+        onChangeEmail={() => setVerifyEmail(null)}
+        mode="signup"
+      />
+    );
+  }
 
   return (
     <AuthShell mode="signup" navigate={navigate}>
@@ -466,6 +599,9 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Set when the backend blocks login for an unverified email — we then drop
+  // the user into the OTP step and send a fresh code.
+  const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -483,6 +619,11 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
       toast.success(`Welcome back, ${agency.agencyName}!`);
       navigate('agency-dashboard');
     } catch (err: any) {
+      if (err instanceof EmailNotVerifiedError) {
+        toast.message('Verify your email to continue — we just sent you a code.');
+        setVerifyEmail(err.email || email);
+        return;
+      }
       toast.error(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -490,6 +631,19 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
   };
 
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
+
+  // OTP verification step (when login is blocked for an unverified email).
+  if (verifyEmail) {
+    return (
+      <AgencyVerifyScreen
+        email={verifyEmail}
+        navigate={navigate}
+        onChangeEmail={() => setVerifyEmail(null)}
+        mode="login"
+        autoSend
+      />
+    );
+  }
 
   return (
     <AuthShell mode="login" navigate={navigate}>
@@ -532,7 +686,7 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
               <input type="checkbox" defaultChecked style={{ accentColor: 'var(--brand-ink)', width: 15, height: 15 }} />
               <span>Keep me signed in</span>
             </label>
-            <a href="#" style={{ color: 'var(--brand-ink)', fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: 3 }}>Forgot password?</a>
+            <button type="button" onClick={() => navigate('agency-forgot')} style={{ color: 'var(--brand-ink)', fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0 }}>Forgot password?</button>
           </div>
 
           <button
@@ -550,6 +704,253 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
             {loading ? <><Spinner /> Signing in…</> : 'Sign in to dashboard'}
           </button>
         </div>
+      </div>
+    </AuthShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AGENCY EMAIL VERIFICATION (OTP)
+// Reached after registration, or when login is blocked for an unverified
+// email. Verifying returns a JWT, so a successful code = signed in.
+// ─────────────────────────────────────────────────────────────
+export function AgencyVerifyScreen({ email, navigate, onChangeEmail, mode = 'signup', autoSend = false }: {
+  email: string;
+  navigate: (to: string) => void;
+  onChangeEmail?: () => void;
+  mode?: 'signup' | 'login';
+  autoSend?: boolean;
+}) {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const [otp, setOtp] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [resending, setResending] = React.useState(false);
+  const [cooldown, startCooldown] = useCooldown();
+
+  // A code already exists on entry (registration sent one; the login path sends
+  // a fresh one via autoSend). Either way start the 60s resend cooldown.
+  React.useEffect(() => {
+    if (autoSend) {
+      agencyResendOtp(email)
+        .then(() => toast.success('We sent a fresh code to your email.'))
+        .catch(() => { /* silent — the user can resend manually */ });
+    }
+    startCooldown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const verify = async () => {
+    if (otp.length !== OTP_LENGTH) { setError('Enter the 6-digit code.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const agency = await agencyVerifyEmail(email, otp);
+      toast.success(`Email verified — welcome, ${agency.agencyName || 'agency'}!`);
+      navigate('agency-dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Check the code and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    if (cooldown > 0 || resending) return;
+    setResending(true);
+    try {
+      await agencyResendOtp(email);
+      toast.success('A new code is on its way.');
+      setOtp('');
+      startCooldown();
+    } catch (err: any) {
+      toast.error(err.message || 'Could not resend the code.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <AuthShell mode={mode} navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="Wrong email?"
+        altActionLabel="Go back"
+        altAction={onChangeEmail || (() => navigate('agency-signup'))}
+      />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 420, width: '100%', margin: '40px auto' }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Verify your email</h1>
+          <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: 0 }}>
+            Enter the 6-digit code we sent to <strong style={{ color: 'var(--brand-ink)' }}>{email}</strong>.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={loading} autoFocus />
+          {error && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: -6, fontWeight: 500 }}>{error}</div>}
+
+          <button
+            type="button"
+            onClick={verify}
+            disabled={loading || otp.length !== OTP_LENGTH}
+            style={{
+              background: (loading || otp.length !== OTP_LENGTH) ? 'var(--brand-muted)' : 'var(--brand-ink)',
+              color: 'var(--brand-cream)', padding: '13px 24px',
+              borderRadius: 9, fontWeight: 600, fontSize: 14, border: 'none',
+              cursor: (loading || otp.length !== OTP_LENGTH) ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.2s',
+            }}
+          >
+            {loading ? <><Spinner /> Verifying…</> : 'Verify & continue'}
+          </button>
+
+          <ResendRow cooldown={cooldown} resending={resending} onResend={resend} />
+        </div>
+      </div>
+    </AuthShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AGENCY FORGOT PASSWORD (OTP-based reset)
+// Step 1: request a code by email. Step 2: enter the code + a new password.
+// ─────────────────────────────────────────────────────────────
+export function AgencyForgotScreen({ navigate }: ScreenProps) {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const [step, setStep] = React.useState<'request' | 'reset'>('request');
+  const [email, setEmail] = React.useState('');
+  const [otp, setOtp] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [confirm, setConfirm] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [resending, setResending] = React.useState(false);
+  const [cooldown, startCooldown] = useCooldown();
+
+  const clearErr = (k: string) => setErrors(p => ({ ...p, [k]: '' }));
+
+  const requestCode = async () => {
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) { setErrors({ email: 'Valid email is required' }); return; }
+    setLoading(true);
+    setErrors({});
+    try {
+      await agencyForgotPassword(email);
+      toast.success('If that email is registered, a reset code is on its way.');
+      setStep('reset');
+      startCooldown();
+    } catch (err: any) {
+      toast.error(err.message || 'Could not start password reset.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    if (cooldown > 0 || resending) return;
+    setResending(true);
+    try {
+      await agencyForgotPassword(email);
+      toast.success('A new code is on its way.');
+      setOtp('');
+      startCooldown();
+    } catch (err: any) {
+      toast.error(err.message || 'Could not resend the code.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const submitReset = async () => {
+    const e: Record<string, string> = {};
+    if (otp.length !== OTP_LENGTH) e.otp = 'Enter the 6-digit code';
+    if (password.length < 8) e.password = 'Password must be at least 8 characters';
+    if (password !== confirm) e.confirm = 'Passwords do not match';
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    setLoading(true);
+    try {
+      await agencyResetPassword(email, otp, password);
+      toast.success('Password reset — sign in with your new password.');
+      navigate('agency-login');
+    } catch (err: any) {
+      toast.error(err.message || 'Could not reset your password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const primaryBtn = (busy: boolean) => ({
+    background: busy ? 'var(--brand-muted)' : 'var(--brand-ink)',
+    color: 'var(--brand-cream)', padding: '13px 24px',
+    borderRadius: 9, fontWeight: 600, fontSize: 14, marginTop: 4, border: 'none',
+    cursor: busy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', gap: 8, transition: 'background 0.2s',
+  }) as React.CSSProperties;
+
+  return (
+    <AuthShell mode="login" navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="Remembered it?"
+        altActionLabel="Back to sign in"
+        altAction={() => navigate('agency-login')}
+      />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 420, width: '100%', margin: '40px auto' }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Reset your password</h1>
+          <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: 0 }}>
+            {step === 'request'
+              ? "Enter your agency email and we'll send a 6-digit reset code."
+              : <>Enter the code we sent to <strong style={{ color: 'var(--brand-ink)' }}>{email}</strong> and choose a new password.</>}
+          </p>
+        </div>
+
+        {step === 'request' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <FormInput
+              label="Email"
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); clearErr('email'); }}
+              placeholder="you@agency.org"
+              error={errors.email}
+              disabled={loading}
+            />
+            <button type="button" onClick={requestCode} disabled={loading} style={primaryBtn(loading)}>
+              {loading ? <><Spinner /> Sending code…</> : 'Send reset code'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--brand-ink)' }}>Verification code</label>
+              <OtpInput value={otp} onChange={v => { setOtp(v); clearErr('otp'); }} disabled={loading} autoFocus />
+              {errors.otp && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: 6, fontWeight: 500 }}>{errors.otp}</div>}
+            </div>
+            <PasswordInput label="New password" value={password} onChange={e => { setPassword(e.target.value); clearErr('password'); }} placeholder="Min. 8 characters" error={errors.password} disabled={loading} />
+            <PasswordInput label="Confirm new password" value={confirm} onChange={e => { setConfirm(e.target.value); clearErr('confirm'); }} placeholder="••••••••" error={errors.confirm} disabled={loading} />
+            <button type="button" onClick={submitReset} disabled={loading} style={primaryBtn(loading)}>
+              {loading ? <><Spinner /> Resetting…</> : 'Reset password'}
+            </button>
+            <ResendRow cooldown={cooldown} resending={resending} onResend={resend} />
+            <button
+              type="button"
+              onClick={() => { setStep('request'); setOtp(''); setPassword(''); setConfirm(''); setErrors({}); }}
+              style={{ fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}
+            >
+              Use a different email
+            </button>
+          </div>
+        )}
       </div>
     </AuthShell>
   );

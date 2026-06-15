@@ -1,14 +1,12 @@
 "use client";
 
 import React from 'react';
-import { AgencyLoginScreen } from '@/components/irms-auth';
+import { AgencyForgotScreen } from '@/components/irms-auth';
 import { useRouter } from 'next/navigation';
 
-export default function AgencyLoginPage() {
+export default function AgencyForgotPasswordPage() {
   const router = useRouter();
 
-  // The real JWT is set by agencyLogin() inside AgencyLoginScreen; this page
-  // only routes. (Previously it overwrote the token with a mock value.)
   const navigate = (to: string) => {
     const routeMap: Record<string, string> = {
       'landing': '/landing',
@@ -25,5 +23,5 @@ export default function AgencyLoginPage() {
     router.push(routeMap[to] || '/landing');
   };
 
-  return <AgencyLoginScreen navigate={navigate} />;
+  return <AgencyForgotScreen navigate={navigate} />;
 }
