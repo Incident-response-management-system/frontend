@@ -411,9 +411,9 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
               </PrimaryButton>
 
-              <GhostButton onClick={() => navigate(user ? 'my-reports' : 'track')} size="md">
+              <GhostButton onClick={() => navigate(user ? 'my-reports' : 'agency-login')} size="md">
 
-                {user ? 'View my reports' : 'Track a report'}
+                {user ? 'View my reports' : 'Agency sign in'}
 
               </GhostButton>
 
@@ -870,8 +870,6 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
                 <a href="#" style={{ color: 'var(--brand-ink)' }}>Report an incident</a>
-
-                <a href="#" style={{ color: 'var(--brand-ink)' }}>Track a report</a>
 
                 <a href="#" style={{ color: 'var(--brand-ink)' }}>System status</a>
 
