@@ -1263,7 +1263,7 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
           transition: 'all 0.2s ease',
         }}
       >
-        {selectedPlace ? `Use ${getPlaceName(selectedPlace)}` : 'Use Custom Coordinates'}
+        {selectedPlace ? `Use ${getPlaceName(selectedPlace)}` : 'Use this location'}
       </button>
     </div>
   );
@@ -1431,6 +1431,19 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
   const [nearbyIncidents, setNearbyIncidents] = React.useState<any[]>([]);
   const [selectedIncident, setSelectedIncident] = React.useState<any>(null);
   const incidentMarkersRef = React.useRef<any>(null);
+
+  // State for recent reports
+  const [recentReports, setRecentReports] = React.useState<string[]>([]);
+
+  // Load recent reports from localStorage on mount
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('irms_recent_reports');
+      if (stored) {
+        setRecentReports(JSON.parse(stored));
+      }
+    }
+  }, []);
 
   // Distance calculation helper
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -1631,7 +1644,46 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       });
 
-      userMarker.current = L.marker([lat, lng], { icon }).addTo(map);
+      userMarker.current = L.marker([lat, lng], { icon, draggable: true }).addTo(map);
+
+      // Update pin location when marker is dragged
+      userMarker.current.on('dragend', (e: any) => {
+        const { lat, lng } = e.target.getLatLng();
+        console.log('Marker dragged to:', lat, lng);
+        setPinLocation({ lat, lng });
+        setReverseGeocoding(true);
+        setResolvedLocation('');
+        setSelectedPlace(null);
+        setNearbyPlaces([]);
+        setManualLocation('');
+        setShowManualEntry(false);
+        setLocationSearchQuery('');
+
+        // Perform reverse geocoding for new location
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&countrycode=NG`)
+          .then(res => res.json())
+          .then(data => {
+            const address = (data.display_name || '').toLowerCase();
+            const inNigeria = address.includes('nigeria') || address.includes('ogun') || address.includes('redemption') || address.includes('mowe') || address.includes('ibafo');
+            const countryCode = (data.address?.country_code || '').toLowerCase();
+            const correctCountry = !countryCode || countryCode === 'ng';
+
+            if (inNigeria && correctCountry) {
+              setResolvedLocation(data.display_name);
+            } else {
+              setResolvedLocation('Selected location (outside Nigeria)');
+            }
+            setReverseGeocoding(false);
+          })
+          .catch(err => {
+            console.log('Reverse geocoding failed:', err);
+            setResolvedLocation('Selected location');
+            setReverseGeocoding(false);
+          });
+
+        // Fetch nearby places for new location
+        fetchNearbyPlaces(lat, lng);
+      });
 
       setPanelMode('location');
       setSheetOpen(true);
@@ -1832,6 +1884,35 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
               const icon = getIncidentMarkerIcon(incident.incident_type, incident.status);
               const marker = L.marker([incident.latitude, incident.longitude], { icon })
                 .addTo(map)
+                .bindPopup(`
+                  <div style="
+                    font-family: Arial, sans-serif;
+                    font-size: 14px;
+                    color: #333;
+                    padding: 8px 0;
+                    min-width: 200px;
+                  ">
+                    <div style="font-weight: 600; margin-bottom: 4px; color: #E84A3F;">
+                      ${incident.incident_type_display || incident.incident_type}
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+                      Ref: ${incident.reference}
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+                      Status: ${incident.status_display || incident.status}
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+                      ${incident.location_name || 'Unknown location'}
+                    </div>
+                    ${incident.description ? `<div style="font-size: 11px; color: #888; margin-top: 4px; font-style: italic;">${incident.description.substring(0, 100)}${incident.description.length > 100 ? '...' : ''}</div>` : ''}
+                    <div style="font-size: 11px; color: #999; margin-top: 4px;">
+                      ${new Date(incident.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                `, {
+                  closeButton: true,
+                  className: 'incident-popup'
+                })
                 .on('click', () => {
                   setSelectedIncident(incident);
                   setPanelMode('incident');
@@ -2247,6 +2328,11 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       setRefCode(result.reference);
 
+      // Store recent report reference
+      const recentReports = JSON.parse(localStorage.getItem('irms_recent_reports') || '[]');
+      const updatedReports = [result.reference, ...recentReports.filter((ref: string) => ref !== result.reference)].slice(0, 5);
+      localStorage.setItem('irms_recent_reports', JSON.stringify(updatedReports));
+
       setSubmitted(true);
 
       toast.success(`Incident ${result.reference} reported successfully!`);
@@ -2362,6 +2448,51 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
       </form>
 
 
+
+      {/* Recent Reports Panel */}
+      {recentReports.length > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: isMobile ? 72 : 84,
+          left: isMobile ? 16 : 24,
+          zIndex: 1000,
+          background: 'var(--brand-white)',
+          border: '1px solid var(--brand-divider)',
+          borderRadius: 12,
+          padding: 16,
+          width: isMobile ? 'auto' : 280,
+          maxWidth: 'calc(100vw - 32px)',
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+            Recent Reports
+          </div>
+          {recentReports.slice(0, 3).map((ref, index) => (
+            <button
+              key={ref}
+              onClick={() => navigate('track', { ref })}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                marginBottom: index < recentReports.slice(0, 3).length - 1 ? 8 : 0,
+                borderRadius: 8,
+                background: 'var(--brand-cream)',
+                border: '1px solid var(--brand-divider)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--brand-ink)',
+                fontFamily: 'var(--font-mono)',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-surface-alt)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-cream)'}
+            >
+              {ref}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Floating Map Actions */}
 
@@ -2523,7 +2654,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
 
 
-      {/* Bottom sheet */}
+      {/* Bottom sheet / Modal */}
 
       {sheetOpen && (
 
@@ -2539,15 +2670,24 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
           <div style={{
 
-            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 1600,
+            position: 'absolute',
+            bottom: isMobile ? 0 : 'auto',
+            top: isMobile ? 'auto' : '50%',
+            left: isMobile ? 0 : '50%',
+            right: isMobile ? 0 : 'auto',
+            transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+            width: isMobile ? '100%' : '600px',
+            maxWidth: isMobile ? 'none' : '90vw',
+            zIndex: 1600,
 
-            background: 'var(--brand-white)', borderTop: '1px solid var(--brand-divider)',
+            background: 'var(--brand-white)', borderTop: isMobile ? '1px solid var(--brand-divider)' : 'none',
+            border: isMobile ? 'none' : '1px solid var(--brand-divider)',
 
-            borderRadius: '20px 20px 0 0',
+            borderRadius: isMobile ? '20px 20px 0 0' : '16px',
 
             maxHeight: '90vh', overflowY: 'auto',
 
-            animation: 'sheetUp 0.35s cubic-bezier(.2,.8,.2,1)',
+            animation: isMobile ? 'sheetUp 0.35s cubic-bezier(.2,.8,.2,1)' : 'fadeIn 0.2s ease-out',
 
           }}>
 
@@ -3894,7 +4034,7 @@ export function TrackScreen({ navigate, params }: any) {
 
         {/* Assigned agency card */}
 
-        {incident.responding_agency && (
+        {incident.responding_agency ? (
 
           <div style={{
 
@@ -3934,55 +4074,135 @@ export function TrackScreen({ navigate, params }: any) {
 
           </div>
 
+        ) : (
+
+          <div style={{
+
+            background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)',
+
+            borderRadius: 16, padding: 24, marginBottom: 24,
+
+            display: 'flex', alignItems: 'center', gap: 16,
+
+          }}>
+
+            <div style={{
+
+              width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+
+              background: 'var(--brand-cream)', border: '1px solid var(--brand-divider)',
+
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-muted)',
+
+            }}>
+
+              <Icon.clock style={{ width: 24, height: 24 }} />
+
+            </div>
+
+            <div>
+
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>No agency assigned yet</div>
+
+              <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>Your report is being reviewed</div>
+
+            </div>
+
+          </div>
+
         )}
 
 
 
-        {/* Activity log */}
+        {/* Timeline card */}
 
-        <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 16, padding: 24 }}>
+        {incident.timeline && incident.timeline.length > 0 && (
 
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', marginBottom: 16, letterSpacing: '0.02em' }}>ACTIVITY LOG</div>
+          <div style={{
 
-          {[
+            background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)',
 
-            { t: '14:51', e: 'Assigned to RCCG Camp Security', c: 'var(--status-blue)' },
+            borderRadius: 16, padding: isMobile ? '24px 20px' : '28px 32px', marginBottom: 24,
 
-            { t: '14:38', e: 'Marked under review by dispatcher', c: 'var(--status-amber)' },
+          }}>
 
-            { t: '14:32', e: 'Report received from public', c: 'var(--status-red)' },
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', marginBottom: 20, letterSpacing: '0.02em' }}>TIMELINE</div>
 
-          ].map((x, i) => (
+            {incident.timeline.map((event: any, index: number) => (
 
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: i < 2 ? '1px solid var(--brand-hairline)' : 'none' }}>
+              <div key={index} style={{ display: 'flex', gap: 16, marginBottom: index < incident.timeline.length - 1 ? 20 : 0 }}>
 
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--brand-muted)', minWidth: 50 }}>{x.t}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 24 }}>
 
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: x.c }} />
+                  <div style={{
 
-              <span style={{ fontSize: 14, color: 'var(--brand-ink)' }}>{x.e}</span>
+                    width: 12, height: 12, borderRadius: '50%',
 
-            </div>
+                    background: event.status === 'completed' ? 'var(--status-green)' : 'var(--brand-muted)',
 
-          ))}
+                    border: event.status === 'completed' ? '2px solid var(--status-green)' : '2px solid var(--brand-divider)',
 
-        </div>
+                  }} />
+
+                  {index < incident.timeline.length - 1 && (
+
+                    <div style={{ width: 2, flex: 1, background: 'var(--brand-divider)', minHeight: 32, marginTop: 8 }} />
+
+                  )}
+
+                </div>
+
+                <div style={{ flex: 1, paddingTop: 2 }}>
+
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{event.title}</div>
+
+                  <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>{event.description}</div>
+
+                  <div style={{ fontSize: 11, color: 'var(--brand-muted)', marginTop: 4 }}>{event.timestamp}</div>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
 
 
 
-        <div style={{
+        {/* Activity log card */}
 
-          marginTop: 32, padding: 16, borderRadius: 10,
+        {incident.activity_log && incident.activity_log.length > 0 && (
 
-          background: 'var(--brand-white)', border: '1px dashed var(--brand-divider)',
+          <div style={{
 
-          fontSize: 12, color: 'var(--brand-muted)', lineHeight: 1.6,
+            background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)',
 
-        }}>
+            borderRadius: 16, padding: isMobile ? '24px 20px' : '28px 32px', marginBottom: 24,
 
-          <strong style={{ color: 'var(--brand-ink)' }}>Bookmark this page.</strong> Your tracking link is tied to this browser session. We don't store your identity — only the report.
+          }}>
 
-        </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', marginBottom: 20, letterSpacing: '0.02em' }}>ACTIVITY LOG</div>
+
+            {incident.activity_log.map((log: any, index: number) => (
+
+              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: index < incident.activity_log.length - 1 ? '1px solid var(--brand-hairline)' : 'none' }}>
+
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--brand-muted)', minWidth: 50 }}>{log.time}</span>
+
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: log.color || 'var(--brand-muted)' }} />
+
+                <span style={{ fontSize: 14, color: 'var(--brand-ink)' }}>{log.event}</span>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
 
       </div>
 
