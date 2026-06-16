@@ -82,6 +82,37 @@ export function toBeType(type: string): string {
   return FE_TO_BE_TYPE[type] ?? type;
 }
 
+// ─── Agency type -> relevant incident types ──────────────────
+// Each agency only handles a subset of incident types, so the dashboard
+// (cards, distribution, recent list, map, reports) is scoped to the types
+// the logged-in agency actually responds to. Values are frontend short codes
+// (rta | missing | civil | medical | flood | fire), matching Incident.type.
+//
+// Road traffic accidents are shared across medical/fire/police because a real
+// RTA needs all three responders on scene.
+const AGENCY_INCIDENT_TYPES: Record<string, string[]> = {
+  hospital: ['medical', 'rta'],
+  fire_rescue: ['fire', 'flood', 'rta'],
+  police: ['civil', 'missing', 'rta'],
+  private_security: ['civil', 'missing'],
+};
+
+/**
+ * The frontend incident-type short codes a given agency type is responsible
+ * for. Unknown/missing agency types fall back to all types (no filtering),
+ * so a misconfigured agency still sees everything rather than an empty board.
+ */
+export function incidentTypesForAgency(agencyType?: string | null): string[] | null {
+  if (!agencyType) return null;
+  return AGENCY_INCIDENT_TYPES[agencyType] ?? null;
+}
+
+/** Whether an incident of `feType` is relevant to the given agency type. */
+export function isIncidentRelevant(feType: string, agencyType?: string | null): boolean {
+  const allowed = incidentTypesForAgency(agencyType);
+  return allowed ? allowed.includes(feType) : true;
+}
+
 // ─── Backend incident shape (from /incidents/agencies/incidents/) ──
 
 export interface BackendIncident {

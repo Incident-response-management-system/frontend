@@ -14,7 +14,7 @@ import {
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
 import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats, type IncidentTab } from '@/lib/agency-api';
-import { toBeType } from '@/lib/agency-types';
+import { toBeType, isIncidentRelevant, incidentTypesForAgency } from '@/lib/agency-types';
 import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
@@ -281,9 +281,28 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
 // -----------------------------------------------------------
 // SCREEN 6 — OVERVIEW
 // -----------------------------------------------------------
+// All incident types with their human labels, keyed by frontend short code.
+const DISTRIBUTION_LABELS: Record<string, string> = {
+  medical: 'Medical Emergency',
+  rta: 'Road Traffic Accident',
+  civil: 'Civil Disturbance',
+  fire: 'Fire Outbreak',
+  flood: 'Flood Incident',
+  missing: 'Missing Person',
+};
+const ALL_DISTRIBUTION_TYPES = ['medical', 'rta', 'civil', 'fire', 'flood', 'missing'];
+
 export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident }: { incidents: Incident[]; loading?: boolean; error?: string | null; onRetry?: () => void; onViewIncident: (inc: Incident) => void }) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const profile = useAgencyProfile();
+
+  // The distribution chart only lists the incident types this agency responds
+  // to. Falls back to all types when the agency type is unknown/unmapped.
+  const distributionRows = React.useMemo(() => {
+    const types = incidentTypesForAgency(profile?.agencyType) ?? ALL_DISTRIBUTION_TYPES;
+    return types.map(type => ({ type, label: DISTRIBUTION_LABELS[type] ?? type }));
+  }, [profile?.agencyType]);
 
   // Derive cards from the incidents we have; replaced by /agencies/stats below.
   const deriveStats = React.useCallback((list: Incident[]) => ([
@@ -295,11 +314,21 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
 
   const [stats, setStats] = React.useState(() => deriveStats(incidents));
 
+  // When the agency type is mapped to a subset of incident types, the cards
+  // must agree with the (type-scoped) distribution and recent list, so we
+  // derive them from the already-filtered `incidents` prop. We only fall back
+  // to the server-wide /agencies/stats totals for unmapped agency types, where
+  // the dashboard intentionally shows everything.
+  const isTypeScoped = incidentTypesForAgency(profile?.agencyType) !== null;
+
   React.useEffect(() => {
     setStats(deriveStats(incidents));
+    if (isTypeScoped) return;
+    let cancelled = false;
     async function loadStats() {
       try {
         const s = await fetchAgencyStats();
+        if (cancelled) return;
         const open = s.pending + s.inProgress + s.assigned;
         setStats([
           { label: 'Total Incidents', value: String(s.totalThisMonth), delta: 'this month', color: 'var(--brand-ink)', accent: 'var(--brand-hairline)' },
@@ -312,7 +341,8 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
       }
     }
     loadStats();
-  }, [incidents, deriveStats]);
+    return () => { cancelled = true; };
+  }, [incidents, deriveStats, isTypeScoped]);
 
   return (
     <div>
@@ -355,14 +385,7 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { type: 'medical', label: 'Medical Emergency' },
-                { type: 'rta', label: 'Road Traffic Accident' },
-                { type: 'civil', label: 'Civil Disturbance' },
-                { type: 'fire', label: 'Fire Outbreak' },
-                { type: 'flood', label: 'Flood Incident' },
-                { type: 'missing', label: 'Missing Person' },
-              ].map(({ type, label }) => {
+              {distributionRows.map(({ type, label }) => {
                 const open = incidents.filter(r => r.type === type && r.status !== 'resolved').length;
                 const resolved = incidents.filter(r => r.type === type && r.status === 'resolved').length;
                 const r = { type, label, open, resolved };
@@ -767,13 +790,15 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-muted)', letterSpacing: '0.12em', marginBottom: 10 }}>LEGEND</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
-              { c: 'var(--status-red)', l: 'Received' },
-              { c: 'var(--status-amber)', l: 'Under Review' },
-              { c: 'var(--status-blue)', l: 'Assigned' },
-              { c: 'var(--status-green)', l: 'Resolved' },
+              { c: 'var(--status-red)', l: 'Received', icon: Icon.bell },
+              { c: 'var(--status-amber)', l: 'Under Review', icon: Icon.clock },
+              { c: 'var(--status-blue)', l: 'Assigned', icon: Icon.pin },
+              { c: 'var(--status-green)', l: 'Resolved', icon: Icon.check },
             ].map(x => (
               <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'var(--brand-ink)' }}>
-                <span style={{ width: 12, height: 12, borderRadius: '50%', background: x.c, border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, color: x.c }}>
+                  <x.icon width={16} height={16} />
+                </span>
                 {x.l}
               </div>
             ))}
@@ -1320,14 +1345,22 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
     });
   };
 
+  // Scope every dashboard surface (cards, distribution, recent list, map,
+  // reports) to the incident types this agency type actually responds to.
+  // Unknown agency types fall through to all incidents (see isIncidentRelevant).
+  const visibleIncidents = React.useMemo(
+    () => incidents.filter(inc => isIncidentRelevant(inc.type, profile?.agencyType)),
+    [incidents, profile?.agencyType]
+  );
+
   return (
     <AgencyProfileContext.Provider value={profile}>
       <DashboardShell navigate={navigate} currentTab={tab} onTabChange={setTab}>
-        {tab === 'overview' && <OverviewTab incidents={incidents} loading={loading} error={loadError} onRetry={() => reload(incidentTab)} onViewIncident={setActiveIncident} />}
-        {tab === 'map' && <MapTab incidents={incidents} onViewIncident={setActiveIncident} />}
+        {tab === 'overview' && <OverviewTab incidents={visibleIncidents} loading={loading} error={loadError} onRetry={() => reload(incidentTab)} onViewIncident={setActiveIncident} />}
+        {tab === 'map' && <MapTab incidents={visibleIncidents} onViewIncident={setActiveIncident} />}
         {tab === 'reports' && (
           <ReportsTab
-            incidents={incidents}
+            incidents={visibleIncidents}
             loading={loading}
             error={loadError}
             onRetry={() => reload(incidentTab)}
