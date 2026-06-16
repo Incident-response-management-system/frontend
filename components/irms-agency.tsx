@@ -14,7 +14,7 @@ import {
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
 import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats, type IncidentTab } from '@/lib/agency-api';
-import { toBeType, isIncidentRelevant, incidentTypesForAgency } from '@/lib/agency-types';
+import { toBeType, toFeType, isIncidentRelevant, incidentTypesForAgency } from '@/lib/agency-types';
 import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
@@ -528,6 +528,7 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
 // -----------------------------------------------------------
 export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; onViewIncident: (inc: Incident) => void }) {
   const isMobile = useIsMobile();
+  const profile = useAgencyProfile();
   const mapRef = React.useRef<HTMLDivElement>(null);
   const mapInstance = React.useRef<any>(null);
   const markersRef = React.useRef<any[]>([]);
@@ -545,6 +546,12 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     setSelectedTypes(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value]);
   const toggleStatus = (value: string) =>
     setSelectedStatuses(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value]);
+
+  // Only offer the incident-type filters this agency type responds to.
+  const relevantTypes = React.useMemo(
+    () => INCIDENT_TYPES.filter(t => isIncidentRelevant(toFeType(t.id), profile?.agencyType)),
+    [profile?.agencyType]
+  );
   const resetFilters = () => { setSelectedTypes([]); setSelectedStatuses([]); };
   const hasFilters = selectedTypes.length > 0 || selectedStatuses.length > 0;
 
@@ -694,7 +701,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       }}>
         <FilterDropdown
           label="Incident Type"
-          options={INCIDENT_TYPES.map(t => ({ value: t.id, label: t.label }))}
+          options={relevantTypes.map(t => ({ value: t.id, label: t.label }))}
           selected={selectedTypes}
           onToggle={toggleType}
         />
@@ -880,10 +887,17 @@ export function ReportsTab({
   onViewIncident: (inc: Incident) => void;
 }) {
   const isMobile = useIsMobile();
+  const profile = useAgencyProfile();
   const [search, setSearch] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
+
+  // Only offer the type chips this agency type actually responds to.
+  const relevantTypes = React.useMemo(
+    () => INCIDENT_TYPES.filter(t => isIncidentRelevant(toFeType(t.id), profile?.agencyType)),
+    [profile?.agencyType]
+  );
 
   // Client-side paginated & filtered list (syncs live with parent state)
   const filtered = incidents.filter(r => {
@@ -967,7 +981,7 @@ export function ReportsTab({
 
           {/* Custom multi-field filters */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: isMobile ? '1 1 100%' : undefined }}>
-            {INCIDENT_TYPES.map(t => {
+            {relevantTypes.map(t => {
               const active = selectedTypes.includes(t.id);
               return (
                 <button
