@@ -1,10 +1,9 @@
 /**
- * Auth API Service
- * Integrated with live backend endpoints.
- * The Bearer token injection is handled by `apiFetch` via cookies.
+ * Auth API Service — talks to the live backend.
+ * Bearer token injection is handled by `apiFetch` via cookies.
  */
 
-import { apiFetch, setCookie, deleteCookie, getCookie } from './api-client';
+import { apiFetch, getCookie, setCookie, deleteCookie, extractApiError } from './api-client';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -52,8 +51,10 @@ export async function citizenSignup(
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Signup failed' }));
-    throw new Error(err.message || err.detail || 'Signup failed');
+    // extractApiError reads DRF's {non_field_errors} / {field: [msg]} shapes,
+    // which the backend uses (e.g. "This field is required.", "user with this
+    // email already exists.") — a plain err.message would miss them.
+    throw new Error(await extractApiError(res, 'Sign-up failed. Please try again.'));
   }
 
   const data: AuthResponse = await res.json();
@@ -73,8 +74,10 @@ export async function citizenLogin(
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Login failed' }));
-    throw new Error(err.message || err.detail || 'Login failed');
+    // The backend returns 400 with {non_field_errors:["Invalid email or
+    // password."]} for bad credentials; extractApiError surfaces that exact
+    // message instead of a generic "Login failed".
+    throw new Error(await extractApiError(res, 'Login failed. Please check your credentials.'));
   }
 
   const data: AuthResponse = await res.json();
@@ -131,68 +134,173 @@ export interface AgencySignupPayload {
   phone: string;
   password: string;
   radius: number;
+  latitude: number;
+  longitude: number;
 }
 
-export async function agencySignup(payload: AgencySignupPayload): Promise<AgencyUser> {
-  // STUB — replace with:
-  // const res = await apiFetch('/auth/agency/signup', {
-  //   method: 'POST',
-  //   body: JSON.stringify(payload),
-  //   tokenType: 'agency',
-  // });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Agency signup failed'); }
-  // const data = await res.json();
-  // setCookie('agency_token', data.token);
-  // return data.agency;
+/**
+ * Thrown by agencyLogin when the backend rejects sign-in because the agency's
+ * email is not verified yet. Carries the email so the UI can jump straight
+ * into the OTP verification step.
+ */
+export class EmailNotVerifiedError extends Error {
+  email: string;
+  constructor(email: string, message = 'Please verify your email to continue.') {
+    super(message);
+    this.name = 'EmailNotVerifiedError';
+    this.email = email;
+  }
+}
 
-  await new Promise(r => setTimeout(r, 1000));
+// Persist whatever access/refresh tokens an agency auth response carries.
+function storeAgencyTokens(data: any): string {
+  const access = data.access || data.token || data.access_token || '';
+  if (access) setCookie('agency_token', access);
+  const refresh = data.refresh || data.refresh_token;
+  if (refresh) setCookie('agency_refresh', refresh, 7);
+  return access;
+}
 
-  const mockToken = `mock-agency-token-${Date.now()}`;
-  setCookie('agency_token', mockToken);
-
+// Shape an agency auth response into the AgencyUser the app renders.
+function mapAgency(data: any, fallbackEmail: string, token: string): AgencyUser {
+  const a = data.agency || data.user || data || {};
   return {
-    id: `agency_${Date.now()}`,
-    agencyName: payload.agencyName,
-    agencyType: payload.agencyType,
-    email: payload.email,
-    phone: payload.phone,
-    radius: payload.radius,
-    token: mockToken,
+    id: a.id || '',
+    agencyName: a.agency_name || '',
+    agencyType: a.agency_type || '',
+    email: a.email || fallbackEmail,
+    phone: a.phone_number,
+    radius: a.profile?.service_radius ?? 0,
+    token,
   };
+}
+
+export async function agencySignup(payload: AgencySignupPayload): Promise<{ email: string }> {
+  // Registration emails a 6-digit OTP and returns NO tokens. The agency must
+  // confirm the code via agencyVerifyEmail() before it can sign in.
+  // latitude/longitude are REQUIRED by the backend.
+  const res = await apiFetch('/auth/agency/register/', {
+    method: 'POST',
+    body: JSON.stringify({
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      agency_name: payload.agencyName,
+      agency_type: payload.agencyType,
+      email: payload.email,
+      password: payload.password,
+      phone_number: payload.phone,
+      service_radius: payload.radius,
+    }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Registration failed. Please try again.'));
+  }
+  return { email: payload.email };
+}
+
+// Verify the emailed 6-digit code. On success the backend returns a JWT, so the
+// agency is signed in immediately (no separate login step needed).
+export async function agencyVerifyEmail(email: string, otp: string): Promise<AgencyUser> {
+  const res = await apiFetch('/auth/agency/verify-email/', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Verification failed. Check the code and try again.'));
+  }
+  const data = await res.json();
+  const token = storeAgencyTokens(data);
+  return mapAgency(data, email, token);
+}
+
+// Request a fresh OTP (the backend enforces a 60s cooldown between sends).
+export async function agencyResendOtp(email: string): Promise<void> {
+  const res = await apiFetch('/auth/agency/resend-otp/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Could not resend the code. Please try again shortly.'));
+  }
 }
 
 export async function agencyLogin(
   email: string,
   password: string,
 ): Promise<AgencyUser> {
-  // STUB — replace with:
-  // const res = await apiFetch('/auth/agency/login', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ email, password }),
-  //   tokenType: 'agency',
-  // });
-  // if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Login failed'); }
-  // const data = await res.json();
-  // setCookie('agency_token', data.token);
-  // return data.agency;
-
-  await new Promise(r => setTimeout(r, 800));
-
-  const mockToken = `mock-agency-token-${Date.now()}`;
-  setCookie('agency_token', mockToken);
-
-  return {
-    id: 'agency_demo_001',
-    agencyName: 'RCCG Camp Security',
-    agencyType: 'security',
-    email,
-    radius: 25,
-    token: mockToken,
-  };
+  const res = await apiFetch('/auth/agency/login/', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    const message = await extractApiError(res, 'Login failed. Please check your credentials.');
+    // The backend blocks login until the email is verified — surface that as a
+    // typed error so the UI can route the user into OTP verification.
+    if (/verif/i.test(message)) throw new EmailNotVerifiedError(email, message);
+    throw new Error(message);
+  }
+  const data = await res.json();
+  const token = storeAgencyTokens(data);
+  return mapAgency(data, email, token);
 }
 
+// ─── Agency password reset (OTP-based) ───────────────────────
+// These follow the same OTP convention as registration. The backend routes
+// still need to be added:
+//   POST /auth/agency/forgot-password/  { email }                     -> emails a 6-digit code
+//   POST /auth/agency/reset-password/   { email, otp, new_password }  -> sets the new password
+export async function agencyForgotPassword(email: string): Promise<void> {
+  const res = await apiFetch('/auth/agency/forgot-password/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Could not start password reset. Please try again.'));
+  }
+}
+
+export async function agencyResetPassword(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await apiFetch('/auth/agency/reset-password/', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp, new_password: newPassword }),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Could not reset your password. Please try again.'));
+  }
+}
+
+// The backend has no logout endpoint — JWTs are stateless. Signing out just
+// clears the locally-stored access and refresh tokens.
 export async function agencySignOut(): Promise<void> {
-  // STUB — replace with:
-  // await apiFetch('/auth/agency/logout', { method: 'POST', tokenType: 'agency' });
   deleteCookie('agency_token');
+  deleteCookie('agency_refresh');
+}
+
+// ─── Agency profile (me) ─────────────────────────────────────
+
+export async function getAgencyProfile(): Promise<AgencyUser | null> {
+  const res = await apiFetch('/auth/agency/me/', { tokenType: 'agency' });
+  if (!res.ok) return null;
+  const data = await res.json();
+  // /me returns the agency object directly (same shape as login's `agency`).
+  const a = data.agency || data;
+  return {
+    id: a.id || '',
+    agencyName: a.agency_name || '',
+    agencyType: a.agency_type || '',
+    email: a.email || '',
+    phone: a.phone_number,
+    radius: a.profile?.service_radius ?? 0,
+    token: '',
+  };
 }

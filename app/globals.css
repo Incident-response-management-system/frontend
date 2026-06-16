@@ -198,6 +198,26 @@ body {
     border-color: var(--brand-hairline) !important;
 }
 
+/* Citizen map: the zoom control lives bottom-right alongside the floating
+   action buttons (recenter / layers / locate), anchored at bottom:24 right:24
+   and stacking up to ~152px tall. Lift only the zoom control above that stack
+   (via margin, so the attribution stays pinned to the corner) and align it to
+   the same right edge so the +/- buttons never sit behind the action column. */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+    margin: 0 24px 188px 0 !important;
+    border: none !important;
+    box-shadow: 0 4px 16px rgba(40, 35, 20, 0.12);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.leaflet-bottom.leaflet-right .leaflet-control-zoom a {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 20px !important;
+}
+
 /* ─── Leaflet dark-mode tuning ──────────────────────────────── */
 .dark .leaflet-container {
     background: var(--brand-surface-alt) !important;

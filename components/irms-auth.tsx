@@ -2,15 +2,24 @@ import React from 'react';
 import { toast } from 'sonner';
 import { IRMSLogo, Icon } from './irms-shared';
 import { ThemeToggle } from './ThemeToggle';
-import { agencySignup, agencyLogin } from '@/lib/auth-api';
-import { useIsMobile } from '@/hooks/use-media-query';
+import {
+  agencySignup,
+  agencyLogin,
+  agencyVerifyEmail,
+  agencyResendOtp,
+  agencyForgotPassword,
+  agencyResetPassword,
+  EmailNotVerifiedError,
+} from '@/lib/auth-api';
+import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
 interface AuthShellProps {
   children: React.ReactNode;
   mode?: 'signup' | 'login';
+  navigate?: (to: string) => void;
 }
 
-export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
+export function AuthShell({ children, mode = 'signup', navigate }: AuthShellProps) {
   return (
     <div className="irms-auth-shell-grid" style={{
       minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)',
@@ -22,7 +31,9 @@ export function AuthShell({ children, mode = 'signup' }: AuthShellProps) {
         padding: '40px 56px', display: 'flex', flexDirection: 'column',
         borderRight: '1px solid var(--brand-hairline)',
       }}>
-        <div><IRMSLogo size={16} color="var(--brand-ink)" /></div>
+        <button onClick={() => navigate?.('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: navigate ? 'pointer' : 'default', padding: 0, alignSelf: 'flex-start' }}>
+          <IRMSLogo size={16} color="var(--brand-ink)" />
+        </button>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 460 }}>
           <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 18 }}>
@@ -153,11 +164,205 @@ function Spinner() {
   );
 }
 
+// ─── OTP input + resend cooldown (shared by verify + reset) ─────────────────
+
+const OTP_LENGTH = 6;
+
+// Six single-digit cells with auto-advance, backspace-to-previous, and paste.
+function OtpInput({ value, onChange, disabled, autoFocus }: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  autoFocus?: boolean;
+}) {
+  const refs = React.useRef<Array<HTMLInputElement | null>>([]);
+  const digits = Array.from({ length: OTP_LENGTH }, (_, i) => value[i] || '');
+
+  const fillFrom = (start: number, text: string) => {
+    const clean = text.replace(/\D/g, '');
+    if (!clean) return;
+    const next = digits.slice();
+    clean.split('').slice(0, OTP_LENGTH - start).forEach((c, k) => { next[start + k] = c; });
+    onChange(next.join('').slice(0, OTP_LENGTH));
+    refs.current[Math.min(start + clean.length, OTP_LENGTH - 1)]?.focus();
+  };
+
+  const handleChange = (i: number, raw: string) => {
+    if (raw.length > 1) { fillFrom(i, raw); return; }
+    const d = raw.replace(/\D/g, '');
+    const next = digits.slice();
+    next[i] = d;
+    onChange(next.join('').slice(0, OTP_LENGTH));
+    if (d && i < OTP_LENGTH - 1) refs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) {
+      e.preventDefault();
+      refs.current[i - 1]?.focus();
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={el => { refs.current[i] = el; }}
+          value={d}
+          onChange={e => handleChange(i, e.target.value)}
+          onKeyDown={e => handleKeyDown(i, e)}
+          onPaste={e => { e.preventDefault(); fillFrom(i, e.clipboardData.getData('text')); }}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={1}
+          disabled={disabled}
+          autoFocus={autoFocus && i === 0}
+          aria-label={`Digit ${i + 1}`}
+          style={{
+            width: '100%', minWidth: 0, aspectRatio: '1 / 1',
+            textAlign: 'center', fontSize: 22, fontWeight: 700,
+            fontFamily: 'var(--font-mono)', color: 'var(--brand-ink)',
+            background: disabled ? 'var(--brand-cream)' : 'var(--brand-white)',
+            border: `1px solid ${d ? 'var(--brand-ink)' : 'var(--brand-hairline)'}`,
+            borderRadius: 10, outline: 'none', transition: 'border 0.15s',
+            cursor: disabled ? 'not-allowed' : 'text', opacity: disabled ? 0.6 : 1,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Countdown used to gate the "resend code" button (matches the backend's 60s rule).
+function useCooldown(): [number, () => void] {
+  const [left, setLeft] = React.useState(0);
+  React.useEffect(() => {
+    if (left <= 0) return;
+    const t = setTimeout(() => setLeft(l => l - 1), 1000);
+    return () => clearTimeout(t);
+  }, [left]);
+  return [left, React.useCallback(() => setLeft(60), [])];
+}
+
+// Shared "resend code" control: shows a live countdown, then becomes a button.
+function ResendRow({ cooldown, resending, onResend }: {
+  cooldown: number;
+  resending: boolean;
+  onResend: () => void;
+}) {
+  return (
+    <div style={{ fontSize: 13, color: 'var(--brand-muted)', textAlign: 'center' }}>
+      Didn&apos;t get the code?{' '}
+      {cooldown > 0 ? (
+        <span>Resend in {cooldown}s</span>
+      ) : (
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={resending}
+          style={{
+            color: 'var(--brand-ink)', fontWeight: 600, background: 'none', border: 'none',
+            textDecoration: 'underline', textUnderlineOffset: 3,
+            cursor: resending ? 'not-allowed' : 'pointer', padding: 0, font: 'inherit',
+          }}
+        >
+          {resending ? 'Sending…' : 'Resend code'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SHARED AGENCY AUTH HEADER
+// On desktop/tablet: logo (when copy panel hidden) + "Back to home" and the
+// alt action inline. On mobile: logo + back-arrow only, with the alt action
+// and theme toggle collapsed into a hamburger menu so nothing wraps.
+// ─────────────────────────────────────────────────────────────
+function AgencyAuthHeader({
+  navigate, isTablet, isMobile, altLabel, altActionLabel, altAction,
+}: {
+  navigate: (to: string) => void;
+  isTablet: boolean;
+  isMobile: boolean;
+  altLabel: string;
+  altActionLabel: string;
+  altAction: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16 }}>
+        {/* Logo shown here only when the copy panel (and its logo) is hidden */}
+        {isTablet && (
+          <button type="button" onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            <IRMSLogo size={15} color="var(--brand-ink)" />
+          </button>
+        )}
+        <button type="button" onClick={() => navigate('landing')} aria-label="Back to home" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <Icon.back style={{ width: 16, height: 16 }} />{!isMobile && ' Back to home'}
+        </button>
+      </div>
+
+      {isMobile ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, position: 'relative' }}>
+          <ThemeToggle size={34} />
+          <button
+            type="button"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen ? 'true' : 'false'}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 38, height: 38, borderRadius: 9, color: 'var(--brand-ink)',
+              background: menuOpen ? 'var(--brand-surface-alt)' : 'none',
+              border: '1px solid var(--brand-divider)', cursor: 'pointer',
+            }}
+          >
+            {menuOpen ? <Icon.close style={{ width: 18, height: 18 }} /> : <Icon.list style={{ width: 18, height: 18 }} />}
+          </button>
+          {menuOpen && (
+            <>
+              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 8, zIndex: 70,
+                minWidth: 220, padding: 6,
+                background: 'var(--brand-white)', border: '1px solid var(--brand-divider)',
+                borderRadius: 12, boxShadow: '0 16px 36px rgba(0,0,0,0.16)',
+              }}>
+                <div style={{ padding: '8px 12px 6px', fontSize: 12, color: 'var(--brand-muted)' }}>{altLabel}</div>
+                <button type="button" onClick={() => { setMenuOpen(false); altAction(); }} style={{
+                  width: '100%', padding: '10px 12px', fontSize: 14, fontWeight: 600, color: 'var(--brand-ink)',
+                  borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}>{altActionLabel}</button>
+                <div style={{ height: 1, background: 'var(--brand-hairline)', margin: '4px 8px' }} />
+                <button type="button" onClick={() => { setMenuOpen(false); navigate('landing'); }} style={{
+                  width: '100%', padding: '10px 12px', fontSize: 14, fontWeight: 500, color: 'var(--brand-muted)',
+                  borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                }}>Back to home</button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
+            {altLabel} <button type="button" onClick={altAction} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>{altActionLabel}</button>
+          </div>
+          <ThemeToggle size={34} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // AGENCY SIGNUP
 // ─────────────────────────────────────────────────────────────
 export function AgencySignupScreen({ navigate }: ScreenProps) {
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const [agencyName, setAgencyName] = React.useState('');
   const [agencyType, setAgencyType] = React.useState('police');
   const [email, setEmail] = React.useState('');
@@ -165,14 +370,40 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
   const [password, setPassword] = React.useState('');
   const [confirm, setConfirm] = React.useState('');
   const [radius, setRadius] = React.useState(25);
+  const [latitude, setLatitude] = React.useState('');
+  const [longitude, setLongitude] = React.useState('');
+  const [locating, setLocating] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Once registration succeeds the backend emails an OTP; we swap to the
+  // verification step (keeping the email in memory for verify/resend).
+  const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
 
+  const useMyLocation = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      toast.error('Location is not available on this device.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLatitude(pos.coords.latitude.toFixed(6));
+        setLongitude(pos.coords.longitude.toFixed(6));
+        setErrors(p => ({ ...p, location: '' }));
+        setLocating(false);
+        toast.success('Location captured.');
+      },
+      () => { setLocating(false); toast.error('Could not get your location. Enter it manually.'); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  // ids are the backend agency_type values
   const agencyTypes = [
     { id: 'police', label: 'Police' },
-    { id: 'medical', label: 'Hospital / Medical' },
-    { id: 'fire', label: 'Fire & Rescue' },
-    { id: 'security', label: 'Private Security' },
+    { id: 'hospital', label: 'Hospital / Medical' },
+    { id: 'fire_rescue', label: 'Fire & Rescue' },
+    { id: 'private_security', label: 'Private Security' },
   ];
 
   const validate = () => {
@@ -182,6 +413,12 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     if (!phone.trim()) e.phone = 'Phone number is required';
     if (password.length < 8) e.password = 'Password must be at least 8 characters';
     if (password !== confirm) e.confirm = 'Passwords do not match';
+    const lat = parseFloat(latitude), lng = parseFloat(longitude);
+    if (!latitude.trim() || !longitude.trim() || isNaN(lat) || isNaN(lng)) {
+      e.location = 'Set your agency location (use current location or enter coordinates)';
+    } else if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      e.location = 'Coordinates are out of range';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -190,9 +427,12 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     if (!validate()) return;
     setLoading(true);
     try {
-      await agencySignup({ agencyName, agencyType, email, phone, password, radius });
-      toast.success('Agency account created! Pending verification within 24h.');
-      navigate('agency-dashboard');
+      await agencySignup({
+        agencyName, agencyType, email, phone, password, radius,
+        latitude: parseFloat(latitude), longitude: parseFloat(longitude),
+      });
+      toast.success('Account created — we emailed you a 6-digit verification code.');
+      setVerifyEmail(email);
     } catch (err: any) {
       toast.error(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -202,19 +442,28 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
 
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
 
+  // OTP verification step (after a successful registration).
+  if (verifyEmail) {
+    return (
+      <AgencyVerifyScreen
+        email={verifyEmail}
+        navigate={navigate}
+        onChangeEmail={() => setVerifyEmail(null)}
+        mode="signup"
+      />
+    );
+  }
+
   return (
-    <AuthShell mode="signup">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            Already registered? <button onClick={() => navigate('agency-login')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, whiteSpace: 'nowrap', background: 'none', border: 'none', cursor: 'pointer' }}>Sign in</button>
-          </div>
-          <ThemeToggle size={34} />
-        </div>
-      </div>
+    <AuthShell mode="signup" navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="Already registered?"
+        altActionLabel="Sign in"
+        altAction={() => navigate('agency-login')}
+      />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 480, width: '100%', margin: '40px auto' }}>
         <div style={{ marginBottom: 28 }}>
@@ -292,6 +541,30 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
             </div>
           </div>
 
+          {/* Agency location — required by the backend so reports can be geo-routed */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 12, flexWrap: 'wrap' }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)' }}>Agency location</label>
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={loading || locating}
+                style={{
+                  fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)', background: 'var(--brand-cream)',
+                  border: '1px solid var(--brand-divider)', borderRadius: 7, padding: '6px 10px',
+                  cursor: (loading || locating) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Icon.pin style={{ width: 14, height: 14 }} /> {locating ? 'Locating…' : (isMobile ? 'My location' : 'Use my current location')}
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+              <FormInput label="Latitude" value={latitude} onChange={e => { setLatitude(e.target.value); clearErr('location'); }} placeholder="6.9342" disabled={loading} />
+              <FormInput label="Longitude" value={longitude} onChange={e => { setLongitude(e.target.value); clearErr('location'); }} placeholder="3.4567" disabled={loading} />
+            </div>
+            {errors.location && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: 6 }}>{errors.location}</div>}
+          </div>
+
           <button
             type="button"
             onClick={handleSubmit}
@@ -320,10 +593,15 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
 // AGENCY LOGIN
 // ─────────────────────────────────────────────────────────────
 export function AgencyLoginScreen({ navigate }: ScreenProps) {
-  const [email, setEmail] = React.useState('ops@rccg-security.org');
-  const [password, setPassword] = React.useState('demo1234');
+  const isTablet = useIsTablet();
+  const isMobile = useIsMobile();
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Set when the backend blocks login for an unverified email — we then drop
+  // the user into the OTP step and send a fresh code.
+  const [verifyEmail, setVerifyEmail] = React.useState<string | null>(null);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -341,6 +619,11 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
       toast.success(`Welcome back, ${agency.agencyName}!`);
       navigate('agency-dashboard');
     } catch (err: any) {
+      if (err instanceof EmailNotVerifiedError) {
+        toast.message('Verify your email to continue — we just sent you a code.');
+        setVerifyEmail(err.email || email);
+        return;
+      }
       toast.error(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -349,19 +632,29 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
 
   const clearErr = (key: string) => setErrors(p => ({ ...p, [key]: '' }));
 
+  // OTP verification step (when login is blocked for an unverified email).
+  if (verifyEmail) {
+    return (
+      <AgencyVerifyScreen
+        email={verifyEmail}
+        navigate={navigate}
+        onChangeEmail={() => setVerifyEmail(null)}
+        mode="login"
+        autoSend
+      />
+    );
+  }
+
   return (
-    <AuthShell mode="login">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Icon.back style={{ width: 16, height: 16 }} /> Back to home
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            New agency? <button onClick={() => navigate('agency-signup')} style={{ color: 'var(--brand-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>Register here</button>
-          </div>
-          <ThemeToggle size={34} />
-        </div>
-      </div>
+    <AuthShell mode="login" navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="New agency?"
+        altActionLabel="Register here"
+        altAction={() => navigate('agency-signup')}
+      />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 420, width: '100%', margin: '40px auto' }}>
         <div style={{ marginBottom: 28 }}>
@@ -393,7 +686,7 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
               <input type="checkbox" defaultChecked style={{ accentColor: 'var(--brand-ink)', width: 15, height: 15 }} />
               <span>Keep me signed in</span>
             </label>
-            <a href="#" style={{ color: 'var(--brand-ink)', fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: 3 }}>Forgot password?</a>
+            <button type="button" onClick={() => navigate('agency-forgot')} style={{ color: 'var(--brand-ink)', fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0 }}>Forgot password?</button>
           </div>
 
           <button
@@ -410,18 +703,254 @@ export function AgencyLoginScreen({ navigate }: ScreenProps) {
           >
             {loading ? <><Spinner /> Signing in…</> : 'Sign in to dashboard'}
           </button>
-
-          <div style={{
-            padding: 14, borderRadius: 10, background: 'var(--brand-cream)',
-            border: '1px solid var(--brand-hairline)', fontSize: 12, color: 'var(--brand-muted)',
-            display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 16, lineHeight: 1.5,
-          }}>
-            <Icon.bell style={{ color: 'var(--brand-ink)', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <strong style={{ color: 'var(--brand-ink)' }}>Demo credentials pre-filled.</strong> Press Sign in to enter the agency dashboard.
-            </div>
-          </div>
         </div>
+      </div>
+    </AuthShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AGENCY EMAIL VERIFICATION (OTP)
+// Reached after registration, or when login is blocked for an unverified
+// email. Verifying returns a JWT, so a successful code = signed in.
+// ─────────────────────────────────────────────────────────────
+export function AgencyVerifyScreen({ email, navigate, onChangeEmail, mode = 'signup', autoSend = false }: {
+  email: string;
+  navigate: (to: string) => void;
+  onChangeEmail?: () => void;
+  mode?: 'signup' | 'login';
+  autoSend?: boolean;
+}) {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const [otp, setOtp] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [resending, setResending] = React.useState(false);
+  const [cooldown, startCooldown] = useCooldown();
+
+  // A code already exists on entry (registration sent one; the login path sends
+  // a fresh one via autoSend). Either way start the 60s resend cooldown.
+  React.useEffect(() => {
+    if (autoSend) {
+      agencyResendOtp(email)
+        .then(() => toast.success('We sent a fresh code to your email.'))
+        .catch(() => { /* silent — the user can resend manually */ });
+    }
+    startCooldown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const verify = async () => {
+    if (otp.length !== OTP_LENGTH) { setError('Enter the 6-digit code.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const agency = await agencyVerifyEmail(email, otp);
+      toast.success(`Email verified — welcome, ${agency.agencyName || 'agency'}!`);
+      navigate('agency-dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Check the code and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    if (cooldown > 0 || resending) return;
+    setResending(true);
+    try {
+      await agencyResendOtp(email);
+      toast.success('A new code is on its way.');
+      setOtp('');
+      startCooldown();
+    } catch (err: any) {
+      toast.error(err.message || 'Could not resend the code.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <AuthShell mode={mode} navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="Wrong email?"
+        altActionLabel="Go back"
+        altAction={onChangeEmail || (() => navigate('agency-signup'))}
+      />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 420, width: '100%', margin: '40px auto' }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Verify your email</h1>
+          <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: 0 }}>
+            Enter the 6-digit code we sent to <strong style={{ color: 'var(--brand-ink)' }}>{email}</strong>.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={loading} autoFocus />
+          {error && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: -6, fontWeight: 500 }}>{error}</div>}
+
+          <button
+            type="button"
+            onClick={verify}
+            disabled={loading || otp.length !== OTP_LENGTH}
+            style={{
+              background: (loading || otp.length !== OTP_LENGTH) ? 'var(--brand-muted)' : 'var(--brand-ink)',
+              color: 'var(--brand-cream)', padding: '13px 24px',
+              borderRadius: 9, fontWeight: 600, fontSize: 14, border: 'none',
+              cursor: (loading || otp.length !== OTP_LENGTH) ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.2s',
+            }}
+          >
+            {loading ? <><Spinner /> Verifying…</> : 'Verify & continue'}
+          </button>
+
+          <ResendRow cooldown={cooldown} resending={resending} onResend={resend} />
+        </div>
+      </div>
+    </AuthShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AGENCY FORGOT PASSWORD (OTP-based reset)
+// Step 1: request a code by email. Step 2: enter the code + a new password.
+// ─────────────────────────────────────────────────────────────
+export function AgencyForgotScreen({ navigate }: ScreenProps) {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const [step, setStep] = React.useState<'request' | 'reset'>('request');
+  const [email, setEmail] = React.useState('');
+  const [otp, setOtp] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [confirm, setConfirm] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [resending, setResending] = React.useState(false);
+  const [cooldown, startCooldown] = useCooldown();
+
+  const clearErr = (k: string) => setErrors(p => ({ ...p, [k]: '' }));
+
+  const requestCode = async () => {
+    if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) { setErrors({ email: 'Valid email is required' }); return; }
+    setLoading(true);
+    setErrors({});
+    try {
+      await agencyForgotPassword(email);
+      toast.success('If that email is registered, a reset code is on its way.');
+      setStep('reset');
+      startCooldown();
+    } catch (err: any) {
+      toast.error(err.message || 'Could not start password reset.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resend = async () => {
+    if (cooldown > 0 || resending) return;
+    setResending(true);
+    try {
+      await agencyForgotPassword(email);
+      toast.success('A new code is on its way.');
+      setOtp('');
+      startCooldown();
+    } catch (err: any) {
+      toast.error(err.message || 'Could not resend the code.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const submitReset = async () => {
+    const e: Record<string, string> = {};
+    if (otp.length !== OTP_LENGTH) e.otp = 'Enter the 6-digit code';
+    if (password.length < 8) e.password = 'Password must be at least 8 characters';
+    if (password !== confirm) e.confirm = 'Passwords do not match';
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    setLoading(true);
+    try {
+      await agencyResetPassword(email, otp, password);
+      toast.success('Password reset — sign in with your new password.');
+      navigate('agency-login');
+    } catch (err: any) {
+      toast.error(err.message || 'Could not reset your password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const primaryBtn = (busy: boolean) => ({
+    background: busy ? 'var(--brand-muted)' : 'var(--brand-ink)',
+    color: 'var(--brand-cream)', padding: '13px 24px',
+    borderRadius: 9, fontWeight: 600, fontSize: 14, marginTop: 4, border: 'none',
+    cursor: busy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', gap: 8, transition: 'background 0.2s',
+  }) as React.CSSProperties;
+
+  return (
+    <AuthShell mode="login" navigate={navigate}>
+      <AgencyAuthHeader
+        navigate={navigate}
+        isTablet={isTablet}
+        isMobile={isMobile}
+        altLabel="Remembered it?"
+        altActionLabel="Back to sign in"
+        altAction={() => navigate('agency-login')}
+      />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 420, width: '100%', margin: '40px auto' }}>
+        <div style={{ marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Reset your password</h1>
+          <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: 0 }}>
+            {step === 'request'
+              ? "Enter your agency email and we'll send a 6-digit reset code."
+              : <>Enter the code we sent to <strong style={{ color: 'var(--brand-ink)' }}>{email}</strong> and choose a new password.</>}
+          </p>
+        </div>
+
+        {step === 'request' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <FormInput
+              label="Email"
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); clearErr('email'); }}
+              placeholder="you@agency.org"
+              error={errors.email}
+              disabled={loading}
+            />
+            <button type="button" onClick={requestCode} disabled={loading} style={primaryBtn(loading)}>
+              {loading ? <><Spinner /> Sending code…</> : 'Send reset code'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--brand-ink)' }}>Verification code</label>
+              <OtpInput value={otp} onChange={v => { setOtp(v); clearErr('otp'); }} disabled={loading} autoFocus />
+              {errors.otp && <div style={{ fontSize: 12, color: 'var(--status-red)', marginTop: 6, fontWeight: 500 }}>{errors.otp}</div>}
+            </div>
+            <PasswordInput label="New password" value={password} onChange={e => { setPassword(e.target.value); clearErr('password'); }} placeholder="Min. 8 characters" error={errors.password} disabled={loading} />
+            <PasswordInput label="Confirm new password" value={confirm} onChange={e => { setConfirm(e.target.value); clearErr('confirm'); }} placeholder="••••••••" error={errors.confirm} disabled={loading} />
+            <button type="button" onClick={submitReset} disabled={loading} style={primaryBtn(loading)}>
+              {loading ? <><Spinner /> Resetting…</> : 'Reset password'}
+            </button>
+            <ResendRow cooldown={cooldown} resending={resending} onResend={resend} />
+            <button
+              type="button"
+              onClick={() => { setStep('request'); setOtp(''); setPassword(''); setConfirm(''); setErrors({}); }}
+              style={{ fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}
+            >
+              Use a different email
+            </button>
+          </div>
+        )}
       </div>
     </AuthShell>
   );

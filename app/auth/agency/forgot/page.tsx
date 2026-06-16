@@ -1,16 +1,12 @@
 "use client";
 
 import React from 'react';
-import { CitizenLoginScreen } from '@/components/auth/citizen/CitizenLoginScreen';
+import { AgencyForgotScreen } from '@/components/irms-auth';
 import { useRouter } from 'next/navigation';
 
-export default function CitizenLoginPage() {
+export default function AgencyForgotPasswordPage() {
   const router = useRouter();
 
-  // The real JWT is set by citizenLogin() inside CitizenLoginScreen; this page
-  // only routes. (Previously handleAuth overwrote that token with a mock value,
-  // so every authenticated citizen request afterwards failed — surfacing in the
-  // browser as a CORS/auth error. Same fix as the agency login page.)
   const navigate = (to: string) => {
     const routeMap: Record<string, string> = {
       'landing': '/landing',
@@ -21,10 +17,11 @@ export default function CitizenLoginPage() {
       'my-reports': '/citizen/my-reports',
       'agency-signup': '/auth/agency/signup',
       'agency-login': '/auth/agency/login',
+      'agency-forgot': '/auth/agency/forgot',
       'agency-dashboard': '/agency/dashboard',
     };
     router.push(routeMap[to] || '/landing');
   };
 
-  return <CitizenLoginScreen navigate={navigate} onAuth={() => {}} />;
+  return <AgencyForgotScreen navigate={navigate} />;
 }

@@ -31,8 +31,9 @@ function DashboardContent() {
     
     if (to === 'landing') {
       deleteCookie('agency_token');
+      deleteCookie('agency_refresh');
     }
-    
+
     router.push(routeMap[to] || '/landing');
   };
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { IRMSLogo, Icon } from '@/components/irms-shared';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useIsTablet } from '@/hooks/use-media-query';
 
 interface CitizenAuthShellProps {
     children: React.ReactNode;
@@ -9,11 +10,14 @@ interface CitizenAuthShellProps {
 }
 
 export function CitizenAuthShell({ children, mode = 'signup', navigate }: CitizenAuthShellProps) {
+    const isTablet = useIsTablet();
     return (
         <div className="irms-auth-shell-grid" style={{ minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
             {/* Left: copy panel — warm cream (hidden on mobile via .irms-auth-copy-panel) */}
             <div className="irms-auth-copy-panel" style={{ background: 'var(--brand-surface-alt)', padding: '40px 56px', display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--brand-hairline)' }}>
-                <IRMSLogo size={16} color="var(--brand-ink)" />
+                <button onClick={() => navigate('landing')} aria-label="IRMS home" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, alignSelf: 'flex-start' }}>
+                    <IRMSLogo size={16} color="var(--brand-ink)" />
+                </button>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 440 }}>
                     <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 18 }}>
                         {mode === 'signup' ? 'Citizen account' : 'Sign in'}
@@ -48,7 +52,15 @@ export function CitizenAuthShell({ children, mode = 'signup', navigate }: Citize
             </div>
             {/* Right: form on white */}
             <div className="irms-auth-form-panel" style={{ background: 'var(--brand-white)', padding: '40px 64px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}><ThemeToggle size={34} /></div>
+                <div style={{ display: 'flex', justifyContent: isTablet ? 'space-between' : 'flex-end', alignItems: 'center', marginBottom: 8 }}>
+                    {/* Logo shown here only when the copy panel (and its logo) is hidden */}
+                    {isTablet && (
+                        <button type="button" aria-label="IRMS home" onClick={() => navigate('landing')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                            <IRMSLogo size={15} color="var(--brand-ink)" />
+                        </button>
+                    )}
+                    <ThemeToggle size={34} />
+                </div>
                 {children}
             </div>
         </div>
