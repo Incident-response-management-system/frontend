@@ -2493,19 +2493,27 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
           {[
 
-            { c: 'var(--status-red)', l: 'Received' },
+            { c: '#E84A3F', l: 'Road Traffic Accident', icon: Icon.car },
 
-            { c: 'var(--status-amber)', l: 'Under Review' },
+            { c: '#DC2626', l: 'Medical Emergency', icon: Icon.medical },
 
-            { c: 'var(--status-blue)', l: 'Assigned' },
+            { c: '#F97316', l: 'Fire Outbreak', icon: Icon.fire },
 
-            { c: 'var(--status-green)', l: 'Resolved' },
+            { c: '#0EA5E9', l: 'Flood Incident', icon: Icon.flood },
+
+            { c: '#8B5CF6', l: 'Missing Person', icon: Icon.person },
+
+            { c: '#F59E0B', l: 'Civil Disturbance', icon: Icon.crowd },
 
           ].map(x => (
 
             <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'white' }}>
 
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: x.c, border: '2px solid white' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, color: x.c }}>
+
+                <x.icon width={16} height={16} />
+
+              </span>
 
               {x.l}
 

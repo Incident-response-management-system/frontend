@@ -3,11 +3,14 @@
 import React from 'react';
 import { CitizenSignupScreen } from '@/components/auth/citizen/CitizenSignupScreen';
 import { useRouter } from 'next/navigation';
-import { setCookie } from '@/lib/api-client';
 
 export default function CitizenSignupPage() {
   const router = useRouter();
 
+  // The real JWT is set by citizenSignup() inside CitizenSignupScreen; this page
+  // only routes. (Previously handleAuth overwrote that token with a mock value,
+  // so every authenticated citizen request afterwards failed — surfacing in the
+  // browser as a CORS/auth error. Same fix as the agency login page.)
   const navigate = (to: string) => {
     const routeMap: Record<string, string> = {
       'landing': '/landing',
@@ -23,10 +26,5 @@ export default function CitizenSignupPage() {
     router.push(routeMap[to] || '/landing');
   };
 
-  const handleAuth = (user: { name: string; email: string; phone?: string }) => {
-    // Write mock citizen token to cookies for middleware validation
-    setCookie('citizen_token', 'mock-citizen-token-xyz');
-  };
-
-  return <CitizenSignupScreen navigate={navigate} onAuth={handleAuth} />;
+  return <CitizenSignupScreen navigate={navigate} onAuth={() => {}} />;
 }

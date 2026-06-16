@@ -51,8 +51,10 @@ export async function citizenSignup(
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Signup failed' }));
-    throw new Error(err.message || err.detail || 'Signup failed');
+    // extractApiError reads DRF's {non_field_errors} / {field: [msg]} shapes,
+    // which the backend uses (e.g. "This field is required.", "user with this
+    // email already exists.") — a plain err.message would miss them.
+    throw new Error(await extractApiError(res, 'Sign-up failed. Please try again.'));
   }
 
   const data: AuthResponse = await res.json();
@@ -72,8 +74,10 @@ export async function citizenLogin(
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Login failed' }));
-    throw new Error(err.message || err.detail || 'Login failed');
+    // The backend returns 400 with {non_field_errors:["Invalid email or
+    // password."]} for bad credentials; extractApiError surfaces that exact
+    // message instead of a generic "Login failed".
+    throw new Error(await extractApiError(res, 'Login failed. Please check your credentials.'));
   }
 
   const data: AuthResponse = await res.json();
