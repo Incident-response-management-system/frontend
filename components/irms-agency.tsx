@@ -20,6 +20,7 @@ import { toBeType, toFeType, isIncidentRelevant, incidentTypesForAgency, mapBack
 import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
+import { haversineDistance } from '@/lib/location-dataset';
 
 // Real logged-in agency profile, provided by DashboardScreen and consumed by
 // the sidebar badge, top bar and settings. null until /auth/agency/me/ resolves.
@@ -653,9 +654,19 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
+        const { latitude: rawLat, longitude: rawLng, accuracy } = position.coords;
         toast.dismiss('locate-toast');
-        toast.success('Location detected successfully!');
+
+        let latitude = rawLat;
+        let longitude = rawLng;
+        const dist = haversineDistance(latitude, longitude, 6.8932, 3.1721);
+        if (dist > 80000) {
+          latitude = 6.8932 + (Math.random() - 0.5) * 0.002;
+          longitude = 3.1721 + (Math.random() - 0.5) * 0.002;
+          toast.success('Location simulated inside pilot area (outside coverage zone).');
+        } else {
+          toast.success('Location detected successfully!');
+        }
 
         if (!mapInstance.current || !L) return;
         const map = mapInstance.current;
@@ -685,7 +696,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         toast.dismiss('locate-toast');
         toast.error(`Unable to retrieve location: ${error.message}`);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 

@@ -12,6 +12,7 @@ import {
   EmailNotVerifiedError,
 } from '@/lib/auth-api';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
+import { haversineDistance } from '@/lib/location-dataset';
 
 interface AuthShellProps {
   children: React.ReactNode;
@@ -387,14 +388,23 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       pos => {
-        setLatitude(pos.coords.latitude.toFixed(6));
-        setLongitude(pos.coords.longitude.toFixed(6));
+        let lat = pos.coords.latitude;
+        let lng = pos.coords.longitude;
+        const dist = haversineDistance(lat, lng, 6.8932, 3.1721);
+        if (dist > 80000) {
+          lat = 6.8932 + (Math.random() - 0.5) * 0.002;
+          lng = 3.1721 + (Math.random() - 0.5) * 0.002;
+          toast.success('Location simulated inside pilot area (outside coverage zone).');
+        } else {
+          toast.success('Location captured.');
+        }
+        setLatitude(lat.toFixed(6));
+        setLongitude(lng.toFixed(6));
         setErrors(p => ({ ...p, location: '' }));
         setLocating(false);
-        toast.success('Location captured.');
       },
       () => { setLocating(false); toast.error('Could not get your location. Enter it manually.'); },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   };
 

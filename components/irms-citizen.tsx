@@ -1769,9 +1769,19 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
       navigator.geolocation.getCurrentPosition(
         (position) => {
           console.log('Geolocation position received:', position);
-          const { latitude, longitude, accuracy } = position.coords;
+          const { latitude: rawLat, longitude: rawLng, accuracy } = position.coords;
           toast.dismiss('gps-location-toast');
-          toast.success('Location found!');
+
+          let latitude = rawLat;
+          let longitude = rawLng;
+          const dist = haversineDistance(latitude, longitude, 6.8932, 3.1721);
+          if (dist > 80000) {
+            latitude = 6.8932 + (Math.random() - 0.5) * 0.002;
+            longitude = 3.1721 + (Math.random() - 0.5) * 0.002;
+            toast.success('Centered on Redemption Camp (outside coverage zone).');
+          } else {
+            toast.success('Location found!');
+          }
 
           setUserGpsLocation({ lat: latitude, lng: longitude, accuracy });
           setLocationPermissionGranted(true);
@@ -1973,11 +1983,20 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       (position) => {
 
-        const { latitude, longitude, accuracy } = position.coords;
+        const { latitude: rawLat, longitude: rawLng, accuracy } = position.coords;
 
         toast.dismiss('locate-toast');
 
-        toast.success('Location detected successfully!');
+        let latitude = rawLat;
+        let longitude = rawLng;
+        const dist = haversineDistance(latitude, longitude, 6.8932, 3.1721);
+        if (dist > 80000) {
+          latitude = 6.8932 + (Math.random() - 0.5) * 0.002;
+          longitude = 3.1721 + (Math.random() - 0.5) * 0.002;
+          toast.success('Location simulated inside pilot area (outside coverage zone).');
+        } else {
+          toast.success('Location detected successfully!');
+        }
 
 
 
@@ -2127,7 +2146,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       },
 
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
 
     );
 
