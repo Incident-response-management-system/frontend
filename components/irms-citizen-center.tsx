@@ -117,6 +117,15 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
 
     React.useEffect(() => {
         loadReports();
+
+        const handleReportCreated = () => {
+            loadReports();
+        };
+
+        window.addEventListener('irms:report_created', handleReportCreated);
+        return () => {
+            window.removeEventListener('irms:report_created', handleReportCreated);
+        };
     }, [tab]);
 
     const loadReports = async () => {

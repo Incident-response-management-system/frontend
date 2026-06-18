@@ -1115,7 +1115,10 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {filteredPlaces.map((place: any, index: number) => {
-              const isSelected = selectedPlace && (selectedPlace.id === place.id || selectedPlace.place_id === place.place_id);
+              const isSelected = selectedPlace && (
+                (place.id && selectedPlace.id === place.id) ||
+                (place.place_id && selectedPlace.place_id === place.place_id)
+              );
               return (
                 <button
                   key={place.id || place.place_id || index}
@@ -1123,48 +1126,76 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
                   type="button"
                   style={{
                     width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 8,
-                    border: isSelected ? '2px solid #000' : '1px solid var(--brand-divider)',
-                    backgroundColor: isSelected ? '#000' : '#fff',
-                    color: isSelected ? '#fff' : '#000',
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    border: isSelected ? '2.5px solid var(--brand-accent)' : '1px solid var(--brand-hairline)',
+                    backgroundColor: isSelected ? 'var(--brand-surface-alt)' : 'var(--brand-white)',
+                    color: 'var(--brand-ink)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                     textAlign: 'left',
-                    boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
+                    boxShadow: isSelected ? '0 8px 24px rgba(197, 168, 128, 0.15)' : '0 2px 4px rgba(0,0,0,0.02)',
+                    transform: isSelected ? 'translateY(-2px)' : 'translateY(0)',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {isSelected && (
-                      <div style={{ color: '#fff', display: 'flex', alignItems: 'center' }}>
-                        <Icon.check style={{ width: 18, height: 18 }} />
-                      </div>
-                    )}
+                  {isSelected && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      bottom: 0,
+                      width: 4,
+                      background: 'var(--brand-accent)',
+                    }} />
+                  )}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: isSelected ? 'var(--brand-accent)' : 'var(--brand-surface-alt)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: isSelected ? '#fff' : 'var(--brand-muted)',
+                      flexShrink: 0,
+                      transition: 'all 0.2s ease',
+                      boxShadow: isSelected ? '0 4px 10px rgba(197, 168, 128, 0.3)' : 'none',
+                    }}>
+                      {isSelected ? <Icon.check style={{ width: 20, height: 20 }} /> : <Icon.pin style={{ width: 18, height: 18 }} />}
+                    </div>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2, color: isSelected ? 'var(--brand-ink)' : 'var(--brand-ink)' }}>
                         {getPlaceName(place)}
                       </div>
-                      {place.category && (
-                        <div style={{ fontSize: 12, color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--brand-muted)' }}>
-                          {place.category}
-                        </div>
-                      )}
-                      {place.source === 'local' && (
-                        <div style={{ fontSize: 11, color: isSelected ? 'rgba(255,255,255,0.6)' : 'var(--status-green)', fontWeight: 600 }}>
-                          Local Dataset
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {place.category && (
+                          <div style={{ fontSize: 11, color: 'var(--brand-muted)', fontWeight: 500, textTransform: 'capitalize' }}>
+                            {place.category}
+                          </div>
+                        )}
+                        {place.source === 'local' && (
+                          <>
+                            <div style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--brand-divider)' }} />
+                            <div style={{ fontSize: 10, color: 'var(--status-green)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              Verified
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div style={{
                     fontSize: 12,
-                    fontWeight: 600,
-                    color: isSelected ? '#fff' : 'var(--brand-muted)',
-                    whiteSpace: 'nowrap',
+                    fontWeight: 700,
+                    color: isSelected ? 'var(--brand-accent)' : 'var(--brand-muted)',
+                    fontFamily: 'var(--font-mono)',
                     marginLeft: 12,
+                    padding: '4px 10px',
+                    borderRadius: 8,
+                    background: isSelected ? 'rgba(197, 168, 128, 0.1)' : 'var(--brand-surface-alt)',
+                    transition: 'all 0.2s ease',
                   }}>
                     {formatDistance(place.distance)}
                   </div>
@@ -1438,7 +1469,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
 
 
-  const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('streets');
+  const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
 
   const [searchQuery, setSearchQuery] = React.useState('');
 
@@ -1854,61 +1885,71 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
   }, [layerType]);
 
+  // Abstracted fetchNearbyIncidents to be reusable
+  const fetchNearbyIncidents = React.useCallback(async () => {
+    try {
+      // Use user's GPS location if available, otherwise use default camp coordinates
+      const lat = userGpsLocation?.lat || pinLocation?.lat || 6.8932;
+      const lng = userGpsLocation?.lng || pinLocation?.lng || 3.1721;
+
+      const response = await getNearbyIncidents(lat, lng, 10); // 10km radius
+      if (response.success && response.results) {
+        setNearbyIncidents(response.results);
+        // Add markers to map
+        if (mapInstance.current && L) {
+          const map = mapInstance.current;
+
+          // Clear existing incident markers
+          if (incidentMarkersRef.current) {
+            incidentMarkersRef.current.forEach((marker: any) => marker.remove());
+            incidentMarkersRef.current = [];
+          }
+
+          const markers: any[] = [];
+          response.results.forEach((incident: any) => {
+            const icon = getIncidentMarkerIcon(incident.incident_type);
+            const marker = L.marker([incident.latitude, incident.longitude], { icon })
+              .addTo(map)
+              .bindTooltip(buildIncidentMapTooltipHtml(incident), {
+                direction: 'top',
+                offset: [0, -22],
+                opacity: 1,
+                className: 'irms-incident-tooltip',
+              })
+              .bindPopup(buildIncidentMapPopupHtml(incident), {
+                closeButton: true,
+                className: 'incident-popup',
+                maxWidth: 280,
+              })
+              .on('click', () => {
+                setSelectedIncident(incident);
+                setPanelMode('incident');
+                setSheetOpen(true);
+              });
+            markers.push(marker);
+          });
+          incidentMarkersRef.current = markers;
+        }
+      }
+    } catch (error) {
+      // Silent fail - incident markers are optional
+    }
+  }, [userGpsLocation, pinLocation]);
+
   // Fetch nearby incidents on map load
   React.useEffect(() => {
-    const fetchNearbyIncidents = async () => {
-      try {
-        // Use user's GPS location if available, otherwise use default camp coordinates
-        const lat = userGpsLocation?.lat || pinLocation?.lat || 6.8932;
-        const lng = userGpsLocation?.lng || pinLocation?.lng || 3.1721;
+    fetchNearbyIncidents();
 
-        const response = await getNearbyIncidents(lat, lng, 10); // 10km radius
-        if (response.success && response.results) {
-          setNearbyIncidents(response.results);
-          // Add markers to map
-          if (mapInstance.current && L) {
-            const map = mapInstance.current;
-
-            // Clear existing incident markers
-            if (incidentMarkersRef.current) {
-              incidentMarkersRef.current.forEach((marker: any) => marker.remove());
-              incidentMarkersRef.current = [];
-            }
-
-            const markers: any[] = [];
-            response.results.forEach((incident: any) => {
-              const icon = getIncidentMarkerIcon(incident.incident_type);
-              const marker = L.marker([incident.latitude, incident.longitude], { icon })
-                .addTo(map)
-                .bindTooltip(buildIncidentMapTooltipHtml(incident), {
-                  direction: 'top',
-                  offset: [0, -22],
-                  opacity: 1,
-                  className: 'irms-incident-tooltip',
-                })
-                .bindPopup(buildIncidentMapPopupHtml(incident), {
-                  closeButton: true,
-                  className: 'incident-popup',
-                  maxWidth: 280,
-                })
-                .on('click', () => {
-                  setSelectedIncident(incident);
-                  setPanelMode('incident');
-                  setSheetOpen(true);
-                });
-              markers.push(marker);
-            });
-            incidentMarkersRef.current = markers;
-          }
-        }
-      } catch (error) {
-        // Silent fail - incident markers are optional, don't log network errors
-        // The app should work without incident markers
-      }
+    // Listen for report creation to refresh map
+    const handleReportCreated = () => {
+      fetchNearbyIncidents();
     };
 
-    fetchNearbyIncidents();
-  }, [userGpsLocation, pinLocation]);
+    window.addEventListener('irms:report_created', handleReportCreated);
+    return () => {
+      window.removeEventListener('irms:report_created', handleReportCreated);
+    };
+  }, [fetchNearbyIncidents]);
 
 
 
@@ -2313,6 +2354,9 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       setSubmitted(true);
 
+      // Dispatch event to refresh reports list in other components
+      window.dispatchEvent(new CustomEvent('irms:report_created', { detail: { reference: result.reference } }));
+
       toast.success(`Incident ${result.reference} reported successfully!`);
 
     } catch (err: any) {
@@ -2676,7 +2720,15 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
                 fetchingNearbyPlaces={fetchingNearbyPlaces}
                 selectedPlace={selectedPlace}
                 onSelectPlace={(place: any) => {
-                  setSelectedPlace(place);
+                  const isAlreadySelected = selectedPlace && (
+                    (place.id && selectedPlace.id === place.id) ||
+                    (place.place_id && selectedPlace.place_id === place.place_id)
+                  );
+                  if (isAlreadySelected) {
+                    setSelectedPlace(null);
+                  } else {
+                    setSelectedPlace(place);
+                  }
                 }}
                 onUseLocation={() => {
                   setPanelMode('report');
