@@ -1438,10 +1438,11 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
   // Scope every dashboard surface (cards, distribution, recent list, map,
   // reports) to the incident types this agency type actually responds to.
   // Unknown agency types fall through to all incidents (see isIncidentRelevant).
-  const visibleIncidents = React.useMemo(
-    () => incidents.filter(inc => isIncidentRelevant(inc.type, profile?.agencyType)),
-    [incidents, profile?.agencyType]
-  );
+  const visibleIncidents = React.useMemo(() => {
+    const filtered = incidents.filter(inc => isIncidentRelevant(inc.type, profile?.agencyType));
+    console.log(`[IRMS Agency] Filtered list: ${filtered.length} of ${incidents.length} incidents relevant to ${profile?.agencyType || 'unknown'}`);
+    return filtered;
+  }, [incidents, profile?.agencyType]);
 
   return (
     <AgencyProfileContext.Provider value={profile}>
