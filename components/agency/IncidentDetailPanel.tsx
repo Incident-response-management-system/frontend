@@ -1,0 +1,337 @@
+import React from 'react';
+import { toast } from 'sonner';
+import { Icon, StatusBadge, StatusStepper, resolveMediaUrl, getIncidentType } from '@/components/irms-shared';
+import type { Incident, IncidentStatus } from '@/components/irms-shared';
+import { updateIncidentStatus } from '@/lib/agency-api';
+import { toBeType, toFeType } from '@/lib/agency-types';
+import { useAgencyProfile } from './context';
+import { useIsMobile } from '@/hooks/use-media-query';
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { incident: Incident; onClose: () => void; onUpdateIncident: (ref: string, updates: Partial<Incident>) => void }) {
+  const isMobile = useIsMobile();
+  const profile = useAgencyProfile();
+  const myAgencyName = profile?.agencyName || 'your agency';
+  const [status, setStatus] = React.useState<IncidentStatus>(incident.status);
+  const [assigned, setAssigned] = React.useState(!!incident.assignedTo);
+  const t = getIncidentType(incident.type);
+
+  React.useEffect(() => {
+    setStatus(incident.status);
+    setAssigned(!!incident.assignedTo);
+  }, [incident]);
+
+  const stepperTimestamps: Record<string, string | null> = {
+    pending: incident.reportedAt || null,
+    in_progress: null,
+    assigned: null,
+    resolved: null,
+  };
+
+  if (incident.timeline) {
+    incident.timeline.forEach((event: any) => {
+      const titleLower = event.title.toLowerCase();
+      const timeStr = event.timestamp || null;
+
+      if (titleLower.includes('received') || titleLower.includes('pending')) {
+        stepperTimestamps.pending = timeStr || stepperTimestamps.pending;
+      } else if (titleLower.includes('review') || titleLower.includes('under review') || titleLower.includes('in_progress')) {
+        stepperTimestamps.in_progress = timeStr;
+      } else if (titleLower.includes('assigned')) {
+        stepperTimestamps.assigned = timeStr;
+      } else if (titleLower.includes('resolved')) {
+        stepperTimestamps.resolved = timeStr;
+      }
+    });
+  }
+
+  // Claiming an incident = moving it to "review" (backend in_progress). The
+  // backend has no separate assign endpoint; the strict flow is
+  // pending -> in_progress -> assigned -> resolved | closed.
+  const handleAssign = async () => {
+    if (incident.id) {
+      try {
+        const updated = await updateIncidentStatus(incident.id, 'in_progress');
+        toast.success(`Incident ${incident.ref} claimed — now under review.`);
+        setAssigned(true);
+        setStatus(updated.status);
+        onUpdateIncident(incident.ref, { ...updated });
+        window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
+        return;
+      } catch (err: any) {
+        toast.error(err.message || 'Could not claim this incident.');
+      }
+      return;
+    }
+    toast.error('This incident cannot be claimed (missing backend id).');
+  };
+
+  const handleStatusUpdate = async () => {
+    if (incident.id) {
+      try {
+        const updated = await updateIncidentStatus(incident.id, status);
+        toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
+        onUpdateIncident(incident.ref, { ...updated });
+        window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
+      } catch (err: any) {
+        toast.error(err.message || 'Could not update this incident.');
+      }
+      return;
+    }
+    toast.error('This incident cannot be updated (missing backend id).');
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 1500,
+        animation: 'fadeIn 0.2s ease-out',
+      }} />
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(620px, 92vw)',
+        background: 'var(--brand-white)', zIndex: 1600, overflowY: 'auto',
+        boxShadow: '-20px 0 60px rgba(0,0,0,0.15)',
+        animation: 'slideRight 0.3s cubic-bezier(.2,.8,.2,1)',
+      }}>
+        {/* Header */}
+        <div style={{
+          position: 'sticky', top: 0, background: 'var(--brand-white)', zIndex: 10,
+          padding: isMobile ? '24px 20px 16px' : '24px 32px 16px', borderBottom: '1px solid var(--brand-hairline)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.1em', marginBottom: 8 }}>INCIDENT REFERENCE</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em' }}>{incident.ref}</div>
+                <StatusBadge status={status} />
+              </div>
+            </div>
+            <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--brand-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer' }}>
+              <Icon.close />
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 8,
+              background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}><t.icon style={{ width: 18, height: 18 }} /></div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{t.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Reported {incident.reportedAt}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: isMobile ? '24px 20px 40px' : '24px 32px 40px' }}>
+          {/* Status stepper */}
+          <div style={{ padding: '20px 4px', marginBottom: 24, borderBottom: '1px solid var(--brand-hairline)', overflowX: 'auto' }}>
+            <StatusStepper current={status} theme="light"
+              timestamps={{
+                pending: stepperTimestamps.pending || incident.reportedAt || null,
+                in_progress: stepperTimestamps.in_progress || null,
+                assigned: stepperTimestamps.assigned || null,
+                resolved: stepperTimestamps.resolved || null,
+              }}
+            />
+          </div>
+
+          {/* Location */}
+          <Section title="Location">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <Icon.pin style={{ color: 'var(--status-red)', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{incident.location}</div>
+                <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
+                  {incident.lat.toFixed(4)}° N · {incident.lng.toFixed(4)}° E
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          {/* Description */}
+          <Section title="Description">
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--brand-ink)', margin: 0 }}>{incident.desc}</p>
+          </Section>
+
+          {/* Media */}
+          {incident.media > 0 && (
+            <Section title={`Evidence (${incident.media} attachment${incident.media > 1 ? 's' : ''})`}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 10 }}>
+                {Array.from({ length: incident.media }).map((_, i) => {
+                  const item = incident.mediaItems?.[i];
+                  const url = item ? resolveMediaUrl(item.file_url) : '';
+                  const isImage = item ? /^image\//i.test(item.media_type) || /\.(jpg|jpeg|png|webp|gif)$/i.test(item.file_url) : false;
+                  const isVideo = item ? /^video\//i.test(item.media_type) || /\.(mp4|webm|ogg|mov)$/i.test(item.file_url) : false;
+
+                  if (url) {
+                    if (isImage) {
+                      return (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
+                          aspectRatio: '1', borderRadius: 10, overflow: 'hidden',
+                          border: '1px solid var(--brand-hairline)', background: 'var(--brand-cream)',
+                          display: 'block', position: 'relative', cursor: 'zoom-in',
+                          transition: 'opacity 0.2s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                        >
+                          <img src={url} alt={`Evidence ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </a>
+                      );
+                    }
+                    if (isVideo) {
+                      return (
+                        <video key={i} src={url} controls style={{
+                          aspectRatio: '1', borderRadius: 10, overflow: 'hidden',
+                          border: '1px solid var(--brand-hairline)', background: 'var(--brand-cream)',
+                          objectFit: 'cover', width: '100%', height: '100%',
+                        }} />
+                      );
+                    }
+                    return (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
+                        aspectRatio: '1', borderRadius: 10,
+                        background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        color: 'var(--brand-ink)', textDecoration: 'none', gap: 6, fontSize: 11, fontWeight: 600,
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-divider)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-cream)'}
+                      >
+                        <Icon.upload style={{ width: 18, height: 18, color: 'var(--brand-muted)' }} />
+                        <span>View File</span>
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <div key={i} style={{
+                      aspectRatio: '1', borderRadius: 10,
+                      background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-muted)',
+                    }}>
+                      <Icon.upload style={{ width: 18, height: 18 }} />
+                    </div>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
+          {/* Timeline */}
+          {incident.timeline && incident.timeline.length > 0 && (
+            <Section title="Timeline">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {incident.timeline.map((event: any, index: number) => (
+                  <div key={index} style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 24 }}>
+                      <div style={{
+                        width: 12, height: 12, borderRadius: '50%',
+                        background: event.status === 'completed' ? 'var(--status-green)' : 'var(--brand-muted)',
+                        border: event.status === 'completed' ? '2px solid var(--status-green)' : '2px solid var(--brand-divider)',
+                      }} />
+                      {index < (incident.timeline?.length ?? 0) - 1 && (
+                        <div style={{ width: 2, flex: 1, background: 'var(--brand-divider)', minHeight: 24, marginTop: 8 }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, paddingTop: 2 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{event.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>{event.description}</div>
+                      <div style={{ fontSize: 11, color: 'var(--brand-muted)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>{event.timestamp}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Activity Log */}
+          {incident.activity_log && incident.activity_log.length > 0 && (
+            <Section title="Activity Log">
+              <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--brand-hairline)', borderRadius: 12, background: 'var(--brand-white)', padding: '12px 16px' }}>
+                {incident.activity_log.map((log: any, index: number) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: index < (incident.activity_log?.length ?? 0) - 1 ? '1px solid var(--brand-hairline)' : 'none' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--brand-muted)', minWidth: 50 }}>{log.time}</span>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: log.color || 'var(--brand-muted)' }} />
+                    <span style={{ fontSize: 13, color: 'var(--brand-ink)' }}>{log.event}</span>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Agency actions */}
+          <div style={{ marginTop: 32, padding: 20, borderRadius: 12, background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)' }}>
+            {!assigned ? (
+              <>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>UNASSIGNED INCIDENT</div>
+                <div style={{ fontSize: 14, color: 'var(--brand-ink)', marginBottom: 16 }}>
+                  This incident is in your service radius. Assign your agency to take responsibility.
+                </div>
+                <button onClick={handleAssign} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px',
+                  background: 'var(--status-red)', color: 'white', borderRadius: 10, fontWeight: 600, fontSize: 14,
+                  width: '100%', justifyContent: 'center', border: 'none', cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(232,74,63,0.25)',
+                }}>
+                  Claim this incident <Icon.arrow />
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-blue)' }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-blue)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Assigned to your agency</span>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{incident.assignedTo || myAgencyName}</div>
+
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
+                  {(['pending', 'in_progress', 'assigned', 'resolved'] as const).map(s => {
+                    const map = {
+                      pending: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
+                      in_progress: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
+                      assigned: { c: 'var(--status-blue)', bg: 'var(--status-blue-bg)', l: 'Assigned' },
+                      resolved: { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' }
+                    };
+                    const m = map[s];
+                    const active = status === s;
+                    return (
+                      <button key={s} onClick={() => setStatus(s)} style={{
+                        padding: '10px 8px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                        background: active ? m.bg : 'transparent',
+                        color: active ? m.c : 'var(--brand-muted)',
+                        border: active ? `1px solid ${m.c}` : '1px solid transparent',
+                        transition: 'all 0.15s', cursor: 'pointer'
+                      }}>{m.l}</button>
+                    );
+                  })}
+                </div>
+
+                <button onClick={handleStatusUpdate} style={{
+                  width: '100%', padding: '12px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  background: status === 'resolved' ? 'var(--status-green)' : 'var(--status-amber)',
+                  color: 'white', fontWeight: 600, fontSize: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: status === 'resolved' ? '0 4px 14px rgba(62,134,87,0.25)' : '0 4px 14px rgba(185,122,42,0.25)',
+                }}>
+                  <Icon.check /> Update to {status === 'resolved' ? 'Resolved' : 'New Status'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

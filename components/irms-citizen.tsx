@@ -875,9 +875,9 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-                <a href="#" style={{ color: 'var(--brand-ink)' }}>Report an incident</a>
+                <a href="/report" style={{ color: 'var(--brand-ink)' }}>Report an incident</a>
 
-                <a href="#" style={{ color: 'var(--brand-ink)' }}>System status</a>
+                <a href="/track" style={{ color: 'var(--brand-ink)' }}>Track a report</a>
 
               </div>
 
@@ -905,9 +905,9 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-                <a href="#" style={{ color: 'var(--brand-ink)' }}>Privacy notice</a>
+                <a href="/privacy" style={{ color: 'var(--brand-ink)' }}>Privacy notice</a>
 
-                <a href="#" style={{ color: 'var(--brand-ink)' }}>Terms of service</a>
+                <a href="/terms" style={{ color: 'var(--brand-ink)' }}>Terms of service</a>
 
                 <a href="#" style={{ color: 'var(--brand-ink)' }}>Contact</a>
 

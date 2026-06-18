@@ -8,6 +8,14 @@ import { ThemedToaster } from "@/components/ThemedToaster";
 export const metadata: Metadata = {
   title: "IRMS · Incident Response Management System",
   description: "Emergency reporting and civic response coordination platform for Redemption Camp and Ogun State, Nigeria.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "16x16 32x32", type: "image/x-icon" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    shortcut: "/favicon.ico",
+  },
 };
 
 export const viewport: Viewport = {
