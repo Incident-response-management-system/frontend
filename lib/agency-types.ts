@@ -137,6 +137,8 @@ export interface BackendIncident {
   created_at?: string;
   updated_at?: string;
   resolved_at?: string | null;
+  activity_log?: Array<{ id: string; at: string; message: string; event_type?: string; actor?: string }>;
+  timeline?: Array<{ id: string; at: string; message: string; event_type?: string; label?: string }>;
 }
 
 // ─── Time formatting (backend sends ISO timestamps) ──────────
@@ -149,6 +151,14 @@ export function formatAbsolute(iso?: string): string {
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const day = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   return `${time} · ${day}`;
+}
+
+/** "2026-05-30T10:05:00Z" -> "10:05" (extracts time only). */
+export function formatTimeOnly(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
 /** A coarse "x min ago" relative string from an ISO timestamp and a reference now. */
@@ -185,5 +195,20 @@ export function mapBackendIncident(b: BackendIncident, now: number = Date.now())
     assignedTo: b.assigned_agency?.agency_name ?? null,
     distanceKm: typeof b.distance_km === 'number' ? b.distance_km : undefined,
     isMine: b.is_mine,
+    activity_log: Array.isArray(b.activity_log)
+      ? b.activity_log.map((log) => ({
+          time: formatTimeOnly(log.at),
+          event: log.message || '',
+          color: 'var(--brand-muted)',
+        }))
+      : undefined,
+    timeline: Array.isArray(b.timeline)
+      ? b.timeline.map((event) => ({
+          title: event.label || event.event_type || 'Update',
+          description: event.message || '',
+          timestamp: formatAbsolute(event.at),
+          status: 'completed',
+        }))
+      : undefined,
   };
 }

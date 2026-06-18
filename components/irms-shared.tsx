@@ -96,6 +96,8 @@ export interface Incident {
   id?: string;            // backend incident UUID, used for PATCH /incidents/{id}/
   distanceKm?: number;    // distance from the agency, when provided by /agencies/incidents
   isMine?: boolean;       // true when this agency has claimed the incident
+  activity_log?: any[];
+  timeline?: any[];
 }
 
 // ============================================================

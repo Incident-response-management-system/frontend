@@ -1172,6 +1172,30 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
     setAssigned(!!incident.assignedTo);
   }, [incident]);
 
+  const stepperTimestamps: Record<string, string | null> = {
+    pending: incident.reportedAt || null,
+    in_progress: null,
+    assigned: null,
+    resolved: null,
+  };
+
+  if (incident.timeline) {
+    incident.timeline.forEach((event: any) => {
+      const titleLower = event.title.toLowerCase();
+      const timeStr = event.timestamp || null;
+
+      if (titleLower.includes('received') || titleLower.includes('pending')) {
+        stepperTimestamps.pending = timeStr || stepperTimestamps.pending;
+      } else if (titleLower.includes('review') || titleLower.includes('under review') || titleLower.includes('in_progress')) {
+        stepperTimestamps.in_progress = timeStr;
+      } else if (titleLower.includes('assigned')) {
+        stepperTimestamps.assigned = timeStr;
+      } else if (titleLower.includes('resolved')) {
+        stepperTimestamps.resolved = timeStr;
+      }
+    });
+  }
+
   // Claiming an incident = moving it to "review" (backend in_progress). The
   // backend has no separate assign endpoint; the strict flow is
   // pending -> in_progress -> assigned -> resolved | closed.
@@ -1253,10 +1277,10 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
           <div style={{ padding: '20px 4px', marginBottom: 24, borderBottom: '1px solid var(--brand-hairline)', overflowX: 'auto' }}>
             <StatusStepper current={status} theme="light"
               timestamps={{
-                received: incident.reportedAt || null,
-                review: null,
-                assigned: null,
-                resolved: null,
+                pending: stepperTimestamps.pending || incident.reportedAt || null,
+                in_progress: stepperTimestamps.in_progress || null,
+                assigned: stepperTimestamps.assigned || null,
+                resolved: stepperTimestamps.resolved || null,
               }}
             />
           </div>
@@ -1341,6 +1365,48 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                     </div>
                   );
                 })}
+              </div>
+            </Section>
+          )}
+
+          {/* Timeline */}
+          {incident.timeline && incident.timeline.length > 0 && (
+            <Section title="Timeline">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {incident.timeline.map((event: any, index: number) => (
+                  <div key={index} style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 24 }}>
+                      <div style={{
+                        width: 12, height: 12, borderRadius: '50%',
+                        background: event.status === 'completed' ? 'var(--status-green)' : 'var(--brand-muted)',
+                        border: event.status === 'completed' ? '2px solid var(--status-green)' : '2px solid var(--brand-divider)',
+                      }} />
+                      {index < (incident.timeline?.length ?? 0) - 1 && (
+                        <div style={{ width: 2, flex: 1, background: 'var(--brand-divider)', minHeight: 24, marginTop: 8 }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, paddingTop: 2 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{event.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>{event.description}</div>
+                      <div style={{ fontSize: 11, color: 'var(--brand-muted)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>{event.timestamp}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Activity Log */}
+          {incident.activity_log && incident.activity_log.length > 0 && (
+            <Section title="Activity Log">
+              <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--brand-hairline)', borderRadius: 12, background: 'var(--brand-white)', padding: '12px 16px' }}>
+                {incident.activity_log.map((log: any, index: number) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: index < (incident.activity_log?.length ?? 0) - 1 ? '1px solid var(--brand-hairline)' : 'none' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--brand-muted)', minWidth: 50 }}>{log.time}</span>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: log.color || 'var(--brand-muted)' }} />
+                    <span style={{ fontSize: 13, color: 'var(--brand-ink)' }}>{log.event}</span>
+                  </div>
+                ))}
               </div>
             </Section>
           )}

@@ -13,6 +13,7 @@ import {
 import { getMyReports } from '@/lib/incidents-api';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { ThemeToggle } from './ThemeToggle';
+import { formatAbsolute, formatTimeOnly } from '@/lib/agency-types';
 
 // -----------------------------------------------------------
 // SEEDED DEMO DATA — MY REPORTS
@@ -75,15 +76,31 @@ const MY_REPORTS: Incident[] = [
 // ─── Status timeline metadata ───────────────────────────────
 
 function getTimestamps(report: Incident): Record<string, string | null> {
-    const s = report.status;
-    const idx = ['pending', 'in_progress', 'assigned', 'resolved'].indexOf(s);
-    const times = ['14:32', '14:38', '14:51', '15:30'];
-    return {
-        pending: times[0],
-        in_progress: idx >= 1 ? times[1] : null,
-        assigned: idx >= 2 ? times[2] : null,
-        resolved: idx >= 3 ? times[3] : null,
+    const stepperTimestamps: Record<string, string | null> = {
+        pending: report.reportedAt || null,
+        in_progress: null,
+        assigned: null,
+        resolved: null,
     };
+    
+    if (report.timeline) {
+        report.timeline.forEach((event: any) => {
+            const titleLower = event.title.toLowerCase();
+            const timeStr = event.timestamp || null;
+            
+            if (titleLower.includes('received') || titleLower.includes('pending')) {
+                stepperTimestamps.pending = timeStr || stepperTimestamps.pending;
+            } else if (titleLower.includes('review') || titleLower.includes('under review') || titleLower.includes('in_progress')) {
+                stepperTimestamps.in_progress = timeStr;
+            } else if (titleLower.includes('assigned')) {
+                stepperTimestamps.assigned = timeStr;
+            } else if (titleLower.includes('resolved')) {
+                stepperTimestamps.resolved = timeStr;
+            }
+        });
+    }
+    
+    return stepperTimestamps;
 }
 
 // ─── Agency Type Metadata ───────────────────────────────────
@@ -142,11 +159,26 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                 lng: r.longitude,
                 status: r.status as IncidentStatus,
                 reported: new Date(r.created_at).toLocaleDateString(),
-                reportedAt: new Date(r.created_at).toLocaleString(),
+                reportedAt: formatAbsolute(r.created_at),
                 desc: r.description,
                 media: r.media.length,
                 mediaItems: r.media,
                 assignedTo: r.responding_agency?.name || null,
+                activity_log: Array.isArray(r.activity_log)
+                    ? r.activity_log.map((log: any) => ({
+                        time: formatTimeOnly(log.at),
+                        event: log.message || '',
+                        color: 'var(--brand-muted)',
+                      }))
+                    : [],
+                timeline: Array.isArray(r.timeline)
+                    ? r.timeline.map((event: any) => ({
+                        title: event.label || event.event_type || 'Update',
+                        description: event.message || '',
+                        timestamp: formatAbsolute(event.at),
+                        status: 'completed',
+                      }))
+                    : [],
             }));
             setReports(mappedReports);
         } catch (err) {
@@ -829,6 +861,48 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </DetailRow>
+                    )}
+
+                    {/* Timeline */}
+                    {report.timeline && report.timeline.length > 0 && (
+                        <DetailRow label="Timeline">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {report.timeline.map((event: any, index: number) => (
+                                    <div key={index} style={{ display: 'flex', gap: 16 }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 24 }}>
+                                            <div style={{
+                                                width: 12, height: 12, borderRadius: '50%',
+                                                background: event.status === 'completed' ? 'var(--status-green)' : 'var(--brand-muted)',
+                                                border: event.status === 'completed' ? '2px solid var(--status-green)' : '2px solid var(--brand-divider)',
+                                            }} />
+                                            {index < (report.timeline?.length ?? 0) - 1 && (
+                                                <div style={{ width: 2, flex: 1, background: 'var(--brand-divider)', minHeight: 24, marginTop: 8 }} />
+                                            )}
+                                        </div>
+                                        <div style={{ flex: 1, paddingTop: 2 }}>
+                                            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{event.title}</div>
+                                            <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>{event.description}</div>
+                                            <div style={{ fontSize: 11, color: 'var(--brand-muted)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>{event.timestamp}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </DetailRow>
+                    )}
+
+                    {/* Activity Log */}
+                    {report.activity_log && report.activity_log.length > 0 && (
+                        <DetailRow label="Activity Log">
+                            <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--brand-hairline)', borderRadius: 12, background: 'var(--brand-white)', padding: '12px 16px' }}>
+                                {report.activity_log.map((log: any, index: number) => (
+                                    <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: index < (report.activity_log?.length ?? 0) - 1 ? '1px solid var(--brand-hairline)' : 'none' }}>
+                                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--brand-muted)', minWidth: 50 }}>{log.time}</span>
+                                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: log.color || 'var(--brand-muted)' }} />
+                                        <span style={{ fontSize: 13, color: 'var(--brand-ink)' }}>{log.event}</span>
+                                    </div>
+                                ))}
                             </div>
                         </DetailRow>
                     )}
