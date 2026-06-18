@@ -22,7 +22,7 @@ import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 import { haversineDistance } from '@/lib/location-dataset';
-import { PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea, DEFAULT_ZOOM, LOCATED_ZOOM, MIN_ZOOM, MAX_ZOOM } from '@/lib/geo-constants';
+import { PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea, DEFAULT_ZOOM, LOCATED_ZOOM, MIN_ZOOM, MAX_ZOOM, shouldBypassLock } from '@/lib/geo-constants';
 
 // Real logged-in agency profile, provided by DashboardScreen and consumed by
 // the sidebar badge, top bar and settings. null until /auth/agency/me/ resolves.
@@ -580,9 +580,9 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     const pilotBounds = getLeafletBounds(L);
     const map = L.map(mapRef.current, {
       zoomControl: false,
-      maxBounds: pilotBounds.pad(0.1),
+      maxBounds: shouldBypassLock() ? undefined : pilotBounds.pad(0.1),
       maxBoundsViscosity: 1.0,
-      minZoom: MIN_ZOOM,
+      minZoom: shouldBypassLock() ? 1 : MIN_ZOOM,
       maxZoom: MAX_ZOOM,
     }).setView([PILOT_CENTER.lat, PILOT_CENTER.lng], DEFAULT_ZOOM);
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -645,6 +645,16 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       marker.on('click', () => onViewIncident(inc));
       markersRef.current.push(marker);
     });
+
+    if (shouldBypassLock() && visibleIncidents.length > 0) {
+      const validCoords = visibleIncidents
+        .map(inc => [parseFloat(inc.lat as any), parseFloat(inc.lng as any)])
+        .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+      if (validCoords.length > 0) {
+        const bounds = L.latLngBounds(validCoords as any);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      }
+    }
   }, [visibleIncidents]);
 
   // Update map layer dynamically
@@ -717,8 +727,8 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     const toastId = toast.loading(`Searching for "${searchQuery}"...`);
 
     try {
-      // Restrict search to Ogun State / Nigeria
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ' Ogun State Nigeria')}&limit=5&countrycode=NG&addressdetails=1`);
+      const suffix = shouldBypassLock() ? ' Nigeria' : ' Ogun State Nigeria';
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + suffix)}&limit=5&countrycode=NG&addressdetails=1`);
       const data = await response.json();
 
       // Find first result inside pilot area bounds

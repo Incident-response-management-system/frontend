@@ -30,8 +30,21 @@ export function getLeafletBounds(L: any) {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
+/** Check if we should bypass the pilot area lock (e.g. for development/testing). */
+export function shouldBypassLock(): boolean {
+  if (typeof window === 'undefined') {
+    return process.env.NODE_ENV === 'development';
+  }
+  const searchParams = new URLSearchParams(window.location.search);
+  const bypassParam = searchParams.get('bypassLock') === 'true';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isDevMode = process.env.NODE_ENV === 'development';
+  return isLocalhost || bypassParam || isDevMode;
+}
+
 /** Check if a lat/lng is inside the pilot area bounding box. */
 export function isInsidePilotArea(lat: number, lng: number): boolean {
+  if (shouldBypassLock()) return true;
   return (
     lat >= OGUN_STATE_BOUNDS.southWest.lat &&
     lat <= OGUN_STATE_BOUNDS.northEast.lat &&
@@ -39,6 +52,7 @@ export function isInsidePilotArea(lat: number, lng: number): boolean {
     lng <= OGUN_STATE_BOUNDS.northEast.lng
   );
 }
+
 
 /**
  * Clamp coordinates to the pilot center if they fall outside the zone.
