@@ -11,7 +11,8 @@ export default function CitizenSignupPage() {
   // only routes. (Previously handleAuth overwrote that token with a mock value,
   // so every authenticated citizen request afterwards failed — surfacing in the
   // browser as a CORS/auth error. Same fix as the agency login page.)
-  const navigate = (to: string) => {
+  const navigate = (to: string, params: Record<string, any> = {}) => {
+    if (to === 'back') { router.back(); return; }
     const routeMap: Record<string, string> = {
       'landing': '/landing',
       'report': '/report',
@@ -23,7 +24,11 @@ export default function CitizenSignupPage() {
       'agency-login': '/auth/agency/login',
       'agency-dashboard': '/agency/dashboard',
     };
-    router.push(routeMap[to] || '/landing');
+    let path = routeMap[to] || '/landing';
+    if (Object.keys(params).length > 0) {
+      path += `?${new URLSearchParams(params as any).toString()}`;
+    }
+    router.push(path);
   };
 
   return <CitizenSignupScreen navigate={navigate} onAuth={() => {}} />;

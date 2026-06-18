@@ -9,7 +9,8 @@ export default function AgencyLoginPage() {
 
   // The real JWT is set by agencyLogin() inside AgencyLoginScreen; this page
   // only routes. (Previously it overwrote the token with a mock value.)
-  const navigate = (to: string) => {
+  const navigate = (to: string, params: Record<string, any> = {}) => {
+    if (to === 'back') { router.back(); return; }
     const routeMap: Record<string, string> = {
       'landing': '/landing',
       'report': '/report',
@@ -22,7 +23,11 @@ export default function AgencyLoginPage() {
       'agency-forgot': '/auth/agency/forgot',
       'agency-dashboard': '/agency/dashboard',
     };
-    router.push(routeMap[to] || '/landing');
+    let path = routeMap[to] || '/landing';
+    if (Object.keys(params).length > 0) {
+      path += `?${new URLSearchParams(params as any).toString()}`;
+    }
+    router.push(path);
   };
 
   return <AgencyLoginScreen navigate={navigate} />;

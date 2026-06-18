@@ -301,7 +301,7 @@ function AgencyAuthHeader({
             <IRMSLogo size={15} color="var(--brand-ink)" />
           </button>
         )}
-        <button type="button" onClick={() => navigate('landing')} aria-label="Back to home" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button type="button" onClick={() => navigate('back')} aria-label="Back to home" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--brand-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
           <Icon.back style={{ width: 16, height: 16 }} />{!isMobile && ' Back to home'}
         </button>
       </div>
@@ -338,7 +338,7 @@ function AgencyAuthHeader({
                   borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
                 }}>{altActionLabel}</button>
                 <div style={{ height: 1, background: 'var(--brand-hairline)', margin: '4px 8px' }} />
-                <button type="button" onClick={() => { setMenuOpen(false); navigate('landing'); }} style={{
+                <button type="button" onClick={() => { setMenuOpen(false); navigate('back'); }} style={{
                   width: '100%', padding: '10px 12px', fontSize: 14, fontWeight: 500, color: 'var(--brand-muted)',
                   borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
                 }}>Back to home</button>

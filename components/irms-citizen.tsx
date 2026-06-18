@@ -528,7 +528,7 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--status-green)' }} />
 
-              Median report → assigned: 4 min 12 s
+              Live incident reporting · Agencies notified instantly
 
             </div>
 
@@ -632,13 +632,13 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
             {[
 
-              { cat: 'Police service', count: '6 agencies', ex: 'Nigeria Police, RCCG Camp Security' },
+              { cat: 'Police service', desc: 'Law enforcement agencies covering this area' },
 
-              { cat: 'Medical / Hospital', count: '4 facilities', ex: 'RCCG Medical Centre, Olabisi Onabanjo' },
+              { cat: 'Medical / Hospital', desc: 'Emergency medical response units' },
 
-              { cat: 'Fire & rescue', count: '3 stations', ex: 'Ogun State Fire Service, Camp Fire Unit' },
+              { cat: 'Fire & rescue', desc: 'Fire service and rescue operations' },
 
-              { cat: 'Private security', count: '10 firms', ex: 'Mowe Security, Gateway Estate Patrol' },
+              { cat: 'Private security', desc: 'Registered private security firms' },
 
             ].map((r, i) => (
 
@@ -648,19 +648,11 @@ export function LandingScreen({ navigate, user, onSignOut }: Omit<ScreenProps, '
 
                 borderBottom: i < 3 ? '1px solid var(--brand-hairline)' : 'none',
 
-                display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center',
-
               }}>
 
-                <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{r.cat}</div>
 
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{r.cat}</div>
-
-                  <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>{r.ex}</div>
-
-                </div>
-
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--brand-muted)', whiteSpace: 'nowrap' }}>{r.count}</div>
+                <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>{r.desc}</div>
 
               </div>
 
@@ -1466,7 +1458,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
   const [submitting, setSubmitting] = React.useState(false);
 
-  const [refCode, setRefCode] = React.useState('INC-2026-00149');
+  const [refCode, setRefCode] = React.useState('');
 
 
 
@@ -2424,7 +2416,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
 
-          <button onClick={() => navigate('landing')} style={{
+          <button onClick={() => navigate('back')} style={{
 
             width: 36, height: 36, borderRadius: 10, border: '1px solid var(--brand-divider)',
 
@@ -3996,7 +3988,7 @@ export function TrackScreen({ navigate, params }: any) {
 
         }}>
 
-          <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>
+          <button onClick={() => navigate('back')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>
 
             <Icon.back />
 
@@ -4218,7 +4210,7 @@ export function TrackScreen({ navigate, params }: any) {
 
       }}>
 
-        <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>
+        <button onClick={() => navigate('back')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>
 
           <Icon.back />
 
@@ -4228,7 +4220,7 @@ export function TrackScreen({ navigate, params }: any) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
 
-          <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Tracking Page</div>
+          <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Track a report</div>
 
           <ThemeToggle />
 

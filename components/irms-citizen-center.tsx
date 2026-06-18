@@ -15,63 +15,6 @@ import { useIsMobile } from '@/hooks/use-media-query';
 import { ThemeToggle } from './ThemeToggle';
 import { formatAbsolute, formatTimeOnly } from '@/lib/agency-types';
 
-// -----------------------------------------------------------
-// SEEDED DEMO DATA — MY REPORTS
-// -----------------------------------------------------------
-const MY_REPORTS: Incident[] = [
-    {
-        ref: 'INC-2026-00149',
-        type: 'medical',
-        location: 'Auditorium 3, Main Bowl',
-        status: 'pending',
-        reportedAt: 'Today · 14:32',
-        desc: 'Elderly man collapsed during service. Witnesses report chest pain. Crowd gathered, space cleared.',
-        media: 2,
-        assignedTo: null,
-        lat: 6.8932,
-        lng: 3.1721,
-        reported: '2 min ago',
-    },
-    {
-        ref: 'INC-2026-00131',
-        type: 'rta',
-        location: 'Lagos-Ibadan Expressway, Mile 46',
-        status: 'assigned',
-        reportedAt: '23 May · 18:12',
-        desc: 'Two-vehicle collision near camp gate. One vehicle overturned. Possible injuries.',
-        media: 3,
-        assignedTo: 'Federal Road Safety Corps',
-        lat: 6.8865,
-        lng: 3.1812,
-        reported: '5 days ago',
-    },
-    {
-        ref: 'INC-2026-00114',
-        type: 'flood',
-        location: 'Drainage Channel B',
-        status: 'resolved',
-        reportedAt: '18 May · 09:40',
-        desc: 'Water overflow blocking pedestrian path after morning rain.',
-        media: 1,
-        assignedTo: 'Camp Maintenance Unit',
-        lat: 6.8878,
-        lng: 3.1656,
-        reported: '10 days ago',
-    },
-    {
-        ref: 'INC-2026-00097',
-        type: 'civil',
-        location: 'Camp Gate 2',
-        status: 'resolved',
-        reportedAt: '02 May · 21:05',
-        desc: 'Disorderly crowd near vehicle screening point. Security on scene.',
-        media: 0,
-        assignedTo: 'RCCG Camp Security',
-        lat: 6.8954,
-        lng: 3.1745,
-        reported: '26 days ago',
-    },
-];
 
 // ─── Status timeline metadata ───────────────────────────────
 

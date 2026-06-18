@@ -18,7 +18,8 @@ function TrackContent() {
     ref: searchParams.get('ref') || '',
   };
 
-  const navigate = (to: string, newParams = {}) => {
+  const navigate = (to: string, newParams: Record<string, any> = {}) => {
+    if (to === 'back') { router.back(); return; }
     const routeMap: Record<string, string> = {
       'landing': '/landing',
       'report': '/report',
@@ -30,11 +31,9 @@ function TrackContent() {
       'agency-login': '/auth/agency/login',
       'agency-dashboard': '/agency/dashboard',
     };
-    
     let path = routeMap[to] || '/landing';
     if (Object.keys(newParams).length > 0) {
-      const q = new URLSearchParams(newParams as any).toString();
-      path += `?${q}`;
+      path += `?${new URLSearchParams(newParams as any).toString()}`;
     }
     router.push(path);
   };

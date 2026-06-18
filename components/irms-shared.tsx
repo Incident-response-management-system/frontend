@@ -280,19 +280,6 @@ export function GhostButton({ children, onClick, theme = 'dark', size = 'md', st
   );
 }
 
-// ============================================================
-// SAMPLE INCIDENTS — used across dashboard
-// ============================================================
-export const SAMPLE_INCIDENTS: Incident[] = [
-  { ref: 'INC-2026-00148', type: 'medical_emergency', location: 'Auditorium 3, Main Bowl', lat: 6.8932, lng: 3.1721, status: 'pending', reported: '2 min ago', reportedAt: 'Today · 14:32', desc: 'Elderly man collapsed during service. Witnesses report chest pain. Crowd gathered, space cleared.', media: 2, assignedTo: null },
-  { ref: 'INC-2026-00147', type: 'road_traffic_accident', location: 'Lagos-Ibadan Expressway, Mile 46', lat: 6.8865, lng: 3.1812, status: 'pending', reported: '6 min ago', reportedAt: 'Today · 14:28', desc: 'Two-vehicle collision near camp gate. One vehicle overturned. Possible injuries.', media: 3, assignedTo: null },
-  { ref: 'INC-2026-00146', type: 'fire_outbreak', location: 'Workers Quarters, Block C', lat: 6.8901, lng: 3.1689, status: 'in_progress', reported: '18 min ago', reportedAt: 'Today · 14:16', desc: 'Smoke reported from kitchen unit. No flames visible yet. Residents evacuating.', media: 1, assignedTo: null },
-  { ref: 'INC-2026-00145', type: 'civil_disturbance', location: 'Camp Gate 2, Outer Perimeter', lat: 6.8954, lng: 3.1745, status: 'assigned', reported: '34 min ago', reportedAt: 'Today · 14:00', desc: 'Disorderly crowd near vehicle screening point. Security on scene.', media: 0, assignedTo: 'Camp Security Unit' },
-  { ref: 'INC-2026-00144', type: 'medical_emergency', location: 'Tabernacle North Wing', lat: 6.8920, lng: 3.1701, status: 'assigned', reported: '52 min ago', reportedAt: 'Today · 13:42', desc: 'Fainting reported. Person breathing, conscious. Awaiting medical team.', media: 1, assignedTo: 'RCCG Medical Centre' },
-  { ref: 'INC-2026-00143', type: 'flood', location: 'Drainage Channel B, Workers Village', lat: 6.8878, lng: 3.1656, status: 'in_progress', reported: '1 hr ago', reportedAt: 'Today · 13:31', desc: 'Water overflow blocking pedestrian path after morning rain.', media: 2, assignedTo: null },
-  { ref: 'INC-2026-00142', type: 'missing_person', location: "Children's Pavilion", lat: 6.8945, lng: 3.1733, status: 'resolved', reported: '2 hr ago', reportedAt: 'Today · 12:45', desc: 'Child separated from family during service. Description: 7-year-old boy, blue shirt.', media: 1, assignedTo: 'RCCG Security' },
-  { ref: 'INC-2026-00141', type: 'road_traffic_accident', location: 'Mowe-Ibafo Road, Junction', lat: 6.8812, lng: 3.1798, status: 'resolved', reported: '3 hr ago', reportedAt: 'Today · 11:20', desc: 'Motorcycle and tricycle minor collision. Both riders ambulatory.', media: 2, assignedTo: 'Federal Road Safety' },
-];
 
 export function getIncidentType(id: string): IncidentType {
   const normalizedId = id === 'rta' ? 'road_traffic_accident' :

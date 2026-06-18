@@ -30,6 +30,8 @@ export interface AgencyUser {
   email: string;
   phone?: string;
   radius: number;
+  lat?: number;
+  lng?: number;
   token: string;
 }
 
@@ -89,6 +91,7 @@ export async function citizenLogin(
 export async function getCurrentUser(): Promise<CitizenUser> {
   const res = await apiFetch('/auth/user/me/', {
     tokenType: 'citizen',
+    authOptional: true,
   });
 
   if (!res.ok) {
@@ -297,6 +300,8 @@ export async function getAgencyProfile(): Promise<AgencyUser | null> {
     email: a.email || '',
     phone: a.phone_number,
     radius: a.profile?.service_radius ?? 0,
+    lat: a.profile?.latitude_display ?? undefined,
+    lng: a.profile?.longitude_display ?? undefined,
     token: '',
   };
 }

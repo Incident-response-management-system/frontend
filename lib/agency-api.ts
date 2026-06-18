@@ -18,6 +18,7 @@ import {
   type BackendIncident,
 } from './agency-types';
 import type { IncidentStatus } from '@/components/irms-shared';
+import { getAgencyProfile, type AgencyUser } from './auth-api';
 
 export type IncidentTab = 'available' | 'mine' | 'all';
 
@@ -63,6 +64,40 @@ export async function updateIncidentStatus(
   }
   const data = await res.json();
   return mapBackendIncident(data.incident as BackendIncident);
+}
+
+// ─── Update agency profile ───────────────────────────────────
+
+export interface AgencyProfileUpdatePayload {
+  agency_name?: string;
+  phone_number?: string;
+  service_radius?: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+export async function updateAgencyProfile(payload: AgencyProfileUpdatePayload): Promise<AgencyUser> {
+  const res = await apiFetch('/auth/agency/me/update/', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+    tokenType: 'agency',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Could not update profile.'));
+  }
+  const data = await res.json();
+  const a = data.agency || data;
+  return {
+    id: a.id || '',
+    agencyName: a.agency_name || '',
+    agencyType: a.agency_type || '',
+    email: a.email || '',
+    phone: a.phone_number,
+    radius: a.profile?.service_radius ?? 0,
+    lat: a.profile?.latitude_display ?? undefined,
+    lng: a.profile?.longitude_display ?? undefined,
+    token: '',
+  };
 }
 
 // ─── Dashboard stats ─────────────────────────────────────────
