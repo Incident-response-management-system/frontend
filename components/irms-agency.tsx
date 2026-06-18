@@ -13,6 +13,7 @@ import {
   buildIncidentMapTooltipHtml,
   buildAgencyIncidentMarkerHtml,
   type IncidentMapCardData,
+  resolveMediaUrl,
 } from './irms-shared';
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
@@ -1282,15 +1283,64 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
           {incident.media > 0 && (
             <Section title={`Evidence (${incident.media} attachment${incident.media > 1 ? 's' : ''})`}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: 10 }}>
-                {Array.from({ length: incident.media }).map((_, i) => (
-                  <div key={i} style={{
-                    aspectRatio: '1', borderRadius: 10,
-                    background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-muted)',
-                  }}>
-                    <Icon.upload style={{ width: 18, height: 18 }} />
-                  </div>
-                ))}
+                {Array.from({ length: incident.media }).map((_, i) => {
+                  const item = incident.mediaItems?.[i];
+                  const url = item ? resolveMediaUrl(item.file_url) : '';
+                  const isImage = item ? /^image\//i.test(item.media_type) || /\.(jpg|jpeg|png|webp|gif)$/i.test(item.file_url) : false;
+                  const isVideo = item ? /^video\//i.test(item.media_type) || /\.(mp4|webm|ogg|mov)$/i.test(item.file_url) : false;
+
+                  if (url) {
+                    if (isImage) {
+                      return (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
+                          aspectRatio: '1', borderRadius: 10, overflow: 'hidden',
+                          border: '1px solid var(--brand-hairline)', background: 'var(--brand-cream)',
+                          display: 'block', position: 'relative', cursor: 'zoom-in',
+                          transition: 'opacity 0.2s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                        >
+                          <img src={url} alt={`Evidence ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </a>
+                      );
+                    }
+                    if (isVideo) {
+                      return (
+                        <video key={i} src={url} controls style={{
+                          aspectRatio: '1', borderRadius: 10, overflow: 'hidden',
+                          border: '1px solid var(--brand-hairline)', background: 'var(--brand-cream)',
+                          objectFit: 'cover', width: '100%', height: '100%',
+                        }} />
+                      );
+                    }
+                    return (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
+                        aspectRatio: '1', borderRadius: 10,
+                        background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        color: 'var(--brand-ink)', textDecoration: 'none', gap: 6, fontSize: 11, fontWeight: 600,
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-divider)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-cream)'}
+                      >
+                        <Icon.upload style={{ width: 18, height: 18, color: 'var(--brand-muted)' }} />
+                        <span>View File</span>
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <div key={i} style={{
+                      aspectRatio: '1', borderRadius: 10,
+                      background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-muted)',
+                    }}>
+                      <Icon.upload style={{ width: 18, height: 18 }} />
+                    </div>
+                  );
+                })}
               </div>
             </Section>
           )}

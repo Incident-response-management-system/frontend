@@ -181,6 +181,7 @@ export function mapBackendIncident(b: BackendIncident, now: number = Date.now())
     reportedAt: formatAbsolute(b.created_at),
     desc: b.description || '',
     media: Array.isArray(b.media) ? b.media.length : 0,
+    mediaItems: b.media,
     assignedTo: b.assigned_agency?.agency_name ?? null,
     distanceKm: typeof b.distance_km === 'number' ? b.distance_km : undefined,
     isMine: b.is_mine,

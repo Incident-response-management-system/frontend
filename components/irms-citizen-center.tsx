@@ -8,6 +8,7 @@ import {
     getIncidentType,
     Incident,
     IncidentStatus,
+    resolveMediaUrl,
 } from './irms-shared';
 import { getMyReports } from '@/lib/incidents-api';
 import { useIsMobile } from '@/hooks/use-media-query';
@@ -144,6 +145,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                 reportedAt: new Date(r.created_at).toLocaleString(),
                 desc: r.description,
                 media: r.media.length,
+                mediaItems: r.media,
                 assignedTo: r.responding_agency?.name || null,
             }));
             setReports(mappedReports);
@@ -760,28 +762,73 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                     {report.media > 0 && (
                         <DetailRow label={`Evidence (${report.media} ${report.media === 1 ? 'file' : 'files'})`}>
                             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', gap: 8 }}>
-                                {Array.from({ length: report.media }).map((_, i) => (
-                                    <div
-                                        key={i}
-                                        style={{
-                                            aspectRatio: '1',
-                                            borderRadius: 8,
-                                            background: `linear-gradient(135deg, oklch(0.42 0.08 ${i * 80 + 30}), oklch(0.32 0.06 ${i * 80 + 70}))`,
-                                            border: '1px solid var(--brand-divider)',
-                                            cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            transition: 'opacity 0.15s',
-                                        }}
-                                        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                                            <circle cx="8.5" cy="8.5" r="1.5" />
-                                            <polyline points="21 15 16 10 5 21" />
-                                        </svg>
-                                    </div>
-                                ))}
+                                {Array.from({ length: report.media }).map((_, i) => {
+                                    const item = report.mediaItems?.[i];
+                                    const url = item ? resolveMediaUrl(item.file_url) : '';
+                                    const isImage = item ? /^image\//i.test(item.media_type) || /\.(jpg|jpeg|png|webp|gif)$/i.test(item.file_url) : false;
+                                    const isVideo = item ? /^video\//i.test(item.media_type) || /\.(mp4|webm|ogg|mov)$/i.test(item.file_url) : false;
+
+                                    if (url) {
+                                        if (isImage) {
+                                            return (
+                                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
+                                                    aspectRatio: '1', borderRadius: 8, overflow: 'hidden',
+                                                    border: '1px solid var(--brand-divider)', background: 'var(--brand-cream)',
+                                                    display: 'block', position: 'relative', cursor: 'zoom-in',
+                                                    transition: 'opacity 0.2s',
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                                                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                                                >
+                                                    <img src={url} alt={`Evidence ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                </a>
+                                            );
+                                        }
+                                        if (isVideo) {
+                                            return (
+                                                <video key={i} src={url} controls style={{
+                                                    aspectRatio: '1', borderRadius: 8, overflow: 'hidden',
+                                                    border: '1px solid var(--brand-divider)', background: 'var(--brand-cream)',
+                                                    objectFit: 'cover', width: '100%', height: '100%',
+                                                }} />
+                                            );
+                                        }
+                                        return (
+                                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{
+                                                aspectRatio: '1', borderRadius: 8,
+                                                background: 'var(--brand-cream)', border: '1px solid var(--brand-divider)',
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                color: 'var(--brand-ink)', textDecoration: 'none', gap: 6, fontSize: 10, fontWeight: 600,
+                                                transition: 'background 0.2s',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--brand-divider)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'var(--brand-cream)'}
+                                            >
+                                                <Icon.upload style={{ width: 16, height: 16, color: 'var(--brand-muted)' }} />
+                                                <span>View File</span>
+                                            </a>
+                                        );
+                                    }
+
+                                    return (
+                                        <div
+                                            key={i}
+                                            style={{
+                                                aspectRatio: '1',
+                                                borderRadius: 8,
+                                                background: `linear-gradient(135deg, oklch(0.42 0.08 ${i * 80 + 30}), oklch(0.32 0.06 ${i * 80 + 70}))`,
+                                                border: '1px solid var(--brand-divider)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                                <polyline points="21 15 16 10 5 21" />
+                                            </svg>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </DetailRow>
                     )}

@@ -90,6 +90,7 @@ export interface Incident {
   reportedAt: string;
   desc: string;
   media: number;
+  mediaItems?: Array<{ id: string; media_type: string; file_url: string; created_at: string }>;
   assignedTo: string | null;
   // Backend-provided extras (optional — absent on seeded/mock data).
   id?: string;            // backend incident UUID, used for PATCH /incidents/{id}/
@@ -399,4 +400,16 @@ export function buildIncidentMapPopupHtml(incident: IncidentMapCardData): string
     ${date}
     <a href="${href}" class="irms-incident-popup__link">Track this report →</a>
   </div>`;
+}
+
+/** Resolves a media file URL (absolute or relative to backend base host). */
+export function resolveMediaUrl(url: string | undefined): string {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://backend-rijh.onrender.com/api/v1';
+  const host = apiBase.split('/api/v1')[0];
+  
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  return `${host}${cleanUrl}`;
 }
