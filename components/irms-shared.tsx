@@ -375,9 +375,36 @@ export function buildIncidentMapTooltipHtml(incident: IncidentMapCardData): stri
   const t = getIncidentType(incident.incident_type);
   const label = incident.incident_type_display || t.short;
   const href = incidentTrackHref(incident.reference);
+  
+  const statusLabels: Record<string, string> = {
+    pending: 'Received',
+    in_progress: 'Under Review',
+    assigned: 'Assigned',
+    resolved: 'Resolved',
+    closed: 'Closed',
+  };
+
+  const statusColors: Record<string, string> = {
+    pending: 'var(--status-red)',
+    in_progress: 'var(--status-amber)',
+    assigned: 'var(--status-blue)',
+    resolved: 'var(--status-green)',
+    closed: 'var(--brand-muted)',
+  };
+
+  const statusVal = incident.status || 'pending';
+  const statusLabel = statusLabels[statusVal] || incident.status_display || statusVal;
+  const statusColor = statusColors[statusVal] || 'var(--brand-muted)';
+
   return `<div class="irms-incident-tooltip__inner">
     <div class="irms-incident-tooltip__title">${label}</div>
-    <div class="irms-incident-tooltip__ref">${incident.reference}</div>
+    <div class="irms-incident-tooltip__ref" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <span>${incident.reference}</span>
+      <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; color: ${statusColor}; font-family: var(--font-sans);">
+        <span style="width: 5px; height: 5px; border-radius: 50%; background-color: ${statusColor}; display: inline-block;"></span>
+        ${statusLabel}
+      </span>
+    </div>
     <a href="${href}" class="irms-incident-tooltip__link">Track report →</a>
   </div>`;
 }
