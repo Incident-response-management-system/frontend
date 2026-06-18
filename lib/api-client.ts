@@ -19,7 +19,7 @@ function normalizeBaseUrl(raw: string): string {
   return url;
 }
 
-const RAW_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const RAW_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 // snake_case backend field -> friendly label for user-facing messages.
 const FIELD_LABELS: Record<string, string> = {
@@ -110,6 +110,8 @@ export function getReporterSessionId(): string {
 interface RequestOptions extends RequestInit {
   tokenType?: 'agency' | 'citizen';
   useReporterSession?: boolean;
+  /** When true, a 401 clears stale cookies but does not redirect to login. */
+  authOptional?: boolean;
 }
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
@@ -137,16 +139,24 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
     headers.set('X-Reporter-Session-Id', getReporterSessionId());
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  const fetchOpts: RequestInit = { ...options, headers };
+  let response = await fetch(url, fetchOpts);
 
-  // Handle auto-unauth redirection
+  // Stale JWT: retry once without auth on public endpoints, or redirect to login.
   if (response.status === 401) {
+    const hadToken = !!token;
     deleteCookie('agency_token');
     deleteCookie('citizen_token');
-    if (typeof window !== 'undefined') {
+    deleteCookie('agency_refresh');
+    deleteCookie('citizen_refresh');
+
+    if (hadToken && options.authOptional) {
+      headers.delete('Authorization');
+      if (options.useReporterSession) {
+        headers.set('X-Reporter-Session-Id', getReporterSessionId());
+      }
+      response = await fetch(url, { ...fetchOpts, headers });
+    } else if (!options.authOptional && typeof window !== 'undefined') {
       const redirectUrl = url.includes('/agency') ? '/auth/agency/login' : '/auth/citizen/login';
       window.location.href = redirectUrl;
     }

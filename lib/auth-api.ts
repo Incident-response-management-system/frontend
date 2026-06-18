@@ -249,10 +249,6 @@ export async function agencyLogin(
 }
 
 // ─── Agency password reset (OTP-based) ───────────────────────
-// These follow the same OTP convention as registration. The backend routes
-// still need to be added:
-//   POST /auth/agency/forgot-password/  { email }                     -> emails a 6-digit code
-//   POST /auth/agency/reset-password/   { email, otp, new_password }  -> sets the new password
 export async function agencyForgotPassword(email: string): Promise<void> {
   const res = await apiFetch('/auth/agency/forgot-password/', {
     method: 'POST',

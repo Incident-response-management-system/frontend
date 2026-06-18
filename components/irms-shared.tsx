@@ -294,3 +294,79 @@ export const SAMPLE_INCIDENTS: Incident[] = [
 export function getIncidentType(id: string): IncidentType {
   return INCIDENT_TYPES.find(t => t.id === id) || INCIDENT_TYPES[0];
 }
+
+// SVG path markup for Leaflet divIcon markers (matches Icon.* glyphs above).
+const INCIDENT_ICON_PATHS: Record<string, string> = {
+  road_traffic_accident:
+    '<path d="M6 20v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3M29 20v3a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-3M4 20h24M6 20l2-7a3 3 0 0 1 3-2h10a3 3 0 0 1 3 2l2 7M4 20a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v0M9 17h14" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.5" fill="currentColor"/><circle cx="23" cy="20" r="1.5" fill="currentColor"/>',
+  missing_person:
+    '<circle cx="16" cy="11" r="4.5"/><path d="M6 28c0-5 4.5-8 10-8s10 3 10 8" stroke-linecap="round"/><path d="M22 6l4 4M26 6l-4 4" stroke-linecap="round"/>',
+  civil_disturbance:
+    '<circle cx="11" cy="11" r="3"/><circle cx="21" cy="11" r="3"/><path d="M5 22c0-3 2.5-5 6-5s6 2 6 5M15 22c0-3 2.5-5 6-5s6 2 6 5" stroke-linecap="round"/>',
+  medical_emergency:
+    '<rect x="4" y="8" width="24" height="18" rx="2"/><path d="M16 13v8M12 17h8" stroke-width="2" stroke-linecap="round"/><path d="M11 8V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3"/>',
+  flood:
+    '<path d="M3 22c2 0 3-2 5-2s3 2 5 2 3-2 5-2 3 2 5 2 3-2 5-2M3 27c2 0 3-2 5-2s3 2 5 2 3-2 5-2 3 2 5 2 3-2 5-2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 14L16 4l5 10" stroke-linejoin="round"/>',
+  fire_outbreak:
+    '<path d="M16 3s2 4 2 7c0 2-2 3-2 5 0 1.5 2 2 2 4M16 28c-5 0-9-3.5-9-9 0-3 2-5 3-7 1 2 2 3 3 3 0-3 1-6 3-9 0 2 4 4 4 9 0 1 1 0 2-1 1 2 3 3 3 6 0 5-4 8-9 8z" stroke-linejoin="round"/>',
+};
+
+function incidentTrackHref(reference: string): string {
+  return `/track?ref=${encodeURIComponent(reference)}`;
+}
+
+/** Leaflet divIcon HTML — dark tile with the incident-type glyph (matches the type picker). */
+export function buildIncidentMarkerHtml(incidentType: string): string {
+  const t = getIncidentType(incidentType);
+  const paths = INCIDENT_ICON_PATHS[t.id] || INCIDENT_ICON_PATHS.road_traffic_accident;
+  return `<div class="irms-incident-marker" style="--marker-accent:${t.color}">
+    <div class="irms-incident-marker__inner">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6">${paths}</svg>
+    </div>
+  </div>`;
+}
+
+export interface IncidentMapCardData {
+  reference: string;
+  incident_type: string;
+  incident_type_display?: string;
+  status?: string;
+  status_display?: string;
+  location_name?: string;
+  description?: string;
+  created_at?: string;
+}
+
+/** Compact hover tooltip for map markers. */
+export function buildIncidentMapTooltipHtml(incident: IncidentMapCardData): string {
+  const t = getIncidentType(incident.incident_type);
+  const label = incident.incident_type_display || t.short;
+  const href = incidentTrackHref(incident.reference);
+  return `<div class="irms-incident-tooltip__inner">
+    <div class="irms-incident-tooltip__title">${label}</div>
+    <div class="irms-incident-tooltip__ref">${incident.reference}</div>
+    <a href="${href}" class="irms-incident-tooltip__link">Track report →</a>
+  </div>`;
+}
+
+/** Click popup for map markers. */
+export function buildIncidentMapPopupHtml(incident: IncidentMapCardData): string {
+  const t = getIncidentType(incident.incident_type);
+  const label = incident.incident_type_display || t.label;
+  const href = incidentTrackHref(incident.reference);
+  const desc = incident.description
+    ? `<div class="irms-incident-popup__desc">${incident.description.substring(0, 100)}${incident.description.length > 100 ? '…' : ''}</div>`
+    : '';
+  const date = incident.created_at
+    ? `<div class="irms-incident-popup__meta">${new Date(incident.created_at).toLocaleDateString()}</div>`
+    : '';
+  return `<div class="irms-incident-popup">
+    <div class="irms-incident-popup__type" style="color:${t.color}">${label}</div>
+    <div class="irms-incident-popup__ref">Ref: ${incident.reference}</div>
+    <div class="irms-incident-popup__meta">${incident.status_display || incident.status || ''}</div>
+    <div class="irms-incident-popup__meta">${incident.location_name || 'Unknown location'}</div>
+    ${desc}
+    ${date}
+    <a href="${href}" class="irms-incident-popup__link">Track this report →</a>
+  </div>`;
+}

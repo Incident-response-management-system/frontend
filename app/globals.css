@@ -159,6 +159,115 @@ body {
     background: var(--status-green);
 }
 
+/* Incident-type map markers (dark tile + white glyph) */
+.irms-incident-marker {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease;
+}
+
+.irms-incident-marker:hover {
+    transform: scale(1.1);
+}
+
+.irms-incident-marker__inner {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #1c1c1c;
+    border: 2.5px solid #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0 0 2px var(--marker-accent, #E84A3F);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+}
+
+.leaflet-tooltip.irms-incident-tooltip {
+    background: rgba(11, 13, 19, 0.94);
+    border: 1px solid var(--brand-divider);
+    border-radius: 10px;
+    padding: 0;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.leaflet-tooltip.irms-incident-tooltip::before {
+    border-top-color: rgba(11, 13, 19, 0.94);
+}
+
+.irms-incident-tooltip__inner {
+    padding: 10px 12px;
+    font-family: var(--font-sans);
+    min-width: 160px;
+}
+
+.irms-incident-tooltip__title {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.irms-incident-tooltip__ref {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 8px;
+}
+
+.irms-incident-tooltip__link,
+.irms-incident-popup__link {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff !important;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.irms-incident-popup {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--brand-ink);
+    min-width: 200px;
+}
+
+.irms-incident-popup__type {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.irms-incident-popup__ref {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.irms-incident-popup__meta {
+    font-size: 12px;
+    color: var(--brand-muted);
+    margin-bottom: 2px;
+}
+
+.irms-incident-popup__desc {
+    font-size: 11px;
+    color: var(--brand-muted);
+    font-style: italic;
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.irms-incident-popup__link {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--brand-ink) !important;
+}
+
 .pulse {
     position: absolute;
     inset: 0;

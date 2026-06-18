@@ -24,6 +24,12 @@ import {
 
   IncidentStatus,
 
+  buildIncidentMarkerHtml,
+
+  buildIncidentMapPopupHtml,
+
+  buildIncidentMapTooltipHtml,
+
 } from './irms-shared';
 
 import { submitReport, trackIncident, getNearbyIncidents } from '@/lib/incidents-api';
@@ -1267,7 +1273,7 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
 
 // ─── Incident Detail Panel ─────────────────────────────────────
 
-function IncidentDetailPanel({ incident, onClose }: any) {
+function IncidentDetailPanel({ incident, onClose, navigate }: any) {
   const isMobile = useIsMobile();
   const t = getIncidentType(incident.incident_type);
 
@@ -1341,6 +1347,32 @@ function IncidentDetailPanel({ incident, onClose }: any) {
             {incident.assigned_agency}
           </div>
         </div>
+      )}
+
+      {/* Track link */}
+      {incident.reference && navigate && (
+        <button
+          type="button"
+          onClick={() => navigate('track', { ref: incident.reference })}
+          style={{
+            width: '100%',
+            background: 'var(--brand-ink)',
+            color: 'var(--brand-cream)',
+            padding: '14px 24px',
+            borderRadius: 8,
+            fontWeight: 600,
+            fontSize: 15,
+            border: 'none',
+            cursor: 'pointer',
+            marginBottom: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}
+        >
+          Track this report <Icon.arrow style={{ width: 16, height: 16 }} />
+        </button>
       )}
 
       {/* Close Button */}
@@ -1453,45 +1485,13 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
     return R * c * 1000; // Return distance in meters
   };
 
-  // Custom marker icon generator for incident types
-  const getIncidentMarkerIcon = (incidentType: string, status: string) => {
-    const typeColors: Record<string, string> = {
-      rta: '#E84A3F',      // Road Traffic Accident - Red
-      medical: '#DC2626',  // Medical Emergency - Dark Red
-      fire: '#F97316',     // Fire Outbreak - Orange
-      flood: '#0EA5E9',    // Flood - Blue
-      missing: '#8B5CF6',  // Missing Person - Purple
-      civil: '#F59E0B',    // Civil Disturbance - Amber
-    };
-
-    const typeIcons: Record<string, string> = {
-      rta: '🚗',
-      medical: '🏥',
-      fire: '🔥',
-      flood: '🌊',
-      missing: '👤',
-      civil: '⚠️',
-    };
-
-    const color = typeColors[incidentType] || '#6B7280';
-    const icon = typeIcons[incidentType] || '📍';
-
+  // Custom marker icon generator for incident types (uses shared SVG glyphs).
+  const getIncidentMarkerIcon = (incidentType: string) => {
     return L.divIcon({
-      html: `<div style="
-        width: 32px;
-        height: 32px;
-        background: ${color};
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-      ">${icon}</div>`,
+      html: buildIncidentMarkerHtml(incidentType),
       className: '',
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
     });
   };
 
@@ -1877,37 +1877,19 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
             const markers: any[] = [];
             response.results.forEach((incident: any) => {
-              const icon = getIncidentMarkerIcon(incident.incident_type, incident.status);
+              const icon = getIncidentMarkerIcon(incident.incident_type);
               const marker = L.marker([incident.latitude, incident.longitude], { icon })
                 .addTo(map)
-                .bindPopup(`
-                  <div style="
-                    font-family: Arial, sans-serif;
-                    font-size: 14px;
-                    color: #333;
-                    padding: 8px 0;
-                    min-width: 200px;
-                  ">
-                    <div style="font-weight: 600; margin-bottom: 4px; color: #E84A3F;">
-                      ${incident.incident_type_display || incident.incident_type}
-                    </div>
-                    <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
-                      Ref: ${incident.reference}
-                    </div>
-                    <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
-                      Status: ${incident.status_display || incident.status}
-                    </div>
-                    <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
-                      ${incident.location_name || 'Unknown location'}
-                    </div>
-                    ${incident.description ? `<div style="font-size: 11px; color: #888; margin-top: 4px; font-style: italic;">${incident.description.substring(0, 100)}${incident.description.length > 100 ? '...' : ''}</div>` : ''}
-                    <div style="font-size: 11px; color: #999; margin-top: 4px;">
-                      ${new Date(incident.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                `, {
+                .bindTooltip(buildIncidentMapTooltipHtml(incident), {
+                  direction: 'top',
+                  offset: [0, -22],
+                  opacity: 1,
+                  className: 'irms-incident-tooltip',
+                })
+                .bindPopup(buildIncidentMapPopupHtml(incident), {
                   closeButton: true,
-                  className: 'incident-popup'
+                  className: 'incident-popup',
+                  maxWidth: 280,
                 })
                 .on('click', () => {
                   setSelectedIncident(incident);
@@ -2624,17 +2606,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
           {[
 
-            { c: '#E84A3F', l: 'Road Traffic Accident', icon: Icon.car },
-
-            { c: '#DC2626', l: 'Medical Emergency', icon: Icon.medical },
-
-            { c: '#F97316', l: 'Fire Outbreak', icon: Icon.fire },
-
-            { c: '#0EA5E9', l: 'Flood Incident', icon: Icon.flood },
-
-            { c: '#8B5CF6', l: 'Missing Person', icon: Icon.person },
-
-            { c: '#F59E0B', l: 'Civil Disturbance', icon: Icon.crowd },
+            ...INCIDENT_TYPES.map(t => ({ c: t.color, l: t.label, icon: t.icon })),
 
           ].map(x => (
 
@@ -2742,6 +2714,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
             ) : panelMode === 'incident' ? (
               <IncidentDetailPanel
                 incident={selectedIncident}
+                navigate={navigate}
                 onClose={() => {
                   setSheetOpen(false);
                   setSelectedIncident(null);
@@ -3836,29 +3809,59 @@ export function TrackScreen({ navigate, params }: any) {
 
   const isMobile = useIsMobile();
 
-  const ref = params?.ref || '';
+  const ref = (params?.ref || '').trim();
 
   const [incident, setIncident] = React.useState<any>(null);
 
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(!!ref);
 
   const [error, setError] = React.useState<string | null>(null);
+
+  const [lookupRef, setLookupRef] = React.useState('');
+
+  const [recentReports, setRecentReports] = React.useState<string[]>([]);
 
 
 
   React.useEffect(() => {
 
-    if (ref) {
+    if (typeof window === 'undefined') return;
 
-      loadIncident();
+    try {
+
+      setRecentReports(JSON.parse(localStorage.getItem('irms_recent_reports') || '[]'));
+
+    } catch {
+
+      setRecentReports([]);
 
     }
+
+  }, []);
+
+
+
+  React.useEffect(() => {
+
+    if (!ref) {
+
+      setLoading(false);
+
+      setIncident(null);
+
+      setError(null);
+
+      return;
+
+    }
+
+    loadIncident(ref);
 
   }, [ref]);
 
 
 
-  const loadIncident = async () => {
+  const loadIncident = async (reference: string) => {
 
     setLoading(true);
 
@@ -3866,7 +3869,7 @@ export function TrackScreen({ navigate, params }: any) {
 
     try {
 
-      const data = await trackIncident(ref);
+      const data = await trackIncident(reference);
 
       setIncident(data);
 
@@ -3881,6 +3884,178 @@ export function TrackScreen({ navigate, params }: any) {
     }
 
   };
+
+
+
+  const handleLookup = () => {
+
+    const code = lookupRef.trim().toUpperCase();
+
+    if (!code) return;
+
+    navigate('track', { ref: code });
+
+  };
+
+
+
+  if (!ref) {
+
+    return (
+
+      <div style={{ background: 'var(--brand-cream)', minHeight: '100vh', color: 'var(--brand-ink)' }}>
+
+        <nav style={{
+
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+
+          padding: isMobile ? '16px 16px' : '18px 32px', borderBottom: '1px solid var(--brand-hairline)',
+
+        }}>
+
+          <button onClick={() => navigate('landing')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>
+
+            <Icon.back />
+
+            <IRMSLogo size={15} color="var(--brand-ink)" />
+
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+            <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Track a report</div>
+
+            <ThemeToggle />
+
+          </div>
+
+        </nav>
+
+
+
+        <div style={{ maxWidth: 520, margin: '0 auto', padding: isMobile ? '48px 16px 60px' : '72px 32px 80px' }}>
+
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 10px' }}>Track your report</h1>
+
+          <p style={{ fontSize: 14, color: 'var(--brand-muted)', margin: '0 0 28px', lineHeight: 1.6 }}>
+
+            Enter the reference code you received after submitting an incident (e.g. INC-2026-00149).
+
+          </p>
+
+
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-ink)' }}>Reference code</label>
+
+            <input
+
+              type="text"
+
+              value={lookupRef}
+
+              onChange={e => setLookupRef(e.target.value.toUpperCase())}
+
+              onKeyDown={e => { if (e.key === 'Enter') handleLookup(); }}
+
+              placeholder="INC-2026-00149"
+
+              style={{
+
+                padding: '13px 16px', borderRadius: 9, border: '1px solid var(--brand-divider)',
+
+                background: 'var(--brand-white)', fontSize: 15, fontFamily: 'var(--font-mono)',
+
+                color: 'var(--brand-ink)', outline: 'none',
+
+              }}
+
+            />
+
+            <button
+
+              type="button"
+
+              onClick={handleLookup}
+
+              disabled={!lookupRef.trim()}
+
+              style={{
+
+                padding: '13px 24px', borderRadius: 9, border: 'none', fontWeight: 600, fontSize: 14,
+
+                background: lookupRef.trim() ? 'var(--brand-ink)' : 'var(--brand-muted)',
+
+                color: 'var(--brand-cream)', cursor: lookupRef.trim() ? 'pointer' : 'not-allowed',
+
+              }}
+
+            >
+
+              Track incident
+
+            </button>
+
+          </div>
+
+
+
+          {recentReports.length > 0 && (
+
+            <div style={{ marginTop: 36 }}>
+
+              <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
+
+                Recent reports on this device
+
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+                {recentReports.slice(0, 5).map(code => (
+
+                  <button
+
+                    key={code}
+
+                    type="button"
+
+                    onClick={() => navigate('track', { ref: code })}
+
+                    style={{
+
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+
+                      padding: '12px 16px', borderRadius: 9, border: '1px solid var(--brand-hairline)',
+
+                      background: 'var(--brand-white)', cursor: 'pointer', textAlign: 'left',
+
+                    }}
+
+                  >
+
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600 }}>{code}</span>
+
+                    <span style={{ fontSize: 12, color: 'var(--brand-muted)' }}>View status →</span>
+
+                  </button>
+
+                ))}
+
+              </div>
+
+            </div>
+
+          )}
+
+        </div>
+
+      </div>
+
+    );
+
+  }
 
 
 
@@ -3919,6 +4094,12 @@ export function TrackScreen({ navigate, params }: any) {
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Incident not found</div>
 
           <div style={{ fontSize: 13, color: 'var(--brand-muted)', marginBottom: 20 }}>{error || 'Please check the reference code and try again.'}</div>
+
+          <button onClick={() => navigate('track')} style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)', textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer', marginRight: 16 }}>
+
+            Try another code
+
+          </button>
 
           <button onClick={() => navigate('landing')} style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)', textDecoration: 'underline', textUnderlineOffset: 3, background: 'none', border: 'none', cursor: 'pointer' }}>
 

@@ -5,7 +5,7 @@
  * Anonymous users use X-Reporter-Session-Id header.
  */
 
-import { apiFetch, getCookie } from './api-client';
+import { apiFetch, getCookie, extractApiError } from './api-client';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -100,6 +100,7 @@ export async function submitReport(payload: ReportPayload): Promise<ReportRespon
     body: formData,
     tokenType: 'citizen',
     useReporterSession: !hasToken,
+    authOptional: true,
   });
 
   if (!res.ok) {
@@ -124,6 +125,7 @@ export async function uploadMedia(incidentId: string, media: File[]): Promise<{ 
     body: formData,
     tokenType: 'citizen',
     useReporterSession: !hasToken,
+    authOptional: true,
   });
 
   if (!res.ok) {
@@ -136,15 +138,49 @@ export async function uploadMedia(incidentId: string, media: File[]): Promise<{ 
 
 // ─── Track Incident By Reference ───────────────────────────────
 
+// Map backend track payload into the shape TrackScreen renders.
+function mapTrackResponse(data: Record<string, unknown>): TrackResponse {
+  const agency = data.responding_agency as Record<string, string> | null | undefined;
+  const timeline = Array.isArray(data.timeline)
+    ? data.timeline.map((event: Record<string, string>) => ({
+        title: event.label || event.event_type || 'Update',
+        description: event.message || '',
+        timestamp: event.at || '',
+        status: 'completed',
+      }))
+    : [];
+  const activityLog = Array.isArray(data.activity_log)
+    ? data.activity_log.map((log: Record<string, string>) => ({
+        time: log.at || '',
+        event: log.message || '',
+        color: 'var(--brand-muted)',
+      }))
+    : [];
+
+  return {
+    ...(data as TrackResponse),
+    responding_agency: agency
+      ? {
+          name: agency.agency_name || agency.name || '',
+          type: agency.agency_type_display || agency.agency_type || agency.type || '',
+        }
+      : undefined,
+    timeline,
+    activity_log: activityLog,
+  };
+}
+
 export async function trackIncident(ref: string): Promise<TrackResponse> {
-  const res = await apiFetch(`/incidents/track/?ref=${encodeURIComponent(ref)}`);
+  const res = await apiFetch(`/incidents/track/?ref=${encodeURIComponent(ref.trim())}`, {
+    authOptional: true,
+  });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Tracking failed' }));
-    throw new Error(err.message || err.detail || 'Tracking failed');
+    throw new Error(await extractApiError(res, 'Incident not found. Check the reference code and try again.'));
   }
 
-  return await res.json();
+  const data = await res.json();
+  return mapTrackResponse(data);
 }
 
 // ─── Get Nearby Incidents ───────────────────────────────────────
@@ -165,7 +201,9 @@ export async function getNearbyIncidents(
     params.append('status', status);
   }
 
-  const res = await apiFetch(`/incidents/nearby/?${params.toString()}`);
+  const res = await apiFetch(`/incidents/nearby/?${params.toString()}`, {
+    authOptional: true,
+  });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Failed to fetch nearby incidents' }));
@@ -184,6 +222,7 @@ export async function getMyReports(status?: string): Promise<MyReportsResponse> 
   const res = await apiFetch(`/incidents/my-reports/${params}`, {
     tokenType: 'citizen',
     useReporterSession: !hasToken,
+    authOptional: true,
   });
 
   if (!res.ok) {
@@ -202,6 +241,7 @@ export async function getReportById(incidentId: string): Promise<{ success: bool
   const res = await apiFetch(`/incidents/my-reports/${incidentId}/`, {
     tokenType: 'citizen',
     useReporterSession: !hasToken,
+    authOptional: true,
   });
 
   if (!res.ok) {
