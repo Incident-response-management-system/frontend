@@ -9,9 +9,11 @@ import {
     Incident,
     IncidentStatus,
     resolveMediaUrl,
+    ReportRowSkeleton,
 } from './irms-shared';
 import { getMyReports } from '@/lib/incidents-api';
 import { useIsMobile } from '@/hooks/use-media-query';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { ThemeToggle } from './ThemeToggle';
 import { formatAbsolute, formatTimeOnly } from '@/lib/agency-types';
 
@@ -78,15 +80,7 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
 
     React.useEffect(() => {
         loadReports();
-
-        const handleReportCreated = () => {
-            loadReports();
-        };
-
-        window.addEventListener('irms:report_created', handleReportCreated);
-        return () => {
-            window.removeEventListener('irms:report_created', handleReportCreated);
-        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab]);
 
     const loadReports = async () => {
@@ -131,6 +125,8 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
             setLoading(false);
         }
     };
+
+    useAutoRefresh(loadReports, 45_000, ['irms:report_created', 'irms:incident_updated']);
 
     const filters = [
         { id: 'all', label: 'All', count: reports.length },
@@ -458,9 +454,8 @@ export function MyReportsScreen({ navigate, user, onSignOut }: MyReportsScreenPr
                     marginTop: 0,
                 }}>
                     {loading ? (
-                        <div style={{ padding: '64px 24px', textAlign: 'center' }}>
-                            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon.clock width={32} height={32} style={{ color: 'var(--brand-muted)' }} /></div>
-                            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Loading reports...</div>
+                        <div>
+                            {[0, 1, 2, 3, 4].map(i => <ReportRowSkeleton key={i} />)}
                         </div>
                     ) : filtered.length === 0 ? (
                         <div style={{ padding: '64px 24px', textAlign: 'center' }}>

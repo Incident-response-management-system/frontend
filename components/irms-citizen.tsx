@@ -30,6 +30,8 @@ import {
 
   buildIncidentMapTooltipHtml,
 
+  TrackScreenSkeleton,
+
 } from './irms-shared';
 
 import { submitReport, trackIncident, getNearbyIncidents, checkAgencyCoverage } from '@/lib/incidents-api';
@@ -37,6 +39,7 @@ import { searchLocalDataset, getNearbyLocations, haversineDistance, CampLocation
 import { PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea, DEFAULT_ZOOM, LOCATED_ZOOM, MIN_ZOOM, MAX_ZOOM, shouldBypassLock } from '@/lib/geo-constants';
 
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 
 import { ThemeToggle } from './ThemeToggle';
 
@@ -1952,20 +1955,13 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
     }
   }, [userGpsLocation, pinLocation]);
 
-  // Fetch nearby incidents on map load
+  // Fetch nearby incidents on map load, then keep them fresh automatically.
   React.useEffect(() => {
     fetchNearbyIncidents();
-
-    // Listen for report creation to refresh map
-    const handleReportCreated = () => {
-      fetchNearbyIncidents();
-    };
-
-    window.addEventListener('irms:report_created', handleReportCreated);
-    return () => {
-      window.removeEventListener('irms:report_created', handleReportCreated);
-    };
   }, [fetchNearbyIncidents]);
+
+  // Poll every 45 s + refresh immediately on any incident create/update event.
+  useAutoRefresh(fetchNearbyIncidents, 45_000, ['irms:report_created', 'irms:incident_updated']);
 
 
 
@@ -4104,7 +4100,15 @@ export function TrackScreen({ navigate, params }: any) {
 
   };
 
-
+  // Silently re-fetch the incident every 30 s while it's still active.
+  useAutoRefresh(
+    React.useCallback(() => {
+      if (ref && incident && incident.status !== 'resolved' && incident.status !== 'closed') {
+        loadIncident(ref);
+      }
+    }, [ref, incident?.status]),
+    30_000,
+  );
 
   if (!ref) {
 
@@ -4266,25 +4270,7 @@ export function TrackScreen({ navigate, params }: any) {
 
 
 
-  if (loading) {
-
-    return (
-
-      <div style={{ background: 'var(--brand-cream)', minHeight: '100vh', color: 'var(--brand-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-
-        <div style={{ textAlign: 'center' }}>
-
-          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon.clock width={32} height={32} style={{ color: 'var(--brand-muted)' }} /></div>
-
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Loading incident...</div>
-
-        </div>
-
-      </div>
-
-    );
-
-  }
+  if (loading) return <TrackScreenSkeleton />;
 
 
 

@@ -14,6 +14,7 @@ import {
   buildAgencyIncidentMarkerHtml,
   type IncidentMapCardData,
   resolveMediaUrl,
+  TableRowSkeleton,
 } from './irms-shared';
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
@@ -21,6 +22,7 @@ import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats, updateAge
 import { toBeType, toFeType, isIncidentRelevant, incidentTypesForAgency, mapBackendIncident } from '@/lib/agency-types';
 import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 import { haversineDistance } from '@/lib/location-dataset';
 import { PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea, DEFAULT_ZOOM, LOCATED_ZOOM, MIN_ZOOM, MAX_ZOOM, shouldBypassLock } from '@/lib/geo-constants';
@@ -456,7 +458,11 @@ export function OverviewTab({ incidents, loading, error, onRetry, onViewIncident
             </div>
           </div>
           {loading ? (
-            <DashEmptyState message="Loading incidents…" />
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>{[0,1,2,3,4].map(i => <TableRowSkeleton key={i} cols={6} />)}</tbody>
+              </table>
+            </div>
           ) : error ? (
             <DashEmptyState message={error} onRetry={onRetry} />
           ) : incidents.length === 0 ? (
@@ -1122,7 +1128,11 @@ export function ReportsTab({
 
         <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden' }}>
           {loading ? (
-            <DashEmptyState message="Loading incidents…" />
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>{[0,1,2,3,4,5].map(i => <TableRowSkeleton key={i} cols={7} />)}</tbody>
+              </table>
+            </div>
           ) : error ? (
             <DashEmptyState message={error} onRetry={onRetry} />
           ) : filtered.length === 0 ? (
@@ -1223,6 +1233,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
         setAssigned(true);
         setStatus(updated.status);
         onUpdateIncident(incident.ref, { ...updated });
+        window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
         return;
       } catch (err: any) {
         toast.error(err.message || 'Could not claim this incident.');
@@ -1238,6 +1249,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
         const updated = await updateIncidentStatus(incident.id, status);
         toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
         onUpdateIncident(incident.ref, { ...updated });
+        window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
       } catch (err: any) {
         toast.error(err.message || 'Could not update this incident.');
       }
@@ -1563,6 +1575,13 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
         return prev;
       });
     }
+  );
+
+  // Poll every 30 s and re-fetch whenever an incident is created or updated anywhere in the app.
+  useAutoRefresh(
+    React.useCallback(() => reload(incidentTab), [incidentTab, reload]),
+    30_000,
+    ['irms:report_created', 'irms:incident_updated'],
   );
 
   const handleUpdateIncident = (ref: string, updates: Partial<Incident>) => {
