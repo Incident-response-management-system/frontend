@@ -32,7 +32,7 @@ import {
 
 } from './irms-shared';
 
-import { submitReport, trackIncident, getNearbyIncidents } from '@/lib/incidents-api';
+import { submitReport, trackIncident, getNearbyIncidents, checkAgencyCoverage } from '@/lib/incidents-api';
 import { searchLocalDataset, getNearbyLocations, haversineDistance, CampLocation } from '@/lib/location-dataset';
 import { PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea, DEFAULT_ZOOM, LOCATED_ZOOM, MIN_ZOOM, MAX_ZOOM, shouldBypassLock } from '@/lib/geo-constants';
 
@@ -1464,6 +1464,8 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
   const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
 
+  const [legendOpen, setLegendOpen] = React.useState(false);
+
   const [searchQuery, setSearchQuery] = React.useState('');
 
   const [searching, setSearching] = React.useState(false);
@@ -2408,43 +2410,46 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
 
-        padding: isMobile ? '12px 16px' : '14px 24px', background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)',
-
+        padding: isMobile ? '10px 14px' : '14px 24px',
+        background: 'var(--surface-overlay)', backdropFilter: 'blur(14px) saturate(140%)',
         borderBottom: '1px solid var(--brand-hairline)',
+        minHeight: isMobile ? 52 : 64,
 
       }}>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16, minWidth: 0, flex: 1 }}>
 
           <button onClick={() => navigate('back')} style={{
 
-            width: 36, height: 36, borderRadius: 10, border: '1px solid var(--brand-divider)',
+            width: 34, height: 34, borderRadius: 9, border: '1px solid var(--brand-divider)', flexShrink: 0,
 
             display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer'
 
           }}><Icon.back /></button>
 
-          <div>
-
-            <div style={{ fontSize: 15, fontWeight: 600 }}>Tap a location to report an incident</div>
-
-            <div style={{ fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>REDEMPTION CAMP · OGUN STATE · NIGERIA</div>
-
-          </div>
+          {isMobile ? (
+            <span style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Report an incident
+            </span>
+          ) : (
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Tap a location to report an incident</div>
+              <div style={{ fontSize: 11, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)', marginTop: 2, letterSpacing: '0.06em' }}>REDEMPTION CAMP · OGUN STATE</div>
+            </div>
+          )}
 
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+
+          {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-divider)', borderRadius: 8 }}>
+              <Icon.pin style={{ color: 'var(--brand-ink)', width: 14, height: 14 }} />
+              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--brand-ink)' }}>Click the map to place a pin</span>
+            </div>
+          )}
 
           <ThemeToggle />
-
-          <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: 'var(--brand-surface-alt)', border: '1px solid var(--brand-divider)', borderRadius: 8 }}>
-
-            <Icon.pin style={{ color: 'var(--brand-ink)', width: 14, height: 14 }} />
-
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--brand-ink)' }}>Click the map to place a pin</span>
-
-          </div>
 
         </div>
 
@@ -2462,7 +2467,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       <form onSubmit={handleSearch} className="irms-map-search-container" style={{
 
-        position: 'absolute', top: isMobile ? 72 : 84, left: isMobile ? 16 : undefined, right: isMobile ? 16 : 24, zIndex: 1000,
+        position: 'absolute', top: isMobile ? 62 : 80, left: isMobile ? 12 : undefined, right: isMobile ? 12 : 24, zIndex: 1000,
 
         width: isMobile ? 'auto' : 320, maxWidth: 'calc(100vw - 48px)'
 
@@ -2494,18 +2499,18 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
 
 
-      {/* Recent Reports Panel */}
-      {recentReports.length > 0 && (
+      {/* Recent Reports Panel — desktop only; on mobile it collides with the search bar */}
+      {recentReports.length > 0 && !isMobile && (
         <div style={{
           position: 'absolute',
-          top: isMobile ? 72 : 84,
-          left: isMobile ? 16 : 24,
+          top: 80,
+          left: 24,
           zIndex: 1000,
           background: 'var(--brand-white)',
           border: '1px solid var(--brand-divider)',
           borderRadius: 12,
           padding: 16,
-          width: isMobile ? 'auto' : 280,
+          width: 280,
           maxWidth: 'calc(100vw - 32px)',
         }}>
           <div style={{ fontSize: 11, color: 'var(--brand-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
@@ -2543,7 +2548,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       <div style={{
 
-        position: 'absolute', bottom: 24, right: 24, zIndex: 1000,
+        position: 'absolute', bottom: isMobile ? 24 : 24, right: isMobile ? 12 : 24, zIndex: 1000,
 
         display: 'flex', flexDirection: 'column', gap: 10
 
@@ -2657,43 +2662,115 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       {/* Legend */}
 
-      <div style={{
+      {isMobile ? (
 
-        position: 'absolute', bottom: 24, left: 24, zIndex: 500,
+        <div style={{ position: 'absolute', bottom: 24, left: 12, zIndex: 500 }}>
 
-        background: 'rgba(11,13,19,0.92)', backdropFilter: 'blur(8px)',
+          <button
 
-        border: '1px solid var(--brand-divider)', borderRadius: 12, padding: '12px 14px',
+            type="button"
 
-      }}>
+            onClick={() => setLegendOpen(o => !o)}
 
-        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-muted)', letterSpacing: '0.12em', marginBottom: 8 }}>NEARBY INCIDENTS</div>
+            style={{
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              display: 'flex', alignItems: 'center', gap: 6,
 
-          {[
+              padding: '7px 12px', borderRadius: 20,
 
-            ...INCIDENT_TYPES.map(t => ({ c: t.color, l: t.label, icon: t.icon })),
+              background: 'rgba(11,13,19,0.88)', backdropFilter: 'blur(8px)',
 
-          ].map(x => (
+              border: '1px solid rgba(255,255,255,0.12)', color: 'white',
 
-            <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'white' }}>
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
 
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, color: x.c }}>
+            }}
 
-                <x.icon width={16} height={16} />
+          >
 
-              </span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
 
-              {x.l}
+            Legend {legendOpen ? '▴' : '▾'}
+
+          </button>
+
+          {legendOpen && (
+
+            <div style={{
+
+              marginTop: 8,
+
+              background: 'rgba(11,13,19,0.92)', backdropFilter: 'blur(8px)',
+
+              border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '12px 14px',
+
+            }}>
+
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-muted)', letterSpacing: '0.12em', marginBottom: 8 }}>INCIDENT TYPES</div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+
+                {INCIDENT_TYPES.map(t => (
+
+                  <div key={t.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'white' }}>
+
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, color: t.color, flexShrink: 0 }}>
+
+                      <t.icon width={16} height={16} />
+
+                    </span>
+
+                    {t.label}
+
+                  </div>
+
+                ))}
+
+              </div>
 
             </div>
 
-          ))}
+          )}
 
         </div>
 
-      </div>
+      ) : (
+
+        <div style={{
+
+          position: 'absolute', bottom: 24, left: 24, zIndex: 500,
+
+          background: 'rgba(11,13,19,0.92)', backdropFilter: 'blur(8px)',
+
+          border: '1px solid var(--brand-divider)', borderRadius: 12, padding: '12px 14px',
+
+        }}>
+
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-muted)', letterSpacing: '0.12em', marginBottom: 8 }}>NEARBY INCIDENTS</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+            {INCIDENT_TYPES.map(t => (
+
+              <div key={t.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'white' }}>
+
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, color: t.color }}>
+
+                  <t.icon width={16} height={16} />
+
+                </span>
+
+                {t.label}
+
+              </div>
+
+            ))}
+
+          </div>
+
+        </div>
+
+      )}
 
 
 
@@ -2886,6 +2963,23 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
   const MAX_CHARS = 500;
 
   const charCount = description.length;
+
+  const [agencyCoverage, setAgencyCoverage] = React.useState<boolean | null>(null);
+  const [checkingCoverage, setCheckingCoverage] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!pinLocation || !selectedType) {
+      setAgencyCoverage(null);
+      return;
+    }
+    let cancelled = false;
+    setCheckingCoverage(true);
+    checkAgencyCoverage(pinLocation.lat, pinLocation.lng, selectedType)
+      .then(res => { if (!cancelled) setAgencyCoverage(res.has_coverage); })
+      .catch(() => { if (!cancelled) setAgencyCoverage(null); })
+      .finally(() => { if (!cancelled) setCheckingCoverage(false); });
+    return () => { cancelled = true; };
+  }, [pinLocation?.lat, pinLocation?.lng, selectedType]);
 
   // Get the location name to display
   const getDisplayLocationName = () => {
@@ -3103,6 +3197,42 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
         </div>
 
       </div>
+
+
+
+      {/* Agency coverage notice — shown directly below incident type selector */}
+
+      {selectedType && pinLocation && !checkingCoverage && agencyCoverage !== null && (
+
+        <div style={{
+
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+
+          padding: '11px 14px', borderRadius: 10, marginBottom: 20,
+
+          background: agencyCoverage ? 'rgba(34,197,94,0.08)' : 'rgba(234,179,8,0.08)',
+
+          border: `1px solid ${agencyCoverage ? 'rgba(34,197,94,0.25)' : 'rgba(234,179,8,0.25)'}`,
+
+        }}>
+
+          <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{agencyCoverage ? '✓' : '⚠'}</span>
+
+          <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--brand-ink)' }}>
+
+            {agencyCoverage
+
+              ? 'Registered responders are active in your area and will be able to see this report.'
+
+              : 'No registered responders are currently active in your area. Your report will still be recorded and reviewed.'
+
+            }
+
+          </span>
+
+        </div>
+
+      )}
 
 
 
@@ -3896,6 +4026,8 @@ export function TrackScreen({ navigate, params }: any) {
 
   const [recentReports, setRecentReports] = React.useState<string[]>([]);
 
+  const [copied, setCopied] = React.useState(false);
+
 
 
   React.useEffect(() => {
@@ -4194,7 +4326,28 @@ export function TrackScreen({ navigate, params }: any) {
 
   const status = incident.status as IncidentStatus;
 
+  const trackUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/track?ref=${incident.reference}`
+    : `/track?ref=${incident.reference}`;
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(trackUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => toast.error('Could not copy link'));
+  };
+
+  const handleShare = () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({
+        title: `Incident ${incident.reference}`,
+        text: `Track incident ${incident.reference} on IRMS`,
+        url: trackUrl,
+      }).catch(() => {});
+    } else {
+      handleCopyLink();
+    }
+  };
 
   return (
 
@@ -4218,9 +4371,43 @@ export function TrackScreen({ navigate, params }: any) {
 
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 
-          <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>Track a report</div>
+          <button
+
+            type="button"
+
+            onClick={handleCopyLink}
+
+            title="Copy report link"
+
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--brand-divider)', background: 'var(--brand-white)', color: 'var(--brand-ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+
+          >
+
+            {copied ? '✓ Copied' : (
+
+              <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy link</>
+
+            )}
+
+          </button>
+
+          <button
+
+            type="button"
+
+            onClick={handleShare}
+
+            title="Share report"
+
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--brand-divider)', background: 'var(--brand-white)', color: 'var(--brand-ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+
+          >
+
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share
+
+          </button>
 
           <ThemeToggle />
 

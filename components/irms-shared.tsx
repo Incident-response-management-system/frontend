@@ -150,8 +150,8 @@ export function StatusStepper({ current = 'pending', timestamps = {}, theme = 'd
   const labelMinWidth = isMobile ? 56 : 90;
   const isLight = theme === 'light';
   const muted = isLight ? 'var(--brand-divider)' : 'var(--brand-muted)';
-  const mutedText = isLight ? 'var(--brand-muted)' : 'var(--brand-divider)';
-  const text = isLight ? 'var(--brand-ink)' : 'var(--brand-cream)';
+  const mutedText = 'var(--brand-muted)';
+  const text = 'var(--brand-ink)';
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, width: '100%' }}>

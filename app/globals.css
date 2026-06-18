@@ -423,7 +423,7 @@ body {
     color: var(--brand-ink);
 }
 
-/* ─── Shared animation keyframes ───────────────────────────── */
+/* ─── Shared animation keyframes ────────────────────────────*/
 
 @keyframes fadeIn {
     from {

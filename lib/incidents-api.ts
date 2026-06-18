@@ -233,6 +233,29 @@ export async function getMyReports(status?: string): Promise<MyReportsResponse> 
   return await res.json();
 }
 
+// ─── Check Agency Coverage ───────────────────────────────────
+
+export async function checkAgencyCoverage(
+  latitude: number,
+  longitude: number,
+  incidentType: string
+): Promise<{ has_coverage: boolean }> {
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    incident_type: incidentType,
+  });
+  try {
+    const res = await apiFetch(`/incidents/agencies/coverage-check/?${params.toString()}`, {
+      authOptional: true,
+    });
+    if (!res.ok) return { has_coverage: false };
+    return await res.json();
+  } catch {
+    return { has_coverage: false };
+  }
+}
+
 // ─── Get Single Report ────────────────────────────────────────
 
 export async function getReportById(incidentId: string): Promise<{ success: boolean; incident: MyReport }> {
