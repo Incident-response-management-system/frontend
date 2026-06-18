@@ -11,6 +11,7 @@ import {
   Incident,
   IncidentStatus,
   buildIncidentMapTooltipHtml,
+  buildAgencyIncidentMarkerHtml,
   type IncidentMapCardData,
 } from './irms-shared';
 import { FormInput } from './irms-auth';
@@ -35,6 +36,12 @@ const AGENCY_TYPE_LABELS: Record<string, string> = {
   fire_rescue: 'Fire & Rescue',
   private_security: 'Private Security',
 };
+
+function getAgencyTypeKey(type?: string | null): string {
+  if (!type) return '';
+  return type.toLowerCase().trim().replace(/[\s-]/g, '_');
+}
+
 
 // Shared empty/loading/error placeholder for the dashboard tables.
 function DashEmptyState({ message, onRetry }: { message: string; onRetry?: () => void }) {
@@ -100,7 +107,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
   const agencyName = profile?.agencyName || 'Your Agency';
   const agencyInitials = (profile?.agencyName || 'AG')
     .split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'AG';
-  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[profile.agencyType] || profile.agencyType) : '';
+  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[getAgencyTypeKey(profile.agencyType)] || profile.agencyType) : '';
   const agencyMeta = [typeLabel, profile?.radius ? `${profile.radius}km` : '']
     .filter(Boolean).join(' · ') || 'Agency';
   const navItems = [
@@ -248,7 +255,7 @@ export function DashTopBar({ title, subtitle, actions }: DashTopBarProps) {
   const agencyName = profile?.agencyName || 'Your Agency';
   const agencyInitials = (profile?.agencyName || 'AG')
     .split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'AG';
-  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[profile.agencyType] || profile.agencyType) : 'Agency';
+  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[getAgencyTypeKey(profile.agencyType)] || profile.agencyType) : 'Agency';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
@@ -611,13 +618,9 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         return;
       }
 
-      const statusClass = statusClassMap[inc.status] || inc.status;
-      const isPending = inc.status === 'pending';
-      const innerHtml = isPending ? '<div class="pulse" style="color: var(--status-red);"></div>' : '';
-
       const icon = L.divIcon({
-        html: `<div class="irms-marker ${statusClass}">${innerHtml}</div>`,
-        className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+        html: buildAgencyIncidentMarkerHtml(inc.type, inc.status),
+        className: '', iconSize: [40, 40], iconAnchor: [20, 20],
       });
 
       const mapCardData: IncidentMapCardData = {
@@ -634,7 +637,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         .addTo(map)
         .bindTooltip(buildIncidentMapTooltipHtml(mapCardData), {
           direction: 'top',
-          offset: [0, -13],
+          offset: [0, -22],
           opacity: 1,
           className: 'irms-incident-tooltip',
         });
@@ -977,7 +980,8 @@ export function ReportsTab({
       (r.desc && r.desc.toLowerCase().includes(search.toLowerCase()));
 
     const matchesType = selectedTypes.length === 0 || selectedTypes.includes(toBeType(r.type));
-    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.status);
+    const st = r.status === 'closed' ? 'resolved' : r.status;
+    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(st);
 
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -1471,7 +1475,7 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
 function SettingsTab() {
   const isMobile = useIsMobile();
   const profile = useAgencyProfile();
-  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[profile.agencyType] || profile.agencyType) : '';
+  const typeLabel = profile?.agencyType ? (AGENCY_TYPE_LABELS[getAgencyTypeKey(profile.agencyType)] || profile.agencyType) : '';
   return (
     <div>
       <DashTopBar title="Settings" subtitle="Your agency profile" />

@@ -332,6 +332,30 @@ export function buildIncidentMarkerHtml(incidentType: string): string {
   </div>`;
 }
 
+/** Leaflet divIcon HTML for agency side — outer ring is status color (+ pulse if pending), inner icon is incident type. */
+export function buildAgencyIncidentMarkerHtml(incidentType: string, status: IncidentStatus): string {
+  const t = getIncidentType(incidentType);
+  const paths = INCIDENT_ICON_PATHS[t.id] || INCIDENT_ICON_PATHS.road_traffic_accident;
+  
+  const statusColors: Record<IncidentStatus, string> = {
+    pending: 'var(--status-red, #C8463C)',
+    in_progress: 'var(--status-amber, #B97A2A)',
+    assigned: 'var(--status-blue, #3B6FB8)',
+    resolved: 'var(--status-green, #3E8657)',
+    closed: 'var(--brand-muted, #6D6A5E)',
+  };
+  const ringColor = statusColors[status] || statusColors.pending;
+  const pulseHtml = status === 'pending' ? `<div class="pulse" style="color: var(--status-red);"></div>` : '';
+
+  return `<div class="irms-incident-marker" style="--marker-accent:${ringColor}; color:${t.color}; position:relative;">
+    ${pulseHtml}
+    <div class="irms-incident-marker__inner">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6">${paths}</svg>
+    </div>
+  </div>`;
+}
+
+
 export interface IncidentMapCardData {
   reference: string;
   incident_type: string;

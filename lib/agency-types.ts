@@ -104,14 +104,18 @@ const AGENCY_INCIDENT_TYPES: Record<string, string[]> = {
  */
 export function incidentTypesForAgency(agencyType?: string | null): string[] | null {
   if (!agencyType) return null;
-  return AGENCY_INCIDENT_TYPES[agencyType] ?? null;
+  const key = agencyType.toLowerCase().trim().replace(/[\s-]/g, '_');
+  return AGENCY_INCIDENT_TYPES[key] ?? null;
 }
 
-/** Whether an incident of `feType` is relevant to the given agency type. */
-export function isIncidentRelevant(feType: string, agencyType?: string | null): boolean {
+/** Whether an incident of `type` is relevant to the given agency type. Supports both frontend shortcodes and backend type strings. */
+export function isIncidentRelevant(type: string, agencyType?: string | null): boolean {
   const allowed = incidentTypesForAgency(agencyType);
-  return allowed ? allowed.includes(feType) : true;
+  if (!allowed) return true;
+  const feType = toFeType(type);
+  return allowed.includes(feType);
 }
+
 
 // ─── Backend incident shape (from /incidents/agencies/incidents/) ──
 
