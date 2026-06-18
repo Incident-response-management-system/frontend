@@ -4,11 +4,12 @@ import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { deleteCookie } from '@/lib/api-client';
+import { AgencyDashboardSkeleton } from '@/components/irms-shared';
 
 // Dynamic import with SSR disabled to prevent Leaflet browser-only API crashes on Next build
 const DashboardScreen = dynamic(
   () => import('@/components/irms-agency').then(mod => mod.DashboardScreen),
-  { ssr: false }
+  { ssr: false, loading: () => <AgencyDashboardSkeleton /> }
 );
 
 function DashboardContent() {
@@ -28,7 +29,7 @@ function DashboardContent() {
       'agency-login': '/auth/agency/login',
       'agency-dashboard': '/agency/dashboard',
     };
-    
+
     if (to === 'landing') {
       deleteCookie('agency_token');
       deleteCookie('agency_refresh');
@@ -42,7 +43,7 @@ function DashboardContent() {
 
 export default function AgencyDashboardPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 40, fontFamily: 'var(--font-mono)', color: 'var(--brand-ink)', background: 'var(--brand-cream)', minHeight: '100vh' }}>Loading dashboard operations...</div>}>
+    <Suspense fallback={<AgencyDashboardSkeleton />}>
       <DashboardContent />
     </Suspense>
   );

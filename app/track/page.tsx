@@ -3,17 +3,18 @@
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { TrackScreenSkeleton } from '@/components/irms-shared';
 
 // Dynamic import with SSR disabled to prevent Leaflet browser-only API crashes on Next build
 const TrackScreen = dynamic(
   () => import('@/components/irms-citizen').then(mod => mod.TrackScreen),
-  { ssr: false }
+  { ssr: false, loading: () => <TrackScreenSkeleton /> }
 );
 
 function TrackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const params = {
     ref: searchParams.get('ref') || '',
   };
@@ -43,7 +44,7 @@ function TrackContent() {
 
 export default function TrackPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 40, fontFamily: 'var(--font-mono)', color: 'var(--brand-ink)', background: 'var(--brand-cream)', minHeight: '100vh' }}>Loading tracker credentials...</div>}>
+    <Suspense fallback={<TrackScreenSkeleton />}>
       <TrackContent />
     </Suspense>
   );

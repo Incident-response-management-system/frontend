@@ -487,6 +487,109 @@ export function TableRowSkeleton({ cols = 6 }: { cols?: number }) {
   );
 }
 
+/** Skeleton for the location detail block while reverse-geocoding runs. */
+export function LocationDetailSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <Skeleton width="70%" height={20} radius={8} />
+      <Skeleton width="45%" height={13} />
+      <Skeleton width="30%" height={12} />
+    </div>
+  );
+}
+
+/** Skeleton row for a nearby-places list item. */
+export function PlaceRowSkeleton() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '12px 16px', borderBottom: '1px solid var(--brand-hairline)',
+    }}>
+      <Skeleton width={32} height={32} radius={8} style={{ flexShrink: 0 }} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <Skeleton width="60%" height={13} />
+        <Skeleton width="40%" height={11} />
+      </div>
+    </div>
+  );
+}
+
+/** Full-page skeleton for the map / report screen while the JS bundle loads. */
+export function ReportScreenSkeleton() {
+  return (
+    <div style={{ background: 'var(--brand-cream)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Nav bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '16px 20px', borderBottom: '1px solid var(--brand-hairline)',
+        flexShrink: 0,
+      }}>
+        <Skeleton width={80} height={22} radius={8} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Skeleton width={90} height={32} radius={8} />
+          <Skeleton width={32} height={32} radius={8} />
+        </div>
+      </div>
+      {/* Map area */}
+      <div className="skeleton" style={{ flex: 1, minHeight: '100vh', borderRadius: 0 }} />
+    </div>
+  );
+}
+
+/** Full-page skeleton for the agency dashboard while the JS bundle loads. */
+export function AgencyDashboardSkeleton() {
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--brand-cream)' }}>
+      {/* Sidebar */}
+      <div style={{
+        width: 248, flexShrink: 0,
+        background: 'var(--brand-white)', borderRight: '1px solid var(--brand-hairline)',
+        display: 'flex', flexDirection: 'column', padding: '20px 20px', gap: 8,
+      }}>
+        <Skeleton width={120} height={28} radius={8} style={{ marginBottom: 24 }} />
+        {[0, 1, 2, 3].map(i => (
+          <Skeleton key={i} width="100%" height={40} radius={10} />
+        ))}
+        <div style={{ marginTop: 'auto' }}>
+          <Skeleton width="100%" height={56} radius={12} />
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div style={{ flex: 1, padding: '32px 32px', display: 'flex', flexDirection: 'column', gap: 24, overflow: 'hidden' }}>
+        {/* Top bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton width={180} height={28} radius={8} />
+          <Skeleton width={100} height={36} radius={8} />
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, padding: '20px 20px' }}>
+              <Skeleton width="50%" height={11} style={{ marginBottom: 12 }} />
+              <Skeleton width="40%" height={28} radius={6} />
+            </div>
+          ))}
+        </div>
+
+        {/* Table card */}
+        <div style={{ background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 12, overflow: 'hidden', flex: 1 }}>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--brand-hairline)', display: 'flex', justifyContent: 'space-between' }}>
+            <Skeleton width={160} height={18} radius={6} />
+            <Skeleton width={120} height={32} radius={8} />
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {[0, 1, 2, 3, 4, 5].map(i => <TableRowSkeleton key={i} cols={6} />)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Full-page skeleton for the Track screen while the incident loads. */
 export function TrackScreenSkeleton() {
   return (

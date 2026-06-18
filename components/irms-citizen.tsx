@@ -32,6 +32,10 @@ import {
 
   TrackScreenSkeleton,
 
+  LocationDetailSkeleton,
+
+  PlaceRowSkeleton,
+
 } from './irms-shared';
 
 import { submitReport, trackIncident, getNearbyIncidents, checkAgencyCoverage } from '@/lib/incidents-api';
@@ -1001,10 +1005,7 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
         borderRadius: 12, padding: isMobile ? '20px' : '24px', marginBottom: 20,
       }}>
         {reverseGeocoding ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--brand-muted)' }}>
-            <Icon.clock width={20} height={20} style={{ animation: 'spin 1s linear infinite' }} />
-            <span>Resolving location...</span>
-          </div>
+          <LocationDetailSkeleton />
         ) : (
           <>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: isMobile ? 18 : 20, fontWeight: 600, marginBottom: 8, lineHeight: 1.3 }}>
@@ -1212,9 +1213,8 @@ function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGeocoding
       )}
 
       {fetchingNearbyPlaces && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--brand-muted)', marginBottom: 20, fontSize: 13 }}>
-          <Icon.clock width={16} height={16} style={{ animation: 'spin 1s linear infinite' }} />
-          <span>Finding nearby locations...</span>
+        <div style={{ marginBottom: 20 }}>
+          {[0, 1, 2].map(i => <PlaceRowSkeleton key={i} />)}
         </div>
       )}
 
@@ -4529,7 +4529,7 @@ export function TrackScreen({ navigate, params }: any) {
 
             }}>
 
-              <Icon.clock style={{ width: 24, height: 24 }} />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M3 10.5V21M21 10.5V21M6 21V10.5M18 21V10.5M9 21v-6h6v6"/><path d="M3 10.5L12 3l9 7.5"/></svg>
 
             </div>
 

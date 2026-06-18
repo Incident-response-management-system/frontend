@@ -3,11 +3,12 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { ReportScreenSkeleton } from '@/components/irms-shared';
 
 // Dynamic import with SSR disabled to prevent Leaflet browser-only API crashes on Next build
 const ReportScreen = dynamic(
   () => import('@/components/irms-citizen').then(mod => mod.ReportScreen),
-  { ssr: false }
+  { ssr: false, loading: () => <ReportScreenSkeleton /> }
 );
 
 export default function ReportPage() {

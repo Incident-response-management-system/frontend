@@ -907,13 +907,14 @@ function CitizenReportDetail({ report, onClose, navigate }: { report: Incident; 
                                 onClick={handleSubmitNote}
                                 disabled={!note.trim() || noteLoading}
                                 style={{
-                                    padding: '9px 16px', borderRadius: 8,
-                                    background: noteSent ? 'var(--status-green)' : (noteLoading || !note.trim()) ? 'var(--brand-divider)' : 'var(--brand-ink)',
-                                    color: (noteLoading || !note.trim()) ? 'var(--brand-muted)' : 'white',
-                                    fontSize: 13, fontWeight: 600, border: 'none',
+                                    padding: '9px 16px', borderRadius: 8, border: 'none',
+                                    background: noteSent ? '#3E7350' : (!note.trim() || noteLoading) ? 'transparent' : '#E84A3F',
+                                    color: noteSent ? '#ffffff' : (!note.trim() || noteLoading) ? 'var(--brand-muted)' : '#ffffff',
+                                    outline: (!note.trim() || noteLoading) ? '1.5px solid var(--brand-divider)' : 'none',
+                                    fontSize: 13, fontWeight: 600,
                                     cursor: (noteLoading || !note.trim()) ? 'not-allowed' : 'pointer',
                                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                                    transition: 'background 0.2s, color 0.2s',
+                                    transition: 'background 0.2s',
                                 }}
                             >
                                 {noteLoading ? (
