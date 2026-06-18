@@ -21,6 +21,7 @@ import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 import { haversineDistance } from '@/lib/location-dataset';
+import { PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea, DEFAULT_ZOOM, LOCATED_ZOOM, MIN_ZOOM, MAX_ZOOM } from '@/lib/geo-constants';
 
 // Real logged-in agency profile, provided by DashboardScreen and consumed by
 // the sidebar badge, top bar and settings. null until /auth/agency/me/ resolves.
@@ -569,7 +570,14 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
 
   React.useEffect(() => {
     if (!mapRef.current || mapInstance.current || !L) return;
-    const map = L.map(mapRef.current, { zoomControl: false }).setView([6.8912, 3.1720], 14);
+    const pilotBounds = getLeafletBounds(L);
+    const map = L.map(mapRef.current, {
+      zoomControl: false,
+      maxBounds: pilotBounds.pad(0.1),
+      maxBoundsViscosity: 1.0,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+    }).setView([PILOT_CENTER.lat, PILOT_CENTER.lng], DEFAULT_ZOOM);
     L.control.zoom({ position: 'topright' }).addTo(map);
 
     tileLayerRef.current = buildBaseLayer(layerType).addTo(map);
@@ -657,13 +665,11 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         const { latitude: rawLat, longitude: rawLng, accuracy } = position.coords;
         toast.dismiss('locate-toast');
 
-        let latitude = rawLat;
-        let longitude = rawLng;
-        const dist = haversineDistance(latitude, longitude, 6.8932, 3.1721);
-        if (dist > 80000) {
-          latitude = 6.8932 + (Math.random() - 0.5) * 0.002;
-          longitude = 3.1721 + (Math.random() - 0.5) * 0.002;
-          toast.success('Location simulated inside pilot area (outside coverage zone).');
+        const clamped = clampToPilotArea(rawLat, rawLng);
+        const latitude = clamped.lat;
+        const longitude = clamped.lng;
+        if (clamped.wasClamped) {
+          toast.success('Location adjusted to pilot area (Redemption Camp).');
         } else {
           toast.success('Location detected successfully!');
         }
@@ -671,7 +677,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         if (!mapInstance.current || !L) return;
         const map = mapInstance.current;
 
-        map.setView([latitude, longitude], 15);
+        map.setView([latitude, longitude], LOCATED_ZOOM);
 
         if (gpsMarkerRef.current) gpsMarkerRef.current.remove();
         if (gpsCircleRef.current) gpsCircleRef.current.remove();
@@ -708,24 +714,36 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     const toastId = toast.loading(`Searching for "${searchQuery}"...`);
 
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+      // Restrict search to Ogun State / Nigeria
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ' Ogun State Nigeria')}&limit=5&countrycode=NG&addressdetails=1`);
       const data = await response.json();
 
-      if (data && data.length > 0) {
-        const { lat, lon, display_name } = data[0];
-        const latitude = parseFloat(lat);
-        const longitude = parseFloat(lon);
+      // Find first result inside pilot area bounds
+      const match = data?.find((r: any) => {
+        const lat = parseFloat(r.lat);
+        const lon = parseFloat(r.lon);
+        return isInsidePilotArea(lat, lon);
+      }) || (data && data.length > 0 ? data[0] : null);
+
+      if (match) {
+        const latitude = parseFloat(match.lat);
+        const longitude = parseFloat(match.lon);
+
+        // Clamp to bounds if result is outside
+        const clamped = clampToPilotArea(latitude, longitude);
 
         toast.dismiss(toastId);
-        toast.success(`Found: ${display_name.split(',')[0]}`);
+        if (clamped.wasClamped) {
+          toast.info('Result outside pilot area — centered on Redemption Camp.');
+        } else {
+          toast.success(`Found: ${(match.display_name || '').split(',')[0]}`);
+        }
 
         if (!mapInstance.current || !L) return;
-        const map = mapInstance.current;
-
-        map.setView([latitude, longitude], 15);
+        mapInstance.current.setView([clamped.lat, clamped.lng], LOCATED_ZOOM);
       } else {
         toast.dismiss(toastId);
-        toast.error('Location not found.');
+        toast.error('Location not found in the pilot area.');
       }
     } catch (err) {
       toast.dismiss(toastId);

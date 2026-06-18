@@ -34,6 +34,7 @@ import {
 
 import { submitReport, trackIncident, getNearbyIncidents } from '@/lib/incidents-api';
 import { searchLocalDataset, getNearbyLocations, haversineDistance, CampLocation } from '@/lib/location-dataset';
+import { PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea, DEFAULT_ZOOM, LOCATED_ZOOM, MIN_ZOOM, MAX_ZOOM } from '@/lib/geo-constants';
 
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 
@@ -1641,7 +1642,14 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
     if (!mapRef.current || mapInstance.current || !L) return;
 
-    const map = L.map(mapRef.current, { zoomControl: false }).setView([6.8932, 3.1721], 15);
+    const pilotBounds = getLeafletBounds(L);
+    const map = L.map(mapRef.current, {
+      zoomControl: false,
+      maxBounds: pilotBounds.pad(0.1),
+      maxBoundsViscosity: 1.0,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+    }).setView([PILOT_CENTER.lat, PILOT_CENTER.lng], DEFAULT_ZOOM);
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -1658,6 +1666,12 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
       const { lat, lng } = e.latlng;
       console.log('Map clicked at:', lat, lng);
+
+      // Block pin placement outside pilot area
+      if (!isInsidePilotArea(lat, lng)) {
+        toast.error('Outside pilot area — tap inside Redemption Camp.');
+        return;
+      }
 
       setPinLocation({ lat, lng });
 
@@ -1772,13 +1786,11 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
           const { latitude: rawLat, longitude: rawLng, accuracy } = position.coords;
           toast.dismiss('gps-location-toast');
 
-          let latitude = rawLat;
-          let longitude = rawLng;
-          const dist = haversineDistance(latitude, longitude, 6.8932, 3.1721);
-          if (dist > 80000) {
-            latitude = 6.8932 + (Math.random() - 0.5) * 0.002;
-            longitude = 3.1721 + (Math.random() - 0.5) * 0.002;
-            toast.success('Centered on Redemption Camp (outside coverage zone).');
+          const clamped = clampToPilotArea(rawLat, rawLng);
+          const latitude = clamped.lat;
+          const longitude = clamped.lng;
+          if (clamped.wasClamped) {
+            toast.success('Location adjusted to pilot area (Redemption Camp).');
           } else {
             toast.success('Location found!');
           }
@@ -1789,7 +1801,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
           console.log('Setting map view to user location:', latitude, longitude);
           // Center map on user's location
-          map.setView([latitude, longitude], 16);
+          map.setView([latitude, longitude], LOCATED_ZOOM);
 
           // Add user location marker with popup
           if (gpsMarkerRef.current) gpsMarkerRef.current.remove();
@@ -1987,31 +1999,25 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
         toast.dismiss('locate-toast');
 
-        let latitude = rawLat;
-        let longitude = rawLng;
-        const dist = haversineDistance(latitude, longitude, 6.8932, 3.1721);
-        if (dist > 80000) {
-          latitude = 6.8932 + (Math.random() - 0.5) * 0.002;
-          longitude = 3.1721 + (Math.random() - 0.5) * 0.002;
-          toast.success('Location simulated inside pilot area (outside coverage zone).');
+        const clamped = clampToPilotArea(rawLat, rawLng);
+        const latitude = clamped.lat;
+        const longitude = clamped.lng;
+        if (clamped.wasClamped) {
+          toast.success('Location adjusted to pilot area (Redemption Camp).');
         } else {
           toast.success('Location detected successfully!');
         }
 
-
-
         if (!mapInstance.current || !L) return;
 
         const map = mapInstance.current;
-
-
 
         // Update user GPS location state
         setUserGpsLocation({ lat: latitude, lng: longitude, accuracy });
         setLocationPermissionGranted(true);
         setLocationPermissionDenied(false);
 
-        map.setView([latitude, longitude], 16);
+        map.setView([latitude, longitude], LOCATED_ZOOM);
 
 
 
@@ -2209,30 +2215,31 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
       }
 
       // LAYER 2: External geocoding if no local results
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&countrycode=NG`);
+      // Restrict search to Ogun State / Nigeria pilot area
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery + ' Ogun State Nigeria')}&limit=5&countrycode=NG&addressdetails=1`);
 
       const data = await response.json();
 
+      // Prefer a result inside the pilot bounds
+      const match = data?.find((r: any) => isInsidePilotArea(parseFloat(r.lat), parseFloat(r.lon)))
+        || (data && data.length > 0 ? data[0] : null);
 
+      if (match) {
 
-      if (data && data.length > 0) {
-
-        const { lat, lon, display_name } = data[0];
+        const { lat, lon, display_name } = match;
 
         const latitude = parseFloat(lat);
 
         const longitude = parseFloat(lon);
 
-        // Validate that result is in Nigeria
-        const address = (display_name || '').toLowerCase();
-        const inNigeria = address.includes('nigeria') || address.includes('ogun') || address.includes('redemption') || address.includes('mowe') || address.includes('ibafo');
-        const countryCode = (data[0].address?.country_code || '').toLowerCase();
-        const correctCountry = !countryCode || countryCode === 'ng';
+        // Clamp to pilot area if outside
+        const clamped = clampToPilotArea(latitude, longitude);
 
-        if (!inNigeria || !correctCountry) {
+        if (clamped.wasClamped) {
           toast.dismiss(toastId);
-          toast.error('Location not found in Nigeria. Try a different search term.');
+          toast.info('Result outside pilot area — showing Redemption Camp.');
           setSearching(false);
+          if (mapInstance.current) mapInstance.current.setView([clamped.lat, clamped.lng], LOCATED_ZOOM);
           return;
         }
 
@@ -2248,7 +2255,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
 
 
-        map.setView([latitude, longitude], 16);
+        map.setView([latitude, longitude], LOCATED_ZOOM);
 
 
 
