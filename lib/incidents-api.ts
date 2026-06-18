@@ -158,7 +158,7 @@ function mapTrackResponse(data: Record<string, unknown>): TrackResponse {
     : [];
 
   return {
-    ...(data as TrackResponse),
+    ...(data as unknown as TrackResponse),
     responding_agency: agency
       ? {
           name: agency.agency_name || agency.name || '',

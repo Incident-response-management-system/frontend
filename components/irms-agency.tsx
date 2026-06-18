@@ -10,11 +10,13 @@ import {
   getIncidentType,
   Incident,
   IncidentStatus,
+  buildIncidentMapTooltipHtml,
+  type IncidentMapCardData,
 } from './irms-shared';
 import { FormInput } from './irms-auth';
 import { ThemeToggle } from './ThemeToggle';
 import { fetchAgencyIncidents, updateIncidentStatus, fetchAgencyStats, type IncidentTab } from '@/lib/agency-api';
-import { toBeType, toFeType, isIncidentRelevant, incidentTypesForAgency } from '@/lib/agency-types';
+import { toBeType, toFeType, isIncidentRelevant, incidentTypesForAgency, mapBackendIncident } from '@/lib/agency-types';
 import { getAgencyProfile, type AgencyUser } from '@/lib/auth-api';
 import { useRealtimeEvents } from '@/hooks/use-realtime';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
@@ -584,12 +586,50 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
+    const statusClassMap: Record<string, string> = {
+      pending: 'received',
+      in_progress: 'review',
+      assigned: 'assigned',
+      resolved: 'resolved',
+      closed: 'resolved',
+    };
+
     visibleIncidents.forEach(inc => {
+      const lat = parseFloat(inc.lat as any);
+      const lng = parseFloat(inc.lng as any);
+      if (isNaN(lat) || isNaN(lng)) {
+        console.warn(`Skipping incident ${inc.ref} due to invalid coordinates:`, inc.lat, inc.lng);
+        return;
+      }
+
+      const statusClass = statusClassMap[inc.status] || inc.status;
+      const isPending = inc.status === 'pending';
+      const innerHtml = isPending ? '<div class="pulse" style="color: var(--status-red);"></div>' : '';
+
       const icon = L.divIcon({
-        html: `<div class="irms-marker ${inc.status}"></div>`,
-        className: '', iconSize: [26, 26], iconAnchor: [13, 26],
+        html: `<div class="irms-marker ${statusClass}">${innerHtml}</div>`,
+        className: '', iconSize: [26, 26], iconAnchor: [13, 13],
       });
-      const marker = L.marker([inc.lat, inc.lng], { icon }).addTo(map);
+
+      const mapCardData: IncidentMapCardData = {
+        reference: inc.ref,
+        incident_type: toBeType(inc.type),
+        incident_type_display: getIncidentType(inc.type).label,
+        status: inc.status,
+        location_name: inc.location,
+        description: inc.desc,
+        created_at: inc.reportedAt,
+      };
+
+      const marker = L.marker([lat, lng], { icon })
+        .addTo(map)
+        .bindTooltip(buildIncidentMapTooltipHtml(mapCardData), {
+          direction: 'top',
+          offset: [0, -13],
+          opacity: 1,
+          className: 'irms-incident-tooltip',
+        });
+
       marker.on('click', () => onViewIncident(inc));
       markersRef.current.push(marker);
     });
@@ -837,9 +877,9 @@ function FilterDropdown({ label, options, selected, onToggle }: {
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }} />
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1010 }} />
           <div style={{
-            position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 200,
+            position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 1020,
             background: 'var(--brand-white)', border: '1px solid var(--brand-hairline)', borderRadius: 10,
             boxShadow: '0 8px 24px rgba(0,0,0,0.08)', minWidth: 200, maxWidth: 'calc(100vw - 24px)', padding: 6,
           }}>
@@ -1329,18 +1369,21 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
     // onIncidentCreated
     (newInc) => {
       setIncidents(prev => {
-        if (prev.some(x => x.ref === newInc.ref)) return prev;
-        return [newInc, ...prev];
+        const mapped = mapBackendIncident(newInc);
+        if (prev.some(x => x.ref === mapped.ref)) return prev;
+        return [mapped, ...prev];
       });
     },
     // onIncidentUpdated
     (updatedInc) => {
-      setIncidents(prev =>
-        prev.map(x => x.ref === updatedInc.ref ? { ...x, ...updatedInc } : x)
-      );
+      setIncidents(prev => {
+        const mapped = mapBackendIncident(updatedInc);
+        return prev.map(x => x.ref === mapped.ref ? { ...x, ...mapped } : x);
+      });
       setActiveIncident(prev => {
-        if (prev && prev.ref === updatedInc.ref) {
-          return { ...prev, ...updatedInc };
+        const mapped = mapBackendIncident(updatedInc);
+        if (prev && prev.ref === mapped.ref) {
+          return { ...prev, ...mapped };
         }
         return prev;
       });
