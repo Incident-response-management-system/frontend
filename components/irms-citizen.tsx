@@ -2336,6 +2336,11 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
     if (!selectedType || !pinLocation) return;
 
+    if (!description.trim()) {
+      toast.error('Description is required. Please describe the incident.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -3117,7 +3122,7 @@ function ReportForm({ pinLocation, selectedType, setSelectedType, description, s
 
           <label style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)' }}>
 
-            Describe the incident
+            Describe the incident <span style={{ color: 'var(--status-red)', marginLeft: 2 }}>*</span>
 
           </label>
 
