@@ -53,12 +53,12 @@
    Only the variable *values* change; every component that uses
    var(--brand-*) / var(--status-*) recolors automatically. */
 .dark {
-    --brand-cream: #0E0F13;      /* page background */
+    --brand-cream: #14161C;      /* page background */
     --brand-ink: #F1F2F4;        /* primary text */
-    --brand-white: #181A20;      /* cards / elevated surfaces (replaces literal 'white') */
-    --brand-surface-alt: #202329;/* subtle alt surface / chips */
-    --brand-hairline: #262A31;   /* faint borders */
-    --brand-divider: #363B44;    /* stronger borders */
+    --brand-white: #1C1F26;      /* cards / elevated surfaces (replaces literal 'white') */
+    --brand-surface-alt: #262A33;/* subtle alt surface / chips */
+    --brand-hairline: #2C323D;   /* faint borders */
+    --brand-divider: #3D4452;    /* stronger borders */
     --brand-muted: #9AA0AB;      /* secondary text */
     --brand-accent: #D4B88E;     /* gold, slightly brighter for dark */
 
@@ -79,9 +79,9 @@
     --status-green-bg: rgba(93, 163, 116, 0.16);
     --status-green-bd: rgba(93, 163, 116, 0.38);
 
-    --surface-overlay: rgba(14, 15, 19, 0.82);
-    --scrim: rgba(0, 0, 0, 0.55);
-    --shadow-color: rgba(0, 0, 0, 0.5);
+    --surface-overlay: rgba(20, 22, 28, 0.85);
+    --scrim: rgba(0, 0, 0, 0.65);
+    --shadow-color: rgba(0, 0, 0, 0.6);
     color-scheme: dark;
 }
 
@@ -176,27 +176,27 @@ body {
 .irms-incident-marker__inner {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
-    background: #1c1c1c;
-    border: 2.5px solid #ffffff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0 0 2px var(--marker-accent, #E84A3F);
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #ffffff;
+    box-shadow: 0 3px 12px rgba(40, 35, 20, 0.18), 0 0 0 2px var(--marker-accent, #E84A3F);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: var(--marker-accent, #E84A3F);
 }
 
 .leaflet-tooltip.irms-incident-tooltip {
-    background: rgba(11, 13, 19, 0.94);
+    background: var(--brand-white);
     border: 1px solid var(--brand-divider);
     border-radius: 10px;
     padding: 0;
-    color: #fff;
+    color: var(--brand-ink);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .leaflet-tooltip.irms-incident-tooltip::before {
-    border-top-color: rgba(11, 13, 19, 0.94);
+    border-top-color: var(--brand-white);
 }
 
 .irms-incident-tooltip__inner {
@@ -224,7 +224,7 @@ body {
     align-items: center;
     font-size: 12px;
     font-weight: 600;
-    color: #fff !important;
+    color: var(--brand-ink) !important;
     text-decoration: underline;
     text-underline-offset: 3px;
 }

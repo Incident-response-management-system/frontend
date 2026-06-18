@@ -1438,7 +1438,7 @@ export function ReportScreen({ navigate }: Omit<ScreenProps, 'user' | 'onSignOut
 
 
 
-  const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
+  const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('streets');
 
   const [searchQuery, setSearchQuery] = React.useState('');
 

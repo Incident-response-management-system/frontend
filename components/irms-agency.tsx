@@ -536,7 +536,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
   const gpsMarkerRef = React.useRef<any>(null);
   const gpsCircleRef = React.useRef<any>(null);
 
-  const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
+  const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('streets');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [searching, setSearching] = React.useState(false);
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
