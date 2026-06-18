@@ -292,7 +292,13 @@ export const SAMPLE_INCIDENTS: Incident[] = [
 ];
 
 export function getIncidentType(id: string): IncidentType {
-  return INCIDENT_TYPES.find(t => t.id === id) || INCIDENT_TYPES[0];
+  const normalizedId = id === 'rta' ? 'road_traffic_accident' :
+                       id === 'missing' ? 'missing_person' :
+                       id === 'civil' ? 'civil_disturbance' :
+                       id === 'medical' ? 'medical_emergency' :
+                       id === 'fire' ? 'fire_outbreak' :
+                       id;
+  return INCIDENT_TYPES.find(t => t.id === normalizedId || t.id === id) || INCIDENT_TYPES[0];
 }
 
 // SVG path markup for Leaflet divIcon markers (matches Icon.* glyphs above).
