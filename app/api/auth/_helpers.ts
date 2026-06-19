@@ -26,6 +26,13 @@ export async function djangoFetch(path: string, init: RequestInit) {
 }
 
 export async function proxyError(res: Response) {
-  const body = await res.text().catch(() => '{}');
-  return NextResponse.json(JSON.parse(body || '{}'), { status: res.status });
+  const body = await res.text().catch(() => '');
+  let json: unknown;
+  try {
+    json = JSON.parse(body || '{}');
+  } catch {
+    // Backend returned non-JSON (HTML error page, gateway error, etc.)
+    json = { detail: 'Service temporarily unavailable. Please try again.' };
+  }
+  return NextResponse.json(json, { status: res.status });
 }

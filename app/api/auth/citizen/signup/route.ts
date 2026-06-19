@@ -18,6 +18,8 @@ export async function POST(req: NextRequest) {
     account_type: data.account_type,
     user: data.user,
   });
-  response.cookies.set('citizen_refresh', data.refresh, cookieOpts(30 * 86400));
+  if (data.refresh) {
+    response.cookies.set('citizen_refresh', data.refresh, cookieOpts(30 * 86400));
+  }
   return response;
 }

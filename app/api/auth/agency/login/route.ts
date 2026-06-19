@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
     account_type: data.account_type,
     agency: data.agency,
   });
-  response.cookies.set('agency_refresh', data.refresh, cookieOpts(7 * 86400));
+  if (data.refresh) {
+    response.cookies.set('agency_refresh', data.refresh, cookieOpts(7 * 86400));
+  }
   return response;
 }
