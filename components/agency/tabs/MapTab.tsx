@@ -258,16 +258,6 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       marker.on('click', () => onViewIncident(inc));
       markersRef.current.push(marker);
     });
-
-    if (shouldBypassLock() && visibleIncidents.length > 0) {
-      const validCoords = visibleIncidents
-        .map(inc => [parseFloat(inc.lat as any), parseFloat(inc.lng as any)])
-        .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
-      if (validCoords.length > 0) {
-        const bounds = L.latLngBounds(validCoords as any);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-      }
-    }
   }, [visibleIncidents]);
 
   // Update map layer dynamically
