@@ -7,7 +7,7 @@ This document outlines the division of implementation tasks between **SAMKIEL** 
 ## 👤 SAMKIEL — Core Operations (More agency features)
 
 ### Phase 1: Architecture & Foundations
-- `[x]` Scaffold Next.js 16 application structure (pages, components, styles, middleware).
+- `[x]` Scaffold Next.js 16+ application structure (pages, components, styles, middleware).
 - `[x]` Configure TailwindCSS & `shadcn/ui` theme variables (Warm Cream, Deep Ink, Dashboard Paper, and semantic states).
 - `[x]` Setup Axios / Fetch clients with custom configurations for the remote Backend URL.
 - `[x]` Secure agency routing using Next.js Middleware.
