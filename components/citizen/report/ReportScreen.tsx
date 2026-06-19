@@ -532,15 +532,28 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
         },
         (error) => {
           toast.dismiss('gps-location-toast');
-          console.error('Geolocation permission denied or error:', error);
-          setLocationPermissionDenied(true);
-          setLocationPermissionGranted(false);
-          // Don't show error toast - just use default map center
+          console.error('Geolocation error:', error.code, error.message);
+          if (error.code === 1) {
+            // PERMISSION_DENIED — browser has stored block, can't re-prompt from JS
+            setLocationPermissionDenied(true);
+            setLocationPermissionGranted(false);
+            toast.error('Location access blocked. Tap the map to pin your location, or reset permissions in your browser settings.', { duration: 6000 });
+          } else if (error.code === 2) {
+            // POSITION_UNAVAILABLE — hardware/network issue
+            setLocationPermissionDenied(false);
+            setLocationPermissionGranted(false);
+            toast.error('GPS signal unavailable. Tap the map to set your location manually.', { duration: 5000 });
+          } else {
+            // TIMEOUT (code 3) — took too long
+            setLocationPermissionDenied(false);
+            setLocationPermissionGranted(false);
+            toast.error('Location timed out. Tap the map to pin your location or try again.', { duration: 5000 });
+          }
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
+          timeout: 15000,
+          maximumAge: 30000,
         }
       );
     } else {
@@ -634,7 +647,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
 
 
-  const locateUser = () => {
+  const locateUser = async () => {
 
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
 
@@ -644,7 +657,18 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
     }
 
-
+    // Check permission state before requesting — avoids silent fail on pre-blocked browsers
+    if (typeof navigator.permissions !== 'undefined') {
+      try {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state === 'denied') {
+          toast.error('Location access is blocked. Open your browser settings, find this site under Permissions, and set Location to "Allow".', { duration: 8000 });
+          return;
+        }
+      } catch {
+        // permissions API not available — fall through to getCurrentPosition
+      }
+    }
 
     toast.loading('Locating your position...', { id: 'locate-toast' });
 
@@ -807,11 +831,17 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
         toast.dismiss('locate-toast');
 
-        toast.error(`Unable to retrieve location: ${error.message}`);
+        if (error.code === 1) {
+          toast.error('Location access blocked. Open browser settings and set Location to "Allow" for this site.', { duration: 7000 });
+        } else if (error.code === 2) {
+          toast.error('GPS signal unavailable. Move to an open area or tap the map to set your location.', { duration: 5000 });
+        } else {
+          toast.error('Location request timed out. Try again or tap the map to pin your location.', { duration: 5000 });
+        }
 
       },
 
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
 
     );
 

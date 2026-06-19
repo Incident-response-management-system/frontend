@@ -238,10 +238,22 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
     tileLayerRef.current = buildBaseLayer(layerType).addTo(map);
   }, [layerType]);
 
-  const locateUser = () => {
+  const locateUser = async () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser.');
       return;
+    }
+
+    if (typeof navigator.permissions !== 'undefined') {
+      try {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state === 'denied') {
+          toast.error('Location access is blocked. Open browser settings and allow location for this site.', { duration: 7000 });
+          return;
+        }
+      } catch {
+        // permissions API not available, fall through
+      }
     }
 
     toast.loading('Locating your position...', { id: 'locate-toast' });
@@ -286,9 +298,15 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       },
       (error) => {
         toast.dismiss('locate-toast');
-        toast.error(`Unable to retrieve location: ${error.message}`);
+        if (error.code === 1) {
+          toast.error('Location access blocked. Open browser settings and set Location to "Allow" for this site.', { duration: 7000 });
+        } else if (error.code === 2) {
+          toast.error('GPS signal unavailable. Try moving to an open area.', { duration: 5000 });
+        } else {
+          toast.error('Location request timed out. Please try again.', { duration: 5000 });
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
   };
 
