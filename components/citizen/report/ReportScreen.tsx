@@ -1325,31 +1325,51 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
 
 
-      {/* Radius filter — preset buttons, top-left of map */}
+      {/* Radius filter — bottom-center floating pill */}
       <div style={{
-        position: 'absolute', top: 12, left: 12, zIndex: 1000,
-        display: 'flex', gap: 6,
+        position: 'absolute',
+        bottom: isMobile ? 100 : 88,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        background: 'rgba(11,13,19,0.82)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 999,
+        padding: '3px 4px',
+        gap: 2,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
       }}>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: 'rgba(255,255,255,0.35)',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          paddingLeft: 8,
+          paddingRight: 4,
+          whiteSpace: 'nowrap',
+        }}>
+          Radius
+        </span>
         {[1, 5, 10, 25].map(r => (
           <button
             key={r}
             type="button"
             onClick={() => setNearbyRadius(r)}
             style={{
-              padding: '5px 11px',
-              borderRadius: 20,
-              border: nearbyRadius === r
-                ? '1.5px solid #C5A880'
-                : '1px solid rgba(255,255,255,0.18)',
-              background: nearbyRadius === r
-                ? 'rgba(197,168,128,0.22)'
-                : 'rgba(11,13,19,0.80)',
-              backdropFilter: 'blur(8px)',
-              color: nearbyRadius === r ? '#C5A880' : 'rgba(255,255,255,0.75)',
-              fontSize: 12,
+              padding: isMobile ? '5px 10px' : '5px 13px',
+              borderRadius: 999,
+              border: 'none',
+              background: nearbyRadius === r ? '#C5A880' : 'transparent',
+              color: nearbyRadius === r ? '#1a1409' : 'rgba(255,255,255,0.65)',
+              fontSize: isMobile ? 11 : 12,
               fontWeight: nearbyRadius === r ? 700 : 500,
               cursor: 'pointer',
-              transition: 'all 0.18s ease',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
             }}
           >
             {r}km
