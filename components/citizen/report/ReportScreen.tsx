@@ -143,6 +143,10 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
   const [selectedIncident, setSelectedIncident] = React.useState<any>(null);
   const incidentMarkersRef = React.useRef<any>(null);
 
+  // Radius filter for nearby incidents
+  const [nearbyRadius, setNearbyRadius] = React.useState<number>(10);
+  const radiusCircleRef = React.useRef<any>(null);
+
   // State for recent reports
   const [recentReports, setRecentReports] = React.useState<string[]>([]);
 
@@ -561,14 +565,13 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
   // Abstracted fetchNearbyIncidents to be reusable
   const fetchNearbyIncidents = React.useCallback(async () => {
     try {
-      // Use user's GPS location if available, otherwise use default camp coordinates
       const lat = userGpsLocation?.lat || pinLocation?.lat || 6.8932;
       const lng = userGpsLocation?.lng || pinLocation?.lng || 3.1721;
 
-      const response = await getNearbyIncidents(lat, lng, 10); // 10km radius
+      const response = await getNearbyIncidents(lat, lng, nearbyRadius);
       if (response.success && response.results) {
         setNearbyIncidents(response.results);
-        // Add markers to map
+
         if (mapInstance.current && L) {
           const map = mapInstance.current;
 
@@ -602,12 +605,24 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
             markers.push(marker);
           });
           incidentMarkersRef.current = markers;
+
+          // Draw / update radius coverage circle
+          if (radiusCircleRef.current) radiusCircleRef.current.remove();
+          radiusCircleRef.current = L.circle([lat, lng], {
+            radius: nearbyRadius * 1000,
+            color: '#C5A880',
+            fillColor: '#C5A880',
+            fillOpacity: 0.06,
+            weight: 1.5,
+            dashArray: '6, 5',
+            interactive: false,
+          }).addTo(map);
         }
       }
     } catch (error) {
-      // Silent fail - incident markers are optional
+      // Silent fail — incident markers are optional
     }
-  }, [userGpsLocation, pinLocation]);
+  }, [userGpsLocation, pinLocation, nearbyRadius]);
 
   // Fetch nearby incidents on map load, then keep them fresh automatically.
   React.useEffect(() => {
@@ -1309,6 +1324,38 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
       </div>
 
 
+
+      {/* Radius filter — preset buttons, top-left of map */}
+      <div style={{
+        position: 'absolute', top: 12, left: 12, zIndex: 1000,
+        display: 'flex', gap: 6,
+      }}>
+        {[1, 5, 10, 25].map(r => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setNearbyRadius(r)}
+            style={{
+              padding: '5px 11px',
+              borderRadius: 20,
+              border: nearbyRadius === r
+                ? '1.5px solid #C5A880'
+                : '1px solid rgba(255,255,255,0.18)',
+              background: nearbyRadius === r
+                ? 'rgba(197,168,128,0.22)'
+                : 'rgba(11,13,19,0.80)',
+              backdropFilter: 'blur(8px)',
+              color: nearbyRadius === r ? '#C5A880' : 'rgba(255,255,255,0.75)',
+              fontSize: 12,
+              fontWeight: nearbyRadius === r ? 700 : 500,
+              cursor: 'pointer',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            {r}km
+          </button>
+        ))}
+      </div>
 
       {/* Legend */}
 
