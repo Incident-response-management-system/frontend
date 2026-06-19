@@ -227,7 +227,6 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
       const lat = parseFloat(inc.lat as any);
       const lng = parseFloat(inc.lng as any);
       if (isNaN(lat) || isNaN(lng)) {
-        console.warn(`Skipping incident ${inc.ref} due to invalid coordinates:`, inc.lat, inc.lng);
         return;
       }
 
