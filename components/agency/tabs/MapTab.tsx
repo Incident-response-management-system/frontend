@@ -106,6 +106,9 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
   const tileLayerRef = React.useRef<any>(null);
   const gpsMarkerRef = React.useRef<any>(null);
   const gpsCircleRef = React.useRef<any>(null);
+  const agencyMarkerRef = React.useRef<any>(null);
+  // Prevents GPS from overriding the agency-location initial view
+  const initialViewSet = React.useRef(false);
 
   const [layerType, setLayerType] = React.useState<'satellite' | 'streets'>('satellite');
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -151,12 +154,20 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
 
     mapInstance.current = map;
 
-    // Auto-detect user location when the map tab is first opened
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+    // Center on the agency's registered location if available.
+    // Fall back to browser GPS, then PILOT_CENTER.
+    if (profile?.lat != null && profile?.lng != null) {
+      const clamped = clampToPilotArea(profile.lat, profile.lng);
+      map.setView([clamped.lat, clamped.lng], LOCATED_ZOOM);
+      initialViewSet.current = true;
+      _placeAgencyMarker(map, clamped.lat, clamped.lng);
+    } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          if (initialViewSet.current) return;
           const clamped = clampToPilotArea(position.coords.latitude, position.coords.longitude);
           map.setView([clamped.lat, clamped.lng], LOCATED_ZOOM);
+          initialViewSet.current = true;
         },
         () => { /* silent fail — map stays at PILOT_CENTER */ },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
@@ -165,6 +176,35 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
 
     return () => { map.remove(); mapInstance.current = null; };
   }, []);
+
+  // Place a distinct "home base" marker at the agency's registered coordinates.
+  function _placeAgencyMarker(map: any, lat: number, lng: number) {
+    if (agencyMarkerRef.current) agencyMarkerRef.current.remove();
+    const icon = L.divIcon({
+      html: `<div style="width:18px;height:18px;border-radius:50%;background:var(--brand-ink);border:3px solid var(--brand-cream);box-shadow:0 0 0 2px var(--brand-ink);"></div>`,
+      className: '',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    });
+    agencyMarkerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000 })
+      .addTo(map)
+      .bindTooltip(`<strong>${profile?.agencyName ?? 'Your agency'}</strong><br>Registered location`, {
+        direction: 'top', offset: [0, -12], opacity: 1,
+      });
+  }
+
+  // If profile loads after the map is already initialised (async fetch),
+  // centre on the agency location then — but only if we haven't set the
+  // initial view yet (i.e. GPS didn't beat us to it).
+  React.useEffect(() => {
+    if (!mapInstance.current || !L || initialViewSet.current) return;
+    if (profile?.lat == null || profile?.lng == null) return;
+    const clamped = clampToPilotArea(profile.lat, profile.lng);
+    mapInstance.current.setView([clamped.lat, clamped.lng], LOCATED_ZOOM);
+    initialViewSet.current = true;
+    _placeAgencyMarker(mapInstance.current, clamped.lat, clamped.lng);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.lat, profile?.lng]);
 
   // Dynamically redraw incident markers when live coordinate data updates
   React.useEffect(() => {
