@@ -45,7 +45,7 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
   ];
   const handleNav = (id: string) => { onTabChange(id); if (isTablet) setMobileOpen(false); };
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--brand-cream)', color: 'var(--brand-ink)' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', background: 'var(--brand-cream)', color: 'var(--brand-ink)' }}>
       {/* Backdrop (drawer mode only) */}
       {isTablet && mobileOpen && (
         <div onClick={() => setMobileOpen(false)} style={{
@@ -73,8 +73,8 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
         display: 'flex', flexDirection: 'column',
         transition: isTablet ? 'transform 0.25s ease' : 'width 0.2s ease',
         ...(isTablet
-          ? { position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 2000, transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)' }
-          : { position: 'sticky', top: 0, height: '100vh', zIndex: 100 }),
+          ? { position: 'fixed', top: 0, left: 0, height: '100dvh', zIndex: 2000, transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)' }
+          : { height: '100dvh', zIndex: 100, overflowY: 'auto' }),
       }}>
         <div style={{ padding: drawerCollapsed ? '20px 16px' : '20px 20px', borderBottom: '1px solid var(--brand-hairline)' }}>
           {drawerCollapsed ? (
@@ -159,8 +159,8 @@ export function DashboardShell({ navigate, currentTab, children, onTabChange }: 
         </div>
       </aside>
 
-      {/* MAIN */}
-      <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+      {/* MAIN — scrolls independently while the sidebar stays fixed */}
+      <main style={{ flex: 1, minWidth: 0, height: '100dvh', overflowY: 'auto' }}>{children}</main>
     </div>
   );
 }
