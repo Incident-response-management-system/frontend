@@ -59,6 +59,7 @@ export async function citizenSignup(
 
   const data: AuthResponse = await res.json();
   setMemoryToken('citizen', data.access);
+  if (data.access) setCookie('citizen_token', data.access);
   return data;
 }
 
@@ -79,6 +80,7 @@ export async function citizenLogin(
 
   const data: AuthResponse = await res.json();
   setMemoryToken('citizen', data.access);
+  if (data.access) setCookie('citizen_token', data.access);
   return data;
 }
 
