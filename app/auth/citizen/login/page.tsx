@@ -23,6 +23,7 @@ export default function CitizenLoginPage() {
       'agency-signup': '/auth/agency/signup',
       'agency-login': '/auth/agency/login',
       'agency-dashboard': '/agency/dashboard',
+      'citizen-forgot': '/auth/citizen/forgot',
     };
     let path = routeMap[to] || '/landing';
     if (Object.keys(params).length > 0) {

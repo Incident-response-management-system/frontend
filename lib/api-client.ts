@@ -70,6 +70,24 @@ export async function extractApiError(res: Response, fallback: string): Promise<
   }
 }
 
+// ─── In-memory token store ──────────────────────────────────────────────────
+// Access tokens live here after login. Refresh tokens are in HttpOnly cookies
+// managed by Next.js API routes — JS can never read or steal them.
+const _tokens: Record<string, string> = {};
+
+export function setMemoryToken(type: 'agency' | 'citizen', token: string) {
+  _tokens[type] = token;
+}
+
+export function getMemoryToken(type: 'agency' | 'citizen'): string | null {
+  return _tokens[type] || null;
+}
+
+export function clearMemoryToken(type?: 'agency' | 'citizen') {
+  if (type) delete _tokens[type];
+  else { delete _tokens.agency; delete _tokens.citizen; }
+}
+
 // Helper to get cookies in browser/server context
 export function getCookie(name: string): string | null {
   if (typeof window === 'undefined') return null;
@@ -85,7 +103,8 @@ export function setCookie(name: string, value: string, days = 7) {
   const date = new Date();
   date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
   const expires = `; expires=${date.toUTCString()}`;
-  document.cookie = `${name}=${value || ''}${expires}; path=/; SameSite=Lax;`;
+  const secure = window.location.protocol === 'https:' ? ' Secure;' : '';
+  document.cookie = `${name}=${value || ''}${expires}; path=/; SameSite=Lax;${secure}`;
 }
 
 // Helper to delete cookies in browser context
@@ -126,9 +145,9 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  // Auto-inject tokens if they exist in cookies
+  // Auto-inject tokens — prefer in-memory (set by Next.js auth routes), fall back to cookie
   const tokenType = options.tokenType || (url.includes('/agency') ? 'agency' : 'citizen');
-  const token = getCookie(`${tokenType}_token`);
+  const token = getMemoryToken(tokenType) || getCookie(`${tokenType}_token`);
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -142,23 +161,35 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
   const fetchOpts: RequestInit = { ...options, headers };
   let response = await fetch(url, fetchOpts);
 
-  // Stale JWT: retry once without auth on public endpoints, or redirect to login.
-  if (response.status === 401) {
-    const hadToken = !!token;
-    deleteCookie('agency_token');
-    deleteCookie('citizen_token');
-    deleteCookie('agency_refresh');
-    deleteCookie('citizen_refresh');
+  // Stale access token: try silent refresh via Next.js route, then retry once.
+  if (response.status === 401 && token) {
+    clearMemoryToken(tokenType);
+    deleteCookie(`${tokenType}_token`);
 
-    if (hadToken && options.authOptional) {
-      headers.delete('Authorization');
-      if (options.useReporterSession) {
-        headers.set('X-Reporter-Session-Id', getReporterSessionId());
+    // Attempt silent refresh — the HttpOnly refresh cookie is sent automatically
+    const refreshRes = await fetch(`/api/auth/refresh?type=${tokenType}`, { method: 'POST' }).catch(() => null);
+    if (refreshRes?.ok) {
+      const refreshData = await refreshRes.json().catch(() => null);
+      if (refreshData?.access) {
+        setMemoryToken(tokenType, refreshData.access);
+        headers.set('Authorization', `Bearer ${refreshData.access}`);
+        response = await fetch(url, { ...fetchOpts, headers });
       }
-      response = await fetch(url, { ...fetchOpts, headers });
-    } else if (!options.authOptional && typeof window !== 'undefined') {
-      const redirectUrl = url.includes('/agency') ? '/auth/agency/login' : '/auth/citizen/login';
-      window.location.href = redirectUrl;
+    }
+
+    // Still 401 after refresh attempt — clear everything and redirect/retry
+    if (response.status === 401) {
+      clearMemoryToken(tokenType);
+      deleteCookie('agency_token'); deleteCookie('citizen_token');
+      deleteCookie('agency_refresh'); deleteCookie('citizen_refresh');
+
+      if (options.authOptional) {
+        headers.delete('Authorization');
+        if (options.useReporterSession) headers.set('X-Reporter-Session-Id', getReporterSessionId());
+        response = await fetch(url, { ...fetchOpts, headers });
+      } else if (typeof window !== 'undefined') {
+        window.location.href = tokenType === 'agency' ? '/auth/agency/login' : '/auth/citizen/login';
+      }
     }
   }
 

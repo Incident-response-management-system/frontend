@@ -86,7 +86,7 @@ export function CitizenLoginScreen({ navigate, onAuth }: CitizenAuthProps) {
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--brand-muted)', cursor: 'pointer' }}>
               <input type="checkbox" defaultChecked style={{ accentColor: 'var(--status-red)' }} /> Keep me signed in
             </label>
-            <a href="#" style={{ color: 'var(--brand-ink)', textDecoration: 'underline' }}>Forgot password?</a>
+            <button onClick={() => navigate('citizen-forgot')} style={{ color: 'var(--brand-ink)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>Forgot password?</button>
           </div>
           <button
             type="button"

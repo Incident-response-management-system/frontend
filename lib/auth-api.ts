@@ -3,7 +3,7 @@
  * Bearer token injection is handled by `apiFetch` via cookies.
  */
 
-import { apiFetch, getCookie, setCookie, deleteCookie, extractApiError } from './api-client';
+import { apiFetch, getCookie, setCookie, deleteCookie, setMemoryToken, clearMemoryToken, extractApiError } from './api-client';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -46,22 +46,19 @@ export async function citizenSignup(
   email: string,
   password: string,
 ): Promise<AuthResponse> {
-  const res = await apiFetch('/auth/user/signup/', {
+  // Call Next.js route — it sets the HttpOnly refresh cookie server-side
+  const res = await fetch('/api/auth/citizen/signup', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-    tokenType: 'citizen',
   });
 
   if (!res.ok) {
-    // extractApiError reads DRF's {non_field_errors} / {field: [msg]} shapes,
-    // which the backend uses (e.g. "This field is required.", "user with this
-    // email already exists.") — a plain err.message would miss them.
     throw new Error(await extractApiError(res, 'Sign-up failed. Please try again.'));
   }
 
   const data: AuthResponse = await res.json();
-  setCookie('citizen_token', data.access, 7);
-  setCookie('citizen_refresh', data.refresh, 30);
+  setMemoryToken('citizen', data.access);
   return data;
 }
 
@@ -69,22 +66,19 @@ export async function citizenLogin(
   email: string,
   password: string,
 ): Promise<AuthResponse> {
-  const res = await apiFetch('/auth/user/login/', {
+  // Call Next.js route — it sets the HttpOnly refresh cookie server-side
+  const res = await fetch('/api/auth/citizen/login', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-    tokenType: 'citizen',
   });
 
   if (!res.ok) {
-    // The backend returns 400 with {non_field_errors:["Invalid email or
-    // password."]} for bad credentials; extractApiError surfaces that exact
-    // message instead of a generic "Login failed".
     throw new Error(await extractApiError(res, 'Login failed. Please check your credentials.'));
   }
 
   const data: AuthResponse = await res.json();
-  setCookie('citizen_token', data.access, 7);
-  setCookie('citizen_refresh', data.refresh, 30);
+  setMemoryToken('citizen', data.access);
   return data;
 }
 
@@ -101,31 +95,45 @@ export async function getCurrentUser(): Promise<CitizenUser> {
   return await res.json();
 }
 
-export async function refreshToken(): Promise<string> {
-  const refresh = getCookie('citizen_refresh');
-  if (!refresh) {
-    throw new Error('No refresh token available');
-  }
-
-  const res = await apiFetch('/auth/token/refresh/', {
-    method: 'POST',
-    body: JSON.stringify({ refresh }),
-  });
+export async function refreshToken(type: 'citizen' | 'agency' = 'citizen'): Promise<string> {
+  const res = await fetch(`/api/auth/refresh?type=${type}`, { method: 'POST' });
 
   if (!res.ok) {
-    deleteCookie('citizen_token');
-    deleteCookie('citizen_refresh');
+    clearMemoryToken(type);
     throw new Error('Token refresh failed');
   }
 
   const data = await res.json();
-  setCookie('citizen_token', data.access, 7);
+  setMemoryToken(type, data.access);
   return data.access;
 }
 
 export async function citizenSignOut(): Promise<void> {
+  clearMemoryToken('citizen');
+  await fetch('/api/auth/logout?type=citizen', { method: 'POST' }).catch(() => {});
   deleteCookie('citizen_token');
-  deleteCookie('citizen_refresh');
+}
+
+export async function citizenForgotPassword(email: string): Promise<void> {
+  const res = await apiFetch('/auth/user/forgot-password/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    tokenType: 'citizen',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Could not start password reset. Please try again.'));
+  }
+}
+
+export async function citizenResetPassword(token: string, newPassword: string): Promise<void> {
+  const res = await apiFetch('/auth/user/reset-password/', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password: newPassword }),
+    tokenType: 'citizen',
+  });
+  if (!res.ok) {
+    throw new Error(await extractApiError(res, 'Could not reset your password. Please try again.'));
+  }
 }
 
 // ─── Agency Auth ─────────────────────────────────────────────
@@ -205,17 +213,17 @@ export async function agencySignup(payload: AgencySignupPayload): Promise<{ emai
 // Verify the emailed 6-digit code. On success the backend returns a JWT, so the
 // agency is signed in immediately (no separate login step needed).
 export async function agencyVerifyEmail(email: string, otp: string): Promise<AgencyUser> {
-  const res = await apiFetch('/auth/agency/verify-email/', {
+  const res = await fetch('/api/auth/agency/verify-email', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, otp }),
-    tokenType: 'agency',
   });
   if (!res.ok) {
     throw new Error(await extractApiError(res, 'Verification failed. Check the code and try again.'));
   }
   const data = await res.json();
-  const token = storeAgencyTokens(data);
-  return mapAgency(data, email, token);
+  setMemoryToken('agency', data.access);
+  return mapAgency(data, email, data.access);
 }
 
 // Request a fresh OTP (the backend enforces a 60s cooldown between sends).
@@ -234,21 +242,19 @@ export async function agencyLogin(
   email: string,
   password: string,
 ): Promise<AgencyUser> {
-  const res = await apiFetch('/auth/agency/login/', {
+  const res = await fetch('/api/auth/agency/login', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-    tokenType: 'agency',
   });
   if (!res.ok) {
     const message = await extractApiError(res, 'Login failed. Please check your credentials.');
-    // The backend blocks login until the email is verified — surface that as a
-    // typed error so the UI can route the user into OTP verification.
     if (/verif/i.test(message)) throw new EmailNotVerifiedError(email, message);
     throw new Error(message);
   }
   const data = await res.json();
-  const token = storeAgencyTokens(data);
-  return mapAgency(data, email, token);
+  setMemoryToken('agency', data.access);
+  return mapAgency(data, email, data.access);
 }
 
 // ─── Agency password reset (OTP-based) ───────────────────────
@@ -278,11 +284,10 @@ export async function agencyResetPassword(
   }
 }
 
-// The backend has no logout endpoint — JWTs are stateless. Signing out just
-// clears the locally-stored access and refresh tokens.
 export async function agencySignOut(): Promise<void> {
+  clearMemoryToken('agency');
+  await fetch('/api/auth/logout?type=agency', { method: 'POST' }).catch(() => {});
   deleteCookie('agency_token');
-  deleteCookie('agency_refresh');
 }
 
 // ─── Agency profile (me) ─────────────────────────────────────
