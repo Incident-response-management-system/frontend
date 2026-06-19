@@ -159,7 +159,7 @@ export function ReportForm({ pinLocation, selectedType, setSelectedType, descrip
 
           <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--brand-muted)' }}>
 
-            {pinLocation ? `${pinLocation.lat.toFixed(5)}° N · ${pinLocation.lng.toFixed(5)}° E` : '6.89320° N · 3.17210° E'} · OGUN STATE
+            {pinLocation ? `${pinLocation.lat.toFixed(5)}° N · ${pinLocation.lng.toFixed(5)}° E · OGUN STATE` : 'Tap the map to pin your location'}
 
           </div>
 
@@ -559,17 +559,17 @@ export function ReportForm({ pinLocation, selectedType, setSelectedType, descrip
 
         onClick={onSubmit}
 
-        disabled={!selectedType || submitting}
+        disabled={!selectedType || !pinLocation || submitting}
 
         style={{
 
           width: '100%', padding: '14px 24px', borderRadius: 9,
 
-          background: (!selectedType || submitting) ? 'var(--brand-muted)' : 'var(--status-red)',
+          background: (!selectedType || !pinLocation || submitting) ? 'var(--brand-muted)' : 'var(--status-red)',
 
           color: 'white', fontWeight: 600, fontSize: 15, border: 'none',
 
-          cursor: (!selectedType || submitting) ? 'not-allowed' : 'pointer',
+          cursor: (!selectedType || !pinLocation || submitting) ? 'not-allowed' : 'pointer',
 
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
 

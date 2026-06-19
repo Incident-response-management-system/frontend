@@ -313,7 +313,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
 
 
-    tileLayerRef.current = buildBaseLayer(layerType).addTo(map);
+    tileLayerRef.current = buildBaseLayer('satellite').addTo(map);
 
 
 
@@ -423,7 +423,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
     return () => { map.remove(); mapInstance.current = null; };
 
-  }, [layerType]);
+  }, []);
 
   // Request geolocation permission after map is initialized
   React.useEffect(() => {
@@ -993,7 +993,8 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
   const handleSubmitReport = async () => {
 
-    if (!selectedType || !pinLocation) return;
+    if (!selectedType) { toast.error('Please select an incident type.'); return; }
+    if (!pinLocation) { toast.error('Please tap the map to pin your location first.'); return; }
 
     if (!description.trim()) {
       toast.error('Description is required. Please describe the incident.');
