@@ -75,10 +75,10 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
     }
   );
 
-  // Poll every 30 s and re-fetch whenever an incident is created or updated anywhere in the app.
+  // Poll every 15 s and re-fetch whenever an incident is created or updated anywhere in the app.
   useAutoRefresh(
     React.useCallback(() => reload(incidentTab), [incidentTab, reload]),
-    30_000,
+    15_000,
     ['irms:report_created', 'irms:incident_updated'],
   );
 

@@ -158,7 +158,8 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}) {
     headers.set('X-Reporter-Session-Id', getReporterSessionId());
   }
 
-  const fetchOpts: RequestInit = { ...options, headers };
+  // Always bypass the browser HTTP cache so the dashboard never shows stale data.
+  const fetchOpts: RequestInit = { ...options, headers, cache: 'no-store' };
   let response = await fetch(url, fetchOpts);
 
   // Stale access token: try silent refresh via Next.js route, then retry once.
