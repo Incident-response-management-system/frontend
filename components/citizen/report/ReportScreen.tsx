@@ -542,7 +542,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
             // POSITION_UNAVAILABLE — hardware/network issue
             setLocationPermissionDenied(false);
             setLocationPermissionGranted(false);
-            toast.error('GPS signal unavailable. Tap the map to set your location manually.', { duration: 5000 });
+            toast.error('GPS signal unavailable. Use the search bar to find your location around Redemption Camp.', { duration: 5000 });
           } else {
             // TIMEOUT (code 3) — took too long
             setLocationPermissionDenied(false);
@@ -834,7 +834,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
         if (error.code === 1) {
           toast.error('Location access blocked. Open browser settings and set Location to "Allow" for this site.', { duration: 7000 });
         } else if (error.code === 2) {
-          toast.error('GPS signal unavailable. Move to an open area or tap the map to set your location.', { duration: 5000 });
+          toast.error('GPS signal unavailable. Use the search bar to find your location around Redemption Camp.', { duration: 5000 });
         } else {
           toast.error('Location request timed out. Try again or tap the map to pin your location.', { duration: 5000 });
         }

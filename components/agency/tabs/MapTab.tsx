@@ -301,7 +301,7 @@ export function MapTab({ incidents, onViewIncident }: { incidents: Incident[]; o
         if (error.code === 1) {
           toast.error('Location access blocked. Open browser settings and set Location to "Allow" for this site.', { duration: 7000 });
         } else if (error.code === 2) {
-          toast.error('GPS signal unavailable. Try moving to an open area.', { duration: 5000 });
+          toast.error('GPS signal unavailable. Use the search bar to navigate around Redemption Camp.', { duration: 5000 });
         } else {
           toast.error('Location request timed out. Please try again.', { duration: 5000 });
         }
