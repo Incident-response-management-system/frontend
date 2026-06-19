@@ -18,11 +18,19 @@ export function cookieOpts(maxAgeSecs: number) {
   };
 }
 
-export async function djangoFetch(path: string, init: RequestInit) {
-  return fetch(`${DJANGO}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
-  });
+export async function djangoFetch(path: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${DJANGO}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
+    });
+  } catch {
+    // Network-level failure — backend unreachable or BACKEND_URL not configured.
+    return new Response(
+      JSON.stringify({ detail: 'Backend service is unreachable. Please try again later.' }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 }
 
 export async function proxyError(res: Response) {

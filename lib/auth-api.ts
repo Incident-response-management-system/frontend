@@ -223,6 +223,7 @@ export async function agencyVerifyEmail(email: string, otp: string): Promise<Age
   }
   const data = await res.json();
   setMemoryToken('agency', data.access);
+  if (data.access) setCookie('agency_token', data.access);
   return mapAgency(data, email, data.access);
 }
 
@@ -254,6 +255,10 @@ export async function agencyLogin(
   }
   const data = await res.json();
   setMemoryToken('agency', data.access);
+  // Also write to cookie: the dashboard is a dynamic-import chunk and may
+  // not share the same _tokens module instance. apiFetch falls back to
+  // getCookie('agency_token'), so this guarantees the token survives navigation.
+  if (data.access) setCookie('agency_token', data.access);
   return mapAgency(data, email, data.access);
 }
 
