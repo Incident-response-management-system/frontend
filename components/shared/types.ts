@@ -38,6 +38,16 @@ export interface Incident {
   id?: string;            // backend incident UUID, used for PATCH /incidents/{id}/
   distanceKm?: number;    // distance from the agency, when provided by /agencies/incidents
   isMine?: boolean;       // true when this agency has claimed the incident
+  priority?: string;      // low | medium | high | critical
+  voice_note?: {
+    audio_url: string;
+    transcript: string;
+    stress_level: string;
+    stress_score: number;
+    stress_indicators: string[];
+    analysis_summary: string;
+    created_at: string;
+  } | null;
   activity_log?: any[];
   timeline?: any[];
 }

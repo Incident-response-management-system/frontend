@@ -127,8 +127,8 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em' }}>{incident.ref}</div>
                 <StatusBadge status={status} />
-                {(incident as any).priority && (() => {
-                  const p = PRIORITY_STYLES[(incident as any).priority] || PRIORITY_STYLES.medium;
+                {incident.priority && (() => {
+                  const p = PRIORITY_STYLES[incident.priority] || PRIORITY_STYLES.medium;
                   return (
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -300,8 +300,8 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
           )}
 
           {/* Voice note stress analysis */}
-          {(incident as any).voice_note && (() => {
-            const vn = (incident as any).voice_note;
+          {incident.voice_note && (() => {
+            const vn = incident.voice_note!;
             const ss = STRESS_STYLES[vn.stress_level] || STRESS_STYLES.unknown;
             return (
               <Section title="Voice Note Analysis">

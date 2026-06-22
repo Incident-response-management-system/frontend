@@ -119,6 +119,16 @@ export function isIncidentRelevant(type: string, agencyType?: string | null): bo
 
 // ─── Backend incident shape (from /incidents/agencies/incidents/) ──
 
+export interface BackendVoiceNote {
+  audio_url: string;
+  transcript: string;
+  stress_level: string;
+  stress_score: number;
+  stress_indicators: string[];
+  analysis_summary: string;
+  created_at: string;
+}
+
 export interface BackendIncident {
   id: string;
   reference: string;
@@ -130,9 +140,11 @@ export interface BackendIncident {
   location_name?: string;
   status: string;
   status_display?: string;
+  priority?: string;
   assigned_agency?: { id: string; agency_name: string; agency_type: string; agency_type_display?: string } | null;
   is_mine?: boolean;
   media?: Array<{ id: string; media_type: string; file_url: string; created_at: string }>;
+  voice_note?: BackendVoiceNote | null;
   distance_km?: number;
   created_at?: string;
   updated_at?: string;
@@ -195,6 +207,8 @@ export function mapBackendIncident(b: BackendIncident, now: number = Date.now())
     assignedTo: b.assigned_agency?.agency_name ?? null,
     distanceKm: typeof b.distance_km === 'number' ? b.distance_km : undefined,
     isMine: b.is_mine,
+    priority: b.priority,
+    voice_note: b.voice_note ?? null,
     activity_log: Array.isArray(b.activity_log)
       ? b.activity_log.map((log) => ({
           time: formatTimeOnly(log.at),
