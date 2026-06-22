@@ -269,7 +269,7 @@ export async function agencyForgotPassword(email: string): Promise<void> {
   const res = await apiFetch('/auth/agency/forgot-password/', {
     method: 'POST',
     body: JSON.stringify({ email }),
-    tokenType: 'agency',
+    authOptional: true,
   });
   if (!res.ok) {
     throw new Error(await extractApiError(res, 'Could not start password reset. Please try again.'));
@@ -284,7 +284,7 @@ export async function agencyResetPassword(
   const res = await apiFetch('/auth/agency/reset-password/', {
     method: 'POST',
     body: JSON.stringify({ email, otp, new_password: newPassword }),
-    tokenType: 'agency',
+    authOptional: true,
   });
   if (!res.ok) {
     throw new Error(await extractApiError(res, 'Could not reset your password. Please try again.'));
