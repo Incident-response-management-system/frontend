@@ -41,11 +41,36 @@ function AudioPlayer({ url, color, bgColor }: { url: string; color: string; bgCo
     audio.preload = 'metadata';
     audio.src = url;
     audioRef.current = audio;
-    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration || 0));
-    audio.addEventListener('timeupdate', () => {
-      setProgress(audio.duration > 0 ? audio.currentTime / audio.duration : 0);
+
+    audio.addEventListener('loadedmetadata', () => {
+      const d = audio.duration;
+      if (isFinite(d) && d > 0) {
+        setDuration(d);
+      } else if (!isFinite(d)) {
+        // WebM from MediaRecorder often has Infinity duration in its header.
+        // Seeking past the end forces the browser to compute the real length.
+        audio.currentTime = 1e6;
+      }
     });
+
+    audio.addEventListener('seeked', () => {
+      // Triggered after the Infinity-fix seek above — browser now knows the real duration.
+      if (!isFinite(audio.duration)) return;
+      setDuration(audio.duration);
+      audio.currentTime = 0;
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      const d = audio.duration;
+      if (d > 0 && isFinite(d)) {
+        setProgress(audio.currentTime / d);
+      }
+    });
+
     audio.addEventListener('ended', () => {
+      // Use currentTime at playback end as the authoritative duration —
+      // this corrects metadata that claims a longer duration than the actual audio.
+      if (audio.currentTime > 0) setDuration(audio.currentTime);
       setPlaying(false);
       setProgress(0);
       setBars(new Array(AP_BAR_COUNT).fill(0.15));
@@ -104,15 +129,17 @@ function AudioPlayer({ url, color, bgColor }: { url: string; color: string; bgCo
   };
 
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !duration) return;
+    const audio = audioRef.current;
+    if (!audio || !duration || !isFinite(audio.duration)) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    audioRef.current.currentTime = ratio * duration;
+    audio.currentTime = ratio * duration;
     setProgress(ratio);
   };
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   const currentSec = progress * duration;
+  const durationDisplay = duration > 0 ? fmt(duration) : '--:--';
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
@@ -158,7 +185,7 @@ function AudioPlayer({ url, color, bgColor }: { url: string; color: string; bgCo
           })}
         </div>
         <div style={{ fontSize: 10, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
-          {fmt(currentSec)}{duration > 0 ? ` / ${fmt(duration)}` : ''}
+          {fmt(currentSec)} / {durationDisplay}
         </div>
       </div>
     </div>
