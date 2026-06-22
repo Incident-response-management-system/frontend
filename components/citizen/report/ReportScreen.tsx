@@ -12,7 +12,8 @@ import {
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { submitReport, getNearbyIncidents, checkAgencyCoverage } from '@/lib/incidents-api';
+import { submitReport, getNearbyIncidents, checkAgencyCoverage, submitVoiceNote } from '@/lib/incidents-api';
+import type { IncidentPriority } from '@/lib/incidents-api';
 import { searchLocalDataset, getNearbyLocations, haversineDistance, CampLocation } from '@/lib/location-dataset';
 import {
   PILOT_CENTER, getLeafletBounds, clampToPilotArea, isInsidePilotArea,
@@ -116,6 +117,10 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
   const [submitting, setSubmitting] = React.useState(false);
 
   const [refCode, setRefCode] = React.useState('');
+
+  const [priority, setPriority] = React.useState<IncidentPriority>('medium');
+
+  const [audioBlob, setAudioBlob] = React.useState<Blob | null>(null);
 
 
 
@@ -1016,6 +1021,8 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
     setManualLocation('');
     setShowManualEntry(false);
     setLocationSearchQuery('');
+    setPriority('medium');
+    setAudioBlob(null);
 
   };
 
@@ -1064,6 +1071,8 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
         media: attachments,
 
+        priority,
+
       });
 
       setRefCode(result.reference);
@@ -1079,6 +1088,13 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
       window.dispatchEvent(new CustomEvent('irms:report_created', { detail: { reference: result.reference } }));
 
       toast.success(`Incident ${result.reference} reported successfully!`);
+
+      // Upload voice note in background (non-blocking)
+      if (audioBlob && result.incident_id) {
+        submitVoiceNote(result.incident_id, audioBlob).catch(() => {
+          // Silent fail — voice note is optional
+        });
+      }
 
     } catch (err: any) {
 
@@ -1653,6 +1669,14 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
                 manualLocation={manualLocation}
 
                 resolvedLocation={resolvedLocation}
+
+                priority={priority}
+
+                setPriority={setPriority}
+
+                audioBlob={audioBlob}
+
+                setAudioBlob={setAudioBlob}
 
               />
 

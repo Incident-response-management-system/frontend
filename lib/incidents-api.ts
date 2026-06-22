@@ -9,6 +9,8 @@ import { apiFetch, getCookie, extractApiError } from './api-client';
 
 // ─── Types ───────────────────────────────────────────────────
 
+export type IncidentPriority = 'low' | 'medium' | 'high' | 'critical';
+
 export interface ReportPayload {
   incident_type: string;
   description: string;
@@ -16,6 +18,7 @@ export interface ReportPayload {
   longitude: number;
   location_name: string;
   media?: File[];
+  priority?: IncidentPriority;
 }
 
 export interface ReportResponse {
@@ -58,9 +61,15 @@ export interface TrackResponse {
   incident_type_display: string;
   status: string;
   status_display: string;
+  priority?: IncidentPriority;
+  priority_display?: string;
   location_name: string;
   created_at: string;
-  responding_agency?: any;
+  responding_agency?: {
+    name: string;
+    type: string;
+    phone_number?: string;
+  };
   timeline?: any[];
   activity_log?: any[];
 }
@@ -87,7 +96,10 @@ export async function submitReport(payload: ReportPayload): Promise<ReportRespon
   formData.append('latitude', String(payload.latitude));
   formData.append('longitude', String(payload.longitude));
   formData.append('location_name', payload.location_name);
-  
+  if (payload.priority) {
+    formData.append('priority', payload.priority);
+  }
+
   if (payload.media) {
     payload.media.forEach(file => {
       formData.append('media', file);
@@ -163,6 +175,7 @@ function mapTrackResponse(data: Record<string, unknown>): TrackResponse {
       ? {
           name: agency.agency_name || agency.name || '',
           type: agency.agency_type_display || agency.agency_type || agency.type || '',
+          phone_number: agency.phone_number || '',
         }
       : undefined,
     timeline,
@@ -254,6 +267,32 @@ export async function checkAgencyCoverage(
   } catch {
     return { has_coverage: false };
   }
+}
+
+// ─── Submit Voice Note ────────────────────────────────────────
+
+export async function submitVoiceNote(
+  incidentId: string,
+  audioBlob: Blob,
+): Promise<{ success: boolean; voice_note: any }> {
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'voice_note.webm');
+
+  const hasToken = !!getCookie('citizen_token');
+  const res = await apiFetch(`/incidents/${incidentId}/voice-note/`, {
+    method: 'POST',
+    body: formData,
+    tokenType: 'citizen',
+    useReporterSession: !hasToken,
+    authOptional: true,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Voice note upload failed' }));
+    throw new Error(err.message || err.detail || 'Voice note upload failed');
+  }
+
+  return await res.json();
 }
 
 // ─── Get Single Report ────────────────────────────────────────

@@ -18,6 +18,29 @@ import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 
 import { ThemeToggle } from '../../ThemeToggle';
 
+const PRIORITY_STYLES: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  low:      { color: '#16A34A', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)',  label: 'Low Priority' },
+  medium:   { color: '#D97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)',  label: 'Medium Priority' },
+  high:     { color: '#EA580C', bg: 'rgba(234,88,12,0.08)',  border: 'rgba(234,88,12,0.25)',  label: 'High Priority' },
+  critical: { color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.25)',  label: 'Critical' },
+};
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const s = PRIORITY_STYLES[priority] || PRIORITY_STYLES.medium;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '4px 10px', borderRadius: 6,
+      background: s.bg, border: `1px solid ${s.border}`,
+      fontSize: 12, fontWeight: 700, color: s.color,
+      letterSpacing: '0.04em',
+    }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+      {s.label.toUpperCase()}
+    </span>
+  );
+}
+
 export function TrackScreen({ navigate, params }: any) {
 
   const isMobile = useIsMobile();
@@ -429,6 +452,8 @@ export function TrackScreen({ navigate, params }: any) {
 
             <StatusBadge status={status} />
 
+            {incident.priority && <PriorityBadge priority={incident.priority} />}
+
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -487,35 +512,79 @@ export function TrackScreen({ navigate, params }: any) {
 
             borderRadius: 16, padding: 24, marginBottom: 24,
 
-            display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 20,
-
           }}>
 
-            <div style={{
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 20 }}>
 
-              width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+              <div style={{
 
-              background: 'var(--status-blue-bg)', border: '1px solid var(--status-blue-bd)',
+                width: 52, height: 52, borderRadius: 12, flexShrink: 0,
 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-blue)',
+                background: 'var(--status-blue-bg)', border: '1px solid var(--status-blue-bd)',
 
-            }}>
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-blue)',
 
-              <Icon.pin />
+              }}>
+
+                <Icon.pin />
+
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+
+                <div style={{ fontSize: 11, color: 'var(--status-blue)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Responding Agency</div>
+
+                <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>{incident.responding_agency.name}</div>
+
+                <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>{incident.responding_agency.type}</div>
+
+              </div>
+
+              <StatusBadge status={status} />
 
             </div>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
+            {incident.responding_agency.phone_number && (
 
-              <div style={{ fontSize: 11, color: 'var(--status-blue)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Responding Agency</div>
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--brand-hairline)' }}>
 
-              <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>{incident.responding_agency.name}</div>
+                <a
 
-              <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>{incident.responding_agency.type}</div>
+                  href={`tel:${incident.responding_agency.phone_number}`}
 
-            </div>
+                  style={{
 
-            <StatusBadge status={status} />
+                    display: 'inline-flex', alignItems: 'center', gap: 10,
+
+                    padding: '11px 20px', borderRadius: 10,
+
+                    background: 'var(--status-blue-bg)', border: '1px solid var(--status-blue-bd)',
+
+                    color: 'var(--status-blue)', fontWeight: 600, fontSize: 14,
+
+                    textDecoration: 'none', transition: 'opacity 0.15s',
+
+                  }}
+
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+
+                >
+
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.09 6.09l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+
+                  </svg>
+
+                  Call {incident.responding_agency.phone_number}
+
+                </a>
+
+              </div>
+
+            )}
 
           </div>
 

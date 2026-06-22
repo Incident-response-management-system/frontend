@@ -7,6 +7,21 @@ import { toBeType, toFeType } from '@/lib/agency-types';
 import { useAgencyProfile } from './context';
 import { useIsMobile } from '@/hooks/use-media-query';
 
+const PRIORITY_STYLES: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  low:      { color: '#16A34A', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.25)',  label: 'Low Priority' },
+  medium:   { color: '#D97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)',  label: 'Medium Priority' },
+  high:     { color: '#EA580C', bg: 'rgba(234,88,12,0.08)',  border: 'rgba(234,88,12,0.25)',  label: 'High Priority' },
+  critical: { color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.25)',  label: 'Critical' },
+};
+
+const STRESS_STYLES: Record<string, { color: string; bg: string; border: string; emoji: string }> = {
+  low:      { color: '#16A34A', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.2)',  emoji: '😐' },
+  medium:   { color: '#D97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.2)',  emoji: '😟' },
+  high:     { color: '#EA580C', bg: 'rgba(234,88,12,0.08)',  border: 'rgba(234,88,12,0.2)',  emoji: '😰' },
+  critical: { color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.2)',  emoji: '😱' },
+  unknown:  { color: 'var(--brand-muted)', bg: 'var(--brand-cream)', border: 'var(--brand-divider)', emoji: '🔇' },
+};
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 24 }}>
@@ -112,6 +127,20 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em' }}>{incident.ref}</div>
                 <StatusBadge status={status} />
+                {(incident as any).priority && (() => {
+                  const p = PRIORITY_STYLES[(incident as any).priority] || PRIORITY_STYLES.medium;
+                  return (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '3px 10px', borderRadius: 6,
+                      background: p.bg, border: `1px solid ${p.border}`,
+                      fontSize: 11, fontWeight: 700, color: p.color, letterSpacing: '0.04em',
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
+                      {p.label.toUpperCase()}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
             <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--brand-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', cursor: 'pointer' }}>
@@ -269,6 +298,66 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
               </div>
             </Section>
           )}
+
+          {/* Voice note stress analysis */}
+          {(incident as any).voice_note && (() => {
+            const vn = (incident as any).voice_note;
+            const ss = STRESS_STYLES[vn.stress_level] || STRESS_STYLES.unknown;
+            return (
+              <Section title="Voice Note Analysis">
+                <div style={{ borderRadius: 12, border: `1px solid ${ss.border}`, background: ss.bg, overflow: 'hidden' }}>
+                  {/* Stress header */}
+                  <div style={{ padding: '14px 16px', borderBottom: `1px solid ${ss.border}`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 22 }}>{ss.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: ss.color, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>
+                        Caller Stress: {vn.stress_level.charAt(0).toUpperCase() + vn.stress_level.slice(1)}
+                        {vn.stress_score > 0 && <span style={{ opacity: 0.7, fontWeight: 400 }}> · Score {vn.stress_score}/100</span>}
+                      </div>
+                      {vn.analysis_summary && (
+                        <div style={{ fontSize: 12, color: 'var(--brand-ink)', lineHeight: 1.4 }}>{vn.analysis_summary}</div>
+                      )}
+                    </div>
+                    {vn.audio_url && (
+                      <a href={vn.audio_url} target="_blank" rel="noopener noreferrer" style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+                        borderRadius: 8, border: `1px solid ${ss.border}`,
+                        background: 'var(--brand-white)', color: ss.color, fontSize: 12, fontWeight: 600,
+                        textDecoration: 'none', flexShrink: 0,
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Play
+                      </a>
+                    )}
+                  </div>
+                  {/* Stress indicators */}
+                  {vn.stress_indicators?.length > 0 && (
+                    <div style={{ padding: '12px 16px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Indicators</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {vn.stress_indicators.map((ind: string, i: number) => (
+                          <span key={i} style={{
+                            fontSize: 11, padding: '3px 9px', borderRadius: 6,
+                            background: 'var(--brand-white)', border: `1px solid ${ss.border}`,
+                            color: ss.color, fontWeight: 500,
+                          }}>{ind}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Transcript */}
+                  {vn.transcript && (
+                    <div style={{ padding: '0 16px 14px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Transcript</div>
+                      <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--brand-ink)', margin: 0, fontStyle: 'italic' }}>"{vn.transcript}"</p>
+                    </div>
+                  )}
+                </div>
+              </Section>
+            );
+          })()}
 
           {/* Agency actions */}
           <div style={{ marginTop: 32, padding: 20, borderRadius: 12, background: 'var(--brand-cream)', border: '1px solid var(--brand-hairline)' }}>
