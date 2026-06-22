@@ -327,7 +327,7 @@ function VoiceNoteRecorder({
               style={{
                 width: 44, height: 44, borderRadius: '50%', border: 'none',
                 background: recording ? 'var(--status-red)' : 'var(--brand-ink)',
-                color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: recording ? 'white' : 'var(--brand-white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0, transition: 'all 0.2s',
                 boxShadow: recording ? '0 0 0 6px rgba(220,38,38,0.15)' : 'none',
               }}
@@ -437,6 +437,7 @@ export function ReportForm({
   selectedPlace, manualLocation, resolvedLocation,
   priority, setPriority,
   audioBlob, setAudioBlob,
+  reporterPhone, setReporterPhone,
 }: any) {
   const isMobile = useIsMobile();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -572,6 +573,46 @@ export function ReportForm({
         </div>
       )}
 
+      {/* Description */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <label style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)' }}>
+            Describe the incident <span style={{ color: 'var(--status-red)', marginLeft: 2 }}>*</span>
+          </label>
+          <span style={{
+            fontSize: 11, fontFamily: 'var(--font-mono)',
+            color: charCount > MAX_CHARS * 0.9 ? 'var(--status-red)' : 'var(--brand-muted)',
+          }}>
+            {charCount}/{MAX_CHARS}
+          </span>
+        </div>
+        <textarea
+          value={description}
+          onChange={e => setDescription(e.target.value.slice(0, MAX_CHARS))}
+          placeholder={selectedType && TYPE_DESCRIPTION_HINTS[selectedType]
+            ? TYPE_DESCRIPTION_HINTS[selectedType]
+            : 'Describe what you are seeing right now — be as specific as possible. Mention injuries, vehicles, landmarks.'}
+          style={{
+            width: '100%', minHeight: 110, padding: '13px 14px', borderRadius: 10,
+            background: 'var(--brand-cream)', border: '1.5px solid var(--brand-divider)',
+            color: 'var(--brand-ink)', fontSize: 14, lineHeight: 1.6, resize: 'vertical',
+            fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+            transition: 'border-color 0.15s',
+          }}
+          onFocus={e => e.target.style.borderColor = 'var(--status-red)'}
+          onBlur={e => e.target.style.borderColor = 'var(--brand-divider)'}
+        />
+        <div style={{ height: 2, background: 'var(--brand-hairline)', borderRadius: 1, marginTop: 6, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            width: `${(charCount / MAX_CHARS) * 100}%`,
+            background: charCount > MAX_CHARS * 0.9 ? 'var(--status-red)' : charCount > MAX_CHARS * 0.6 ? 'var(--status-amber)' : 'var(--status-green)',
+            borderRadius: 1,
+            transition: 'width 0.2s, background 0.3s',
+          }} />
+        </div>
+      </div>
+
       {/* ─── Priority / Threat Level ─── */}
       <div style={{ marginBottom: 24 }}>
         <label style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 8 }}>
@@ -615,44 +656,30 @@ export function ReportForm({
         </div>
       </div>
 
-      {/* Description */}
+      {/* ─── Contact phone (optional) ─── */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <label style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)' }}>
-            Describe the incident <span style={{ color: 'var(--status-red)', marginLeft: 2 }}>*</span>
-          </label>
-          <span style={{
-            fontSize: 11, fontFamily: 'var(--font-mono)',
-            color: charCount > MAX_CHARS * 0.9 ? 'var(--status-red)' : 'var(--brand-muted)',
-          }}>
-            {charCount}/{MAX_CHARS}
-          </span>
-        </div>
-        <textarea
-          value={description}
-          onChange={e => setDescription(e.target.value.slice(0, MAX_CHARS))}
-          placeholder={selectedType && TYPE_DESCRIPTION_HINTS[selectedType]
-            ? TYPE_DESCRIPTION_HINTS[selectedType]
-            : 'Describe what you are seeing right now — be as specific as possible. Mention injuries, vehicles, landmarks.'}
+        <label style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 600, color: 'var(--brand-ink)', marginBottom: 8 }}>
+          Your phone number{' '}
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--brand-muted)', fontWeight: 400 }}>(optional)</span>
+        </label>
+        <input
+          type="tel"
+          value={reporterPhone}
+          onChange={e => setReporterPhone(e.target.value)}
+          placeholder="e.g. 08012345678"
+          maxLength={20}
           style={{
-            width: '100%', minHeight: 110, padding: '13px 14px', borderRadius: 10,
+            width: '100%', padding: '13px 14px', borderRadius: 10,
             background: 'var(--brand-cream)', border: '1.5px solid var(--brand-divider)',
-            color: 'var(--brand-ink)', fontSize: 14, lineHeight: 1.6, resize: 'vertical',
-            fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-            transition: 'border-color 0.15s',
+            color: 'var(--brand-ink)', fontSize: 14, fontFamily: 'inherit',
+            outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
           }}
           onFocus={e => e.target.style.borderColor = 'var(--status-red)'}
           onBlur={e => e.target.style.borderColor = 'var(--brand-divider)'}
         />
-        <div style={{ height: 2, background: 'var(--brand-hairline)', borderRadius: 1, marginTop: 6, overflow: 'hidden' }}>
-          <div style={{
-            height: '100%',
-            width: `${(charCount / MAX_CHARS) * 100}%`,
-            background: charCount > MAX_CHARS * 0.9 ? 'var(--status-red)' : charCount > MAX_CHARS * 0.6 ? 'var(--status-amber)' : 'var(--status-green)',
-            borderRadius: 1,
-            transition: 'width 0.2s, background 0.3s',
-          }} />
-        </div>
+        <p style={{ margin: '6px 0 0', fontSize: 11.5, color: 'var(--brand-muted)', lineHeight: 1.4 }}>
+          So the responding agency can call you directly if needed. Not shared publicly.
+        </p>
       </div>
 
       {/* Voice Note Recorder */}

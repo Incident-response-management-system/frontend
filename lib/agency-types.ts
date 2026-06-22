@@ -141,6 +141,7 @@ export interface BackendIncident {
   status: string;
   status_display?: string;
   priority?: string;
+  reporter_phone?: string;
   assigned_agency?: { id: string; agency_name: string; agency_type: string; agency_type_display?: string } | null;
   is_mine?: boolean;
   media?: Array<{ id: string; media_type: string; file_url: string; created_at: string }>;
@@ -208,6 +209,7 @@ export function mapBackendIncident(b: BackendIncident, now: number = Date.now())
     distanceKm: typeof b.distance_km === 'number' ? b.distance_km : undefined,
     isMine: b.is_mine,
     priority: b.priority,
+    reporter_phone: b.reporter_phone ?? '',
     voice_note: b.voice_note ?? null,
     activity_log: Array.isArray(b.activity_log)
       ? b.activity_log.map((log) => ({

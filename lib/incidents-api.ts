@@ -19,6 +19,7 @@ export interface ReportPayload {
   location_name: string;
   media?: File[];
   priority?: IncidentPriority;
+  reporter_phone?: string;
 }
 
 export interface ReportResponse {
@@ -98,6 +99,9 @@ export async function submitReport(payload: ReportPayload): Promise<ReportRespon
   formData.append('location_name', payload.location_name);
   if (payload.priority) {
     formData.append('priority', payload.priority);
+  }
+  if (payload.reporter_phone) {
+    formData.append('reporter_phone', payload.reporter_phone);
   }
 
   if (payload.media) {

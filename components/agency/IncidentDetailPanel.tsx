@@ -361,6 +361,30 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
             <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--brand-ink)', margin: 0 }}>{incident.desc}</p>
           </Section>
 
+          {/* Reporter contact */}
+          {incident.reporter_phone && (
+            <Section title="Reporter Contact">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <a
+                  href={`tel:${incident.reporter_phone}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '8px 14px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                    background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)',
+                    color: '#16A34A', textDecoration: 'none', transition: 'all 0.1s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#16A34A'; e.currentTarget.style.color = 'white'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(22,163,74,0.08)'; e.currentTarget.style.color = '#16A34A'; }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                  {incident.reporter_phone}
+                </a>
+              </div>
+            </Section>
+          )}
+
           {/* Media */}
           {incident.media > 0 && (
             <Section title={`Evidence (${incident.media} attachment${incident.media > 1 ? 's' : ''})`}>

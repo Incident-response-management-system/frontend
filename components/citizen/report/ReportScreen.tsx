@@ -119,6 +119,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
   const [refCode, setRefCode] = React.useState('');
 
   const [priority, setPriority] = React.useState<IncidentPriority>('medium');
+  const [reporterPhone, setReporterPhone] = React.useState('');
 
   const [audioBlob, setAudioBlob] = React.useState<Blob | null>(null);
 
@@ -1078,6 +1079,8 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
 
         priority,
 
+        reporter_phone: reporterPhone.trim() || undefined,
+
       });
 
       setRefCode(result.reference);
@@ -1682,6 +1685,10 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
                 audioBlob={audioBlob}
 
                 setAudioBlob={setAudioBlob}
+
+                reporterPhone={reporterPhone}
+
+                setReporterPhone={setReporterPhone}
 
               />
 

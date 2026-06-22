@@ -39,6 +39,7 @@ export interface Incident {
   distanceKm?: number;    // distance from the agency, when provided by /agencies/incidents
   isMine?: boolean;       // true when this agency has claimed the incident
   priority?: string;      // low | medium | high | critical
+  reporter_phone?: string;
   voice_note?: {
     audio_url: string;
     transcript: string;

@@ -26,7 +26,7 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: 'var(--brand-cream)', borderBottom: '1px solid var(--brand-hairline)' }}>
-            {['Reference', 'Type', 'Location', 'Status', 'Reported', showAssigned && 'Assigned to', 'Directions', 'Action'].filter(Boolean).map(h => (
+            {['Reference', 'Type', 'Location', 'Status', 'Priority', 'Reported', showAssigned && 'Assigned to', 'Directions', 'Action'].filter(Boolean).map(h => (
               <th key={h as string} style={{
                 padding: headPad, textAlign: 'left', fontSize: 11, fontWeight: 600,
                 color: 'var(--brand-muted)', letterSpacing: '0.05em', textTransform: 'uppercase',
@@ -56,6 +56,16 @@ export function IncidentsTable({ rows, onView, showAssigned = false }: Incidents
                 </td>
                 <td style={{ padding: cellPad, fontSize: 13, color: 'var(--brand-ink)', maxWidth: isMobile ? 150 : 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.location}</td>
                 <td style={{ padding: cellPad }}><StatusBadge status={r.status} size="sm"/></td>
+                <td style={{ padding: cellPad }}>
+                  {r.priority ? (
+                    <span style={{
+                      display: 'inline-block', padding: '2px 8px', borderRadius: 5, fontSize: 11, fontWeight: 700,
+                      letterSpacing: '0.04em', textTransform: 'uppercase',
+                      color: r.priority === 'critical' ? '#DC2626' : r.priority === 'high' ? '#EA580C' : r.priority === 'medium' ? '#D97706' : '#16A34A',
+                      background: r.priority === 'critical' ? 'rgba(220,38,38,0.08)' : r.priority === 'high' ? 'rgba(234,88,12,0.08)' : r.priority === 'medium' ? 'rgba(217,119,6,0.08)' : 'rgba(22,163,74,0.08)',
+                    }}>{r.priority}</span>
+                  ) : <span style={{ color: 'var(--brand-muted)', fontSize: 12 }}>—</span>}
+                </td>
                 <td style={{ padding: cellPad, fontSize: 12, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>{r.reported}</td>
                 {showAssigned && <td style={{ padding: cellPad, fontSize: 13, color: r.assignedTo ? 'var(--brand-ink)' : 'var(--brand-muted)' }}>{r.assignedTo || '— unassigned'}</td>}
                 <td style={{ padding: cellPad }}>
