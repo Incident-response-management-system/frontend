@@ -115,6 +115,16 @@ function TrashIcon({ size = 14 }: { size?: number }) {
 
 // ─── Voice Note Recorder ────────────────────────────────────────
 
+const VN_BAR_COUNT = 30;
+
+function PauseIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+    </svg>
+  );
+}
+
 function VoiceNoteRecorder({
   incidentType,
   audioBlob,
@@ -127,13 +137,28 @@ function VoiceNoteRecorder({
   const [recording, setRecording] = React.useState(false);
   const [duration, setDuration] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
+  const [playProgress, setPlayProgress] = React.useState(0);
+  const [liveBars, setLiveBars] = React.useState<number[]>(new Array(VN_BAR_COUNT).fill(0));
+  const [snapshotBars, setSnapshotBars] = React.useState<number[]>([]);
+
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const chunksRef = React.useRef<BlobPart[]>([]);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = React.useRef<string>('');
+  const audioCtxRef = React.useRef<AudioContext | null>(null);
+  const analyserRef = React.useRef<AnalyserNode | null>(null);
+  const animFrameRef = React.useRef<number | null>(null);
+  const waveSnapshotRef = React.useRef<number[]>([]);
+  const lastSampleRef = React.useRef<number>(0);
 
   const questions = incidentType ? (VOICE_NOTE_QUESTIONS[incidentType] || []) : [];
+
+  const teardownVisualizer = () => {
+    if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
+    if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
+    analyserRef.current = null;
+  };
 
   const startRecording = async () => {
     try {
@@ -141,6 +166,7 @@ function VoiceNoteRecorder({
       const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mr;
       chunksRef.current = [];
+      waveSnapshotRef.current = [];
 
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = () => {
@@ -149,12 +175,55 @@ function VoiceNoteRecorder({
         if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
         audioUrlRef.current = URL.createObjectURL(blob);
         stream.getTracks().forEach(t => t.stop());
+
+        const snap = waveSnapshotRef.current;
+        setSnapshotBars(snap.length >= 2 ? snap : new Array(VN_BAR_COUNT).fill(0.25));
+        setLiveBars(new Array(VN_BAR_COUNT).fill(0));
+        teardownVisualizer();
       };
 
       mr.start();
       setRecording(true);
       setDuration(0);
+      setPlayProgress(0);
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
+
+      // Web Audio API frequency visualizer
+      try {
+        const ACtx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+        if (ACtx) {
+          const ac = new ACtx();
+          audioCtxRef.current = ac;
+          const analyser = ac.createAnalyser();
+          analyser.fftSize = 64;
+          analyser.smoothingTimeConstant = 0.8;
+          analyserRef.current = analyser;
+          // Connect stream → analyser only (no destination — avoids mic feedback)
+          ac.createMediaStreamSource(stream).connect(analyser);
+
+          const freqData = new Uint8Array(analyser.frequencyBinCount);
+          lastSampleRef.current = performance.now();
+
+          const animate = () => {
+            analyser.getByteFrequencyData(freqData);
+            const bars = Array.from({ length: VN_BAR_COUNT }, (_, i) => {
+              const idx = Math.floor((i / VN_BAR_COUNT) * freqData.length);
+              return freqData[idx] / 255;
+            });
+            setLiveBars(bars);
+
+            const now = performance.now();
+            if (now - lastSampleRef.current > 120) {
+              waveSnapshotRef.current.push(Math.max(...Array.from(freqData)) / 255);
+              lastSampleRef.current = now;
+            }
+            animFrameRef.current = requestAnimationFrame(animate);
+          };
+          animFrameRef.current = requestAnimationFrame(animate);
+        }
+      } catch {
+        // Visualizer unavailable — recording continues fine
+      }
     } catch {
       toast.error('Microphone access denied. Please allow microphone permission.');
     }
@@ -171,8 +240,13 @@ function VoiceNoteRecorder({
       audioUrlRef.current = URL.createObjectURL(audioBlob);
     }
     if (!audioRef.current) {
-      audioRef.current = new Audio(audioUrlRef.current);
-      audioRef.current.onended = () => setPlaying(false);
+      const audio = new Audio(audioUrlRef.current);
+      audioRef.current = audio;
+      audio.addEventListener('timeupdate', () => {
+        const a = audioRef.current!;
+        setPlayProgress(a.duration > 0 ? a.currentTime / a.duration : 0);
+      });
+      audio.addEventListener('ended', () => { setPlaying(false); setPlayProgress(0); });
     }
     if (playing) {
       audioRef.current.pause();
@@ -183,15 +257,34 @@ function VoiceNoteRecorder({
     }
   };
 
+  const seekWaveform = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !audioRef.current.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audioRef.current.currentTime = ratio * audioRef.current.duration;
+    setPlayProgress(ratio);
+  };
+
   const deleteRecording = () => {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     if (audioUrlRef.current) { URL.revokeObjectURL(audioUrlRef.current); audioUrlRef.current = ''; }
+    teardownVisualizer();
     setAudioBlob(null);
     setPlaying(false);
     setDuration(0);
+    setPlayProgress(0);
+    setLiveBars(new Array(VN_BAR_COUNT).fill(0));
+    setSnapshotBars([]);
   };
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  const displayBars: number[] = snapshotBars.length >= 2
+    ? Array.from({ length: VN_BAR_COUNT }, (_, i) => {
+        const idx = Math.floor((i / VN_BAR_COUNT) * snapshotBars.length);
+        return snapshotBars[idx] ?? 0;
+      })
+    : new Array(VN_BAR_COUNT).fill(0.25);
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -222,12 +315,12 @@ function VoiceNoteRecorder({
       <div style={{
         padding: '14px 16px', borderRadius: 12,
         background: recording ? 'rgba(220,38,38,0.04)' : 'var(--brand-cream)',
-        border: `1.5px solid ${recording ? 'var(--status-red)' : 'var(--brand-divider)'}`,
-        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+        border: `1.5px solid ${recording ? 'var(--status-red)' : audioBlob ? 'rgba(59,130,246,0.35)' : 'var(--brand-divider)'}`,
         transition: 'all 0.2s',
       }}>
         {!audioBlob ? (
-          <>
+          /* ── Recording / idle state ── */
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               type="button"
               onClick={recording ? stopRecording : startRecording}
@@ -236,58 +329,97 @@ function VoiceNoteRecorder({
                 background: recording ? 'var(--status-red)' : 'var(--brand-ink)',
                 color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0, transition: 'all 0.2s',
-                boxShadow: recording ? '0 0 0 4px rgba(220,38,38,0.2)' : 'none',
+                boxShadow: recording ? '0 0 0 6px rgba(220,38,38,0.15)' : 'none',
               }}
             >
               {recording ? <StopIcon /> : <MicIcon />}
             </button>
-            <div style={{ flex: 1 }}>
-              {recording ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-red)', animation: 'pulse 1s ease-in-out infinite' }} />
-                  <style>{`@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }`}</style>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--status-red)' }}>Recording… {formatTime(duration)}</span>
+
+            {recording ? (
+              /* Live frequency bars */
+              <>
+                <style>{`@keyframes vnpulse { 0%,100%{opacity:1}50%{opacity:0.25} }`}</style>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--status-red)', animation: 'vnpulse 1s ease-in-out infinite', flexShrink: 0 }} />
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, height: 36 }}>
+                  {liveBars.map((amp, i) => (
+                    <div key={i} style={{
+                      flex: 1,
+                      height: `${Math.max(8, amp * 100)}%`,
+                      background: `rgba(220,38,38,${Math.max(0.3, amp)})`,
+                      borderRadius: 2,
+                      transition: 'height 0.05s ease',
+                    }} />
+                  ))}
                 </div>
-              ) : (
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)' }}>Tap to record a voice note</div>
-                  <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>Answer the questions above to help responders assess urgency</div>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={togglePlay}
-              style={{
-                width: 44, height: 44, borderRadius: '50%', border: 'none',
-                background: 'var(--status-blue)', color: 'white', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}
-            >
-              {playing ? <StopIcon size={16} /> : <PlayIcon />}
-            </button>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)' }}>Voice note recorded</div>
-              <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>
-                {formatTime(duration)} · Will be analysed for stress signals on submission
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--status-red)', flexShrink: 0 }}>
+                  {formatTime(duration)}
+                </span>
+              </>
+            ) : (
+              /* Idle prompt */
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-ink)' }}>Tap to record a voice note</div>
+                <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>Answer the questions above to help responders assess urgency</div>
               </div>
+            )}
+          </div>
+        ) : (
+          /* ── Recorded state: waveform playback ── */
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                onClick={togglePlay}
+                style={{
+                  width: 40, height: 40, borderRadius: '50%', border: 'none',
+                  background: 'var(--status-blue)', color: 'white', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                {playing ? <PauseIcon /> : <PlayIcon />}
+              </button>
+
+              {/* Snapshot waveform — click to seek */}
+              <div
+                onClick={seekWaveform}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, height: 36, cursor: 'pointer', padding: '0 2px' }}
+                title="Click to seek"
+              >
+                {displayBars.map((amp, i) => {
+                  const played = i / VN_BAR_COUNT <= playProgress;
+                  return (
+                    <div key={i} style={{
+                      flex: 1,
+                      height: `${Math.max(12, amp * 100)}%`,
+                      background: played ? '#3B82F6' : 'var(--brand-divider)',
+                      borderRadius: 2,
+                      transition: 'background 0.08s',
+                    }} />
+                  );
+                })}
+              </div>
+
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--brand-muted)', flexShrink: 0, minWidth: 32, textAlign: 'right' }}>
+                {formatTime(duration)}
+              </span>
+
+              <button
+                type="button"
+                onClick={deleteRecording}
+                style={{
+                  width: 30, height: 30, borderRadius: 8, border: '1px solid var(--brand-divider)',
+                  background: 'none', color: 'var(--brand-muted)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+                title="Delete recording"
+              >
+                <TrashIcon />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={deleteRecording}
-              style={{
-                width: 32, height: 32, borderRadius: 8, border: '1px solid var(--brand-divider)',
-                background: 'none', color: 'var(--brand-muted)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-              title="Delete recording"
-            >
-              <TrashIcon />
-            </button>
-          </>
+            <div style={{ fontSize: 11, color: 'var(--brand-muted)', marginTop: 8, paddingLeft: 50 }}>
+              AI stress analysis will run on submission
+            </div>
+          </div>
         )}
       </div>
     </div>

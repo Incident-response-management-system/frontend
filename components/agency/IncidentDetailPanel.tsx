@@ -22,6 +22,149 @@ const STRESS_STYLES: Record<string, { color: string; bg: string; border: string;
   unknown:  { color: 'var(--brand-muted)', bg: 'var(--brand-cream)', border: 'var(--brand-divider)', emoji: '🔇' },
 };
 
+const AP_BAR_COUNT = 30;
+
+function AudioPlayer({ url, color, bgColor }: { url: string; color: string; bgColor: string }) {
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = React.useRef<AudioContext | null>(null);
+  const analyserRef = React.useRef<AnalyserNode | null>(null);
+  const animFrameRef = React.useRef<number | null>(null);
+  const srcCreated = React.useRef(false);
+  const [playing, setPlaying] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+  const [bars, setBars] = React.useState<number[]>(new Array(AP_BAR_COUNT).fill(0.15));
+
+  React.useEffect(() => {
+    const audio = new Audio();
+    audio.crossOrigin = 'anonymous';
+    audio.preload = 'metadata';
+    audio.src = url;
+    audioRef.current = audio;
+    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration || 0));
+    audio.addEventListener('timeupdate', () => {
+      setProgress(audio.duration > 0 ? audio.currentTime / audio.duration : 0);
+    });
+    audio.addEventListener('ended', () => {
+      setPlaying(false);
+      setProgress(0);
+      setBars(new Array(AP_BAR_COUNT).fill(0.15));
+      if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
+    });
+    return () => {
+      audio.pause(); audio.src = '';
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
+    };
+  }, [url]);
+
+  const startVisualizer = (audio: HTMLAudioElement) => {
+    if (srcCreated.current) return;
+    try {
+      const ACtx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+      if (!ACtx) return;
+      const ac = new ACtx();
+      audioCtxRef.current = ac;
+      const analyser = ac.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.8;
+      analyserRef.current = analyser;
+      const src = ac.createMediaElementSource(audio);
+      src.connect(analyser);
+      analyser.connect(ac.destination);
+      srcCreated.current = true;
+
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      const animate = () => {
+        analyser.getByteFrequencyData(freqData);
+        setBars(Array.from({ length: AP_BAR_COUNT }, (_, i) => {
+          const idx = Math.floor((i / AP_BAR_COUNT) * freqData.length);
+          return Math.max(0.08, freqData[idx] / 255);
+        }));
+        animFrameRef.current = requestAnimationFrame(animate);
+      };
+      animFrameRef.current = requestAnimationFrame(animate);
+    } catch {
+      // CORS or API unavailable — player still works without visualizer
+    }
+  };
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (playing) {
+      audioRef.current.pause();
+      if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
+      setBars(new Array(AP_BAR_COUNT).fill(0.15));
+      setPlaying(false);
+    } else {
+      startVisualizer(audioRef.current);
+      audioRef.current.play().catch(() => {});
+      setPlaying(true);
+    }
+  };
+
+  const seek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audioRef.current.currentTime = ratio * duration;
+    setProgress(ratio);
+  };
+
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const currentSec = progress * duration;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
+      <button
+        onClick={togglePlay}
+        style={{
+          width: 38, height: 38, borderRadius: '50%', border: 'none',
+          background: color, color: 'white', cursor: 'pointer', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: playing ? `0 0 0 4px ${bgColor}` : 'none',
+          transition: 'box-shadow 0.2s',
+        }}
+      >
+        {playing ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        )}
+      </button>
+
+      <div style={{ flex: 1 }}>
+        {/* Frequency bars — click to seek */}
+        <div
+          onClick={seek}
+          style={{ display: 'flex', alignItems: 'center', gap: 2, height: 30, cursor: 'pointer', marginBottom: 4 }}
+          title="Click to seek"
+        >
+          {bars.map((amp, i) => {
+            const played = duration > 0 && i / AP_BAR_COUNT <= progress;
+            return (
+              <div key={i} style={{
+                flex: 1,
+                height: `${Math.max(10, amp * 100)}%`,
+                background: played ? color : bgColor,
+                borderRadius: 2,
+                transition: playing ? 'height 0.06s ease' : 'none',
+              }} />
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--brand-muted)', fontFamily: 'var(--font-mono)' }}>
+          {fmt(currentSec)}{duration > 0 ? ` / ${fmt(duration)}` : ''}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 24 }}>
@@ -307,29 +450,22 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
               <Section title="Voice Note Analysis">
                 <div style={{ borderRadius: 12, border: `1px solid ${ss.border}`, background: ss.bg, overflow: 'hidden' }}>
                   {/* Stress header */}
-                  <div style={{ padding: '14px 16px', borderBottom: `1px solid ${ss.border}`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 22 }}>{ss.emoji}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: ss.color, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>
-                        Caller Stress: {vn.stress_level.charAt(0).toUpperCase() + vn.stress_level.slice(1)}
-                        {vn.stress_score > 0 && <span style={{ opacity: 0.7, fontWeight: 400 }}> · Score {vn.stress_score}/100</span>}
+                  <div style={{ padding: '14px 16px', borderBottom: `1px solid ${ss.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: vn.audio_url ? 4 : 0 }}>
+                      <span style={{ fontSize: 22 }}>{ss.emoji}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: ss.color, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 2 }}>
+                          Caller Stress: {vn.stress_level.charAt(0).toUpperCase() + vn.stress_level.slice(1)}
+                          {vn.stress_score > 0 && <span style={{ opacity: 0.7, fontWeight: 400 }}> · Score {vn.stress_score}/100</span>}
+                        </div>
+                        {vn.analysis_summary && (
+                          <div style={{ fontSize: 12, color: 'var(--brand-ink)', lineHeight: 1.4 }}>{vn.analysis_summary}</div>
+                        )}
                       </div>
-                      {vn.analysis_summary && (
-                        <div style={{ fontSize: 12, color: 'var(--brand-ink)', lineHeight: 1.4 }}>{vn.analysis_summary}</div>
-                      )}
                     </div>
+                    {/* Inline streaming audio player */}
                     {vn.audio_url && (
-                      <a href={vn.audio_url} target="_blank" rel="noopener noreferrer" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-                        borderRadius: 8, border: `1px solid ${ss.border}`,
-                        background: 'var(--brand-white)', color: ss.color, fontSize: 12, fontWeight: 600,
-                        textDecoration: 'none', flexShrink: 0,
-                      }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polygon points="5 3 19 12 5 21 5 3"/>
-                        </svg>
-                        Play
-                      </a>
+                      <AudioPlayer url={vn.audio_url} color={ss.color} bgColor={ss.bg} />
                     )}
                   </div>
                   {/* Stress indicators */}
