@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { toast } from 'sonner';
 import { AgencyProfileContext } from './context';
 import { DashboardShell } from './DashboardShell';
 import { DashTopBar } from './DashTopBar';
@@ -9,10 +9,10 @@ import { ReportsTab } from './tabs/ReportsTab';
 import { SettingsTab } from './tabs/SettingsTab';
 import { IncidentDetailPanel } from './IncidentDetailPanel';
 import type { Incident } from '@/components/irms-shared';
-import { fetchAgencyIncidents, fetchAgencyStats, updateIncidentStatus, type IncidentTab } from '@/lib/agency-api';
+import { fetchAgencyIncidents, type IncidentTab } from '@/lib/agency-api';
 import { getAgencyProfile } from '@/lib/auth-api';
-import { isIncidentRelevant, incidentTypesForAgency, mapBackendIncident } from '@/lib/agency-types';
-import { useRealtimeEvents } from '@/hooks/use-realtime';
+import { isIncidentRelevant } from '@/lib/agency-types';
+import { useSSEIncidents } from '@/hooks/use-sse-incidents';
 import type { AgencyUser } from '@/lib/auth-api';
 
 export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigate: (to: string) => void; initialTab?: string }) {
@@ -24,6 +24,7 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [profile, setProfile] = React.useState<AgencyUser | null>(null);
 
+  // Fallback fetch — used on first mount and when SSE fails.
   const reload = React.useCallback(async (which: IncidentTab) => {
     setLoading(true);
     setLoadError(null);
@@ -45,41 +46,36 @@ export function DashboardScreen({ navigate, initialTab = 'overview' }: { navigat
     return () => { cancelled = true; };
   }, []);
 
-  // (Re)load incidents whenever the available/mine filter changes.
+  // Initial load while SSE hasn't connected yet.
   React.useEffect(() => { reload(incidentTab); }, [incidentTab, reload]);
 
-  // Connect live WebSocket event listener (Pusher) for real-time dispatch updates
-  useRealtimeEvents(
-    profile?.id || 'agency',
-    // onIncidentCreated
-    (newInc) => {
-      setIncidents(prev => {
-        const mapped = mapBackendIncident(newInc);
-        if (prev.some(x => x.ref === mapped.ref)) return prev;
-        return [mapped, ...prev];
-      });
+  // SSE — replaces 15s polling and Pusher stub.
+  // The server sends a full snapshot on connect, then pushes diffs every 5 s.
+  // Re-connects automatically on error (exponential backoff) and every 5 min for a fresh snapshot.
+  useSSEIncidents(
+    {
+      onSnapshot: (incs) => {
+        setIncidents(incs);
+        setLoading(false);
+        setLoadError(null);
+      },
+      onCreated: (inc) => {
+        setIncidents(prev => prev.some(x => x.ref === inc.ref) ? prev : [inc, ...prev]);
+        toast.warning('New incident received', {
+          description: inc.location,
+          duration: 6000,
+        });
+      },
+      onUpdated: (inc) => {
+        setIncidents(prev => prev.map(x => x.ref === inc.ref ? { ...x, ...inc } : x));
+        setActiveIncident(prev => prev?.ref === inc.ref ? { ...prev, ...inc } : prev);
+      },
+      onError: () => {
+        // SSE dropped — fall back to a one-time fetch so the list stays fresh.
+        reload(incidentTab);
+      },
     },
-    // onIncidentUpdated
-    (updatedInc) => {
-      setIncidents(prev => {
-        const mapped = mapBackendIncident(updatedInc);
-        return prev.map(x => x.ref === mapped.ref ? { ...x, ...mapped } : x);
-      });
-      setActiveIncident(prev => {
-        const mapped = mapBackendIncident(updatedInc);
-        if (prev && prev.ref === mapped.ref) {
-          return { ...prev, ...mapped };
-        }
-        return prev;
-      });
-    }
-  );
-
-  // Poll every 15 s and re-fetch whenever an incident is created or updated anywhere in the app.
-  useAutoRefresh(
-    React.useCallback(() => reload(incidentTab), [incidentTab, reload]),
-    15_000,
-    ['irms:report_created', 'irms:incident_updated'],
+    incidentTab,
   );
 
   const handleUpdateIncident = (ref: string, updates: Partial<Incident>) => {

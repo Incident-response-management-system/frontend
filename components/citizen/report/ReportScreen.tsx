@@ -10,7 +10,7 @@ import {
   buildIncidentMapTooltipHtml,
 } from '@/components/irms-shared';
 import { useIsMobile, useIsTablet } from '@/hooks/use-media-query';
-import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { useSSENearby } from '@/hooks/use-sse-nearby';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { submitReport, getNearbyIncidents, checkAgencyCoverage, submitVoiceNote } from '@/lib/incidents-api';
 import type { IncidentPriority } from '@/lib/incidents-api';
@@ -647,8 +647,13 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
     fetchNearbyIncidents();
   }, [fetchNearbyIncidents]);
 
-  // Poll every 45 s + refresh immediately on any incident create/update event.
-  useAutoRefresh(fetchNearbyIncidents, 45_000, ['irms:report_created', 'irms:incident_updated']);
+  // SSE — push-triggered refresh whenever new/updated incidents appear in the area.
+  useSSENearby(
+    userGpsLocation?.lat ?? pinLocation?.lat ?? null,
+    userGpsLocation?.lng ?? pinLocation?.lng ?? null,
+    nearbyRadius,
+    fetchNearbyIncidents,
+  );
 
 
 
