@@ -567,7 +567,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                   Claim this incident <Icon.arrow />
                 </button>
               </>
-            ) : status === 'resolved' || status === 'closed' ? (
+            ) : incident.status === 'resolved' || incident.status === 'closed' ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
