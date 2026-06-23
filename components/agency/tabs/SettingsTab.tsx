@@ -78,6 +78,11 @@ export function SettingsTab({ onProfileSaved }: { onProfileSaved: (p: AgencyUser
   };
 
   const handleSave = async () => {
+    const cleanPhone = phone.trim().replace(/[\s()-]/g, '');
+    if (phone.trim() && phone !== profile?.phone && !/^\+?\d{7,15}$/.test(cleanPhone)) {
+      toast.error('Invalid phone number format.');
+      return;
+    }
     setSaving(true);
     try {
       const payload: Record<string, any> = {};

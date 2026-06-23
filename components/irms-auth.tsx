@@ -416,7 +416,12 @@ export function AgencySignupScreen({ navigate }: ScreenProps) {
     const e: Record<string, string> = {};
     if (!agencyName.trim()) e.agencyName = 'Agency name is required';
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) e.email = 'Valid email is required';
-    if (!phone.trim()) e.phone = 'Phone number is required';
+    const cleanPhone = phone.trim().replace(/[\s()-]/g, '');
+    if (!phone.trim()) {
+      e.phone = 'Phone number is required';
+    } else if (!/^\+?\d{7,15}$/.test(cleanPhone)) {
+      e.phone = 'Invalid phone number format';
+    }
     if (password.length < 8) e.password = 'Password must be at least 8 characters';
     if (password !== confirm) e.confirm = 'Passwords do not match';
     const lat = parseFloat(latitude), lng = parseFloat(longitude);
