@@ -40,8 +40,8 @@ export function StatusStepper({ current = 'pending', timestamps = {}, theme = 'd
 }) {
   const steps = [
     { id: 'pending', label: 'Received' },
-    { id: 'in_progress', label: 'Under Review' },
     { id: 'assigned', label: 'Assigned' },
+    { id: 'in_progress', label: 'Under Review' },
     { id: 'resolved', label: 'Resolved' },
   ];
   const colors = { pending: 'var(--status-red)', in_progress: 'var(--status-amber)', assigned: 'var(--status-blue)', resolved: 'var(--status-green)', closed: 'var(--brand-muted)' };

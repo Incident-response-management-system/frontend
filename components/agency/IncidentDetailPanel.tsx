@@ -207,6 +207,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
   const myAgencyName = profile?.agencyName || 'your agency';
   const [status, setStatus] = React.useState<IncidentStatus>(incident.status);
   const [assigned, setAssigned] = React.useState(!!incident.assignedTo);
+  const [updating, setUpdating] = React.useState(false);
   const t = getIncidentType(incident.type);
 
   React.useEffect(() => {
@@ -244,8 +245,8 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
   const handleAssign = async () => {
     if (incident.id) {
       try {
-        const updated = await updateIncidentStatus(incident.id, 'in_progress');
-        toast.success(`Incident ${incident.ref} claimed — now under review.`);
+        const updated = await updateIncidentStatus(incident.id, 'assigned');
+        toast.success(`Incident ${incident.ref} claimed — assigned to your agency.`);
         setAssigned(true);
         setStatus(updated.status);
         onUpdateIncident(incident.ref, { ...updated });
@@ -261,6 +262,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
 
   const handleStatusUpdate = async () => {
     if (incident.id) {
+      setUpdating(true);
       try {
         const updated = await updateIncidentStatus(incident.id, status);
         toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
@@ -268,6 +270,8 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
         window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
       } catch (err: any) {
         toast.error(err.message || 'Could not update this incident.');
+      } finally {
+        setUpdating(false);
       }
       return;
     }
@@ -563,6 +567,20 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                   Claim this incident <Icon.arrow />
                 </button>
               </>
+            ) : status === 'resolved' || status === 'closed' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                  background: 'var(--status-green-bg)', border: '2px solid var(--status-green)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon.check style={{ color: 'var(--status-green)', width: 16, height: 16 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--status-green)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Incident Resolved</div>
+                  <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>This incident has been closed by {incident.assignedTo || myAgencyName}.</div>
+                </div>
+              </div>
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -573,12 +591,12 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
 
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
-                  {(['pending', 'in_progress', 'assigned', 'resolved'] as const).map(s => {
+                  {(['pending', 'assigned', 'in_progress', 'resolved'] as const).map(s => {
                     const map = {
-                      pending: { c: 'var(--status-red)', bg: 'var(--status-red-bg)', l: 'Received' },
+                      pending:     { c: 'var(--status-red)',   bg: 'var(--status-red-bg)',   l: 'Received' },
+                      assigned:    { c: 'var(--status-blue)',  bg: 'var(--status-blue-bg)',  l: 'Assigned' },
                       in_progress: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
-                      assigned: { c: 'var(--status-blue)', bg: 'var(--status-blue-bg)', l: 'Assigned' },
-                      resolved: { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' }
+                      resolved:    { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' },
                     };
                     const m = map[s];
                     const active = status === s;
@@ -588,21 +606,51 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                         background: active ? m.bg : 'transparent',
                         color: active ? m.c : 'var(--brand-muted)',
                         border: active ? `1px solid ${m.c}` : '1px solid transparent',
-                        transition: 'all 0.15s', cursor: 'pointer'
-                      }}>{m.l}</button>
+                        transition: 'all 0.15s', cursor: 'pointer',
+                      }}
+                        onMouseEnter={e => { if (!active) { e.currentTarget.style.background = m.bg; e.currentTarget.style.color = m.c; } }}
+                        onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--brand-muted)'; } }}
+                      >{m.l}</button>
                     );
                   })}
                 </div>
 
-                <button onClick={handleStatusUpdate} style={{
-                  width: '100%', padding: '12px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                  background: status === 'resolved' ? 'var(--status-green)' : 'var(--status-amber)',
-                  color: 'white', fontWeight: 600, fontSize: 14,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: status === 'resolved' ? '0 4px 14px rgba(62,134,87,0.25)' : '0 4px 14px rgba(185,122,42,0.25)',
-                }}>
-                  <Icon.check /> Update to {status === 'resolved' ? 'Resolved' : 'New Status'}
-                </button>
+                {(() => {
+                  const btnColor = status === 'resolved' ? 'var(--status-green)' : status === 'assigned' ? 'var(--status-blue)' : 'var(--status-amber)';
+                  const btnShadow = status === 'resolved' ? 'rgba(62,134,87,0.3)' : status === 'assigned' ? 'rgba(59,130,246,0.3)' : 'rgba(185,122,42,0.3)';
+                  return (
+                    <button
+                      onClick={handleStatusUpdate}
+                      disabled={updating}
+                      style={{
+                        width: '100%', padding: '12px 20px', borderRadius: 10, border: 'none',
+                        cursor: updating ? 'not-allowed' : 'pointer',
+                        background: updating ? 'var(--brand-muted)' : btnColor,
+                        color: 'white', fontWeight: 600, fontSize: 14,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        boxShadow: updating ? 'none' : `0 4px 14px ${btnShadow}`,
+                        transition: 'background 0.15s, box-shadow 0.15s, transform 0.1s',
+                        opacity: updating ? 0.8 : 1,
+                      }}
+                      onMouseEnter={e => { if (!updating) { e.currentTarget.style.filter = 'brightness(0.9)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                      onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                      onMouseDown={e => { if (!updating) e.currentTarget.style.transform = 'scale(0.98)'; }}
+                      onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+                    >
+                      {updating ? (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.75s linear infinite' }}>
+                            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                            <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeDasharray="40 20" strokeLinecap="round" />
+                          </svg>
+                          Updating…
+                        </>
+                      ) : (
+                        <><Icon.check /> Update to {status === 'resolved' ? 'Resolved' : status === 'assigned' ? 'Assigned' : 'Under Review'}</>
+                      )}
+                    </button>
+                  );
+                })()}
               </>
             )}
           </div>
