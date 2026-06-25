@@ -206,12 +206,14 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
   const profile = useAgencyProfile();
   const myAgencyName = profile?.agencyName || 'your agency';
   const [status, setStatus] = React.useState<IncidentStatus>(incident.status);
+  const [committedStatus, setCommittedStatus] = React.useState<IncidentStatus>(incident.status);
   const [assigned, setAssigned] = React.useState(!!incident.assignedTo);
   const [updating, setUpdating] = React.useState(false);
   const t = getIncidentType(incident.type);
 
   React.useEffect(() => {
     setStatus(incident.status);
+    setCommittedStatus(incident.status);
     setAssigned(!!incident.assignedTo);
   }, [incident]);
 
@@ -249,6 +251,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
         toast.success(`Incident ${incident.ref} claimed — assigned to your agency.`);
         setAssigned(true);
         setStatus(updated.status);
+        setCommittedStatus(updated.status);
         onUpdateIncident(incident.ref, { ...updated });
         window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
         return;
@@ -266,6 +269,8 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
       try {
         const updated = await updateIncidentStatus(incident.id, status);
         toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
+        setStatus(updated.status);
+        setCommittedStatus(updated.status);
         onUpdateIncident(incident.ref, { ...updated });
         window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
       } catch (err: any) {
@@ -567,7 +572,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                   Claim this incident <Icon.arrow />
                 </button>
               </>
-            ) : incident.status === 'resolved' || incident.status === 'closed' ? (
+            ) : committedStatus === 'resolved' || committedStatus === 'closed' ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
