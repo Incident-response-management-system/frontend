@@ -669,8 +669,9 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 </div>
 
                 {(() => {
-                  const btnColor = status === 'resolved' ? 'var(--status-green)' : 'var(--status-amber)';
-                  const btnShadow = status === 'resolved' ? 'rgba(62,134,87,0.3)' : 'rgba(185,122,42,0.3)';
+                  const s = status as IncidentStatus;
+                  const btnColor = s === 'resolved' ? 'var(--status-green)' : 'var(--status-amber)';
+                  const btnShadow = s === 'resolved' ? 'rgba(62,134,87,0.3)' : 'rgba(185,122,42,0.3)';
                   return (
                     <button
                       onClick={handleStatusUpdate}
@@ -699,7 +700,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                           Updating…
                         </>
                       ) : (
-                        <><Icon.check /> Update to {status === 'resolved' ? 'Resolved' : 'Under Review'}</>
+                        <><Icon.check /> Update to {s === 'resolved' ? 'Resolved' : 'Under Review'}</>
                       )}
                     </button>
                   );
