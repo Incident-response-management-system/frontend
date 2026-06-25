@@ -260,22 +260,27 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
     toast.error('This incident cannot be claimed (missing backend id).');
   };
 
-  const handleStatusUpdate = async () => {
-    if (incident.id) {
-      setUpdating(true);
-      try {
-        const updated = await updateIncidentStatus(incident.id, status);
-        toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
-        onUpdateIncident(incident.ref, { ...updated });
-        window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
-      } catch (err: any) {
-        toast.error(err.message || 'Could not update this incident.');
-      } finally {
-        setUpdating(false);
-      }
+  const handleDirectStatusUpdate = async (targetStatus: IncidentStatus) => {
+    if (!incident.id) {
+      toast.error('This incident cannot be updated (missing backend id).');
       return;
     }
-    toast.error('This incident cannot be updated (missing backend id).');
+    setUpdating(true);
+    try {
+      const updated = await updateIncidentStatus(incident.id, targetStatus);
+      toast.success(`Incident ${incident.ref} updated to "${updated.status}".`);
+      setStatus(updated.status);
+      onUpdateIncident(incident.ref, { ...updated });
+      window.dispatchEvent(new CustomEvent('irms:incident_updated', { detail: { ref: incident.ref } }));
+    } catch (err: any) {
+      toast.error(err.message || 'Could not update this incident.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleStatusUpdate = async () => {
+    await handleDirectStatusUpdate(status);
   };
 
   return (
@@ -567,7 +572,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                   Claim this incident <Icon.arrow />
                 </button>
               </>
-            ) : incident.status === 'resolved' || incident.status === 'closed' ? (
+            ) : status === 'resolved' || status === 'closed' ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
@@ -581,20 +586,68 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                   <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>This incident has been closed by {incident.assignedTo || myAgencyName}.</div>
                 </div>
               </div>
+            ) : status === 'assigned' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                    background: 'var(--status-blue-bg)', border: '2px solid var(--status-blue)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon.check style={{ color: 'var(--status-blue)', width: 16, height: 16 }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--status-blue)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Incident Claimed</div>
+                    <div style={{ fontSize: 12, color: 'var(--brand-muted)', marginTop: 2 }}>{incident.assignedTo || myAgencyName}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--brand-ink)', marginBottom: 16 }}>
+                  Update the status as your team responds to this incident.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button
+                    onClick={() => handleDirectStatusUpdate('in_progress')}
+                    disabled={updating}
+                    style={{
+                      padding: '11px 16px', borderRadius: 10, border: '1.5px solid var(--status-amber)',
+                      background: 'var(--status-amber-bg)', color: 'var(--status-amber)',
+                      fontWeight: 600, fontSize: 13, cursor: updating ? 'not-allowed' : 'pointer',
+                      opacity: updating ? 0.7 : 1, transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { if (!updating) e.currentTarget.style.filter = 'brightness(0.93)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
+                  >
+                    Start Review
+                  </button>
+                  <button
+                    onClick={() => handleDirectStatusUpdate('resolved')}
+                    disabled={updating}
+                    style={{
+                      padding: '11px 16px', borderRadius: 10, border: 'none',
+                      background: 'var(--status-green)', color: 'white',
+                      fontWeight: 600, fontSize: 13, cursor: updating ? 'not-allowed' : 'pointer',
+                      opacity: updating ? 0.7 : 1, transition: 'all 0.15s',
+                      boxShadow: updating ? 'none' : '0 4px 14px rgba(62,134,87,0.3)',
+                    }}
+                    onMouseEnter={e => { if (!updating) e.currentTarget.style.filter = 'brightness(0.9)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
+                  >
+                    Mark Resolved
+                  </button>
+                </div>
+              </>
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-blue)' }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-blue)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Assigned to your agency</span>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-amber)' }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--status-amber)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Under Review</span>
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>{incident.assignedTo || myAgencyName}</div>
 
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
-                  {(['pending', 'assigned', 'in_progress', 'resolved'] as const).map(s => {
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
+                  {(['in_progress', 'resolved'] as const).map(s => {
                     const map = {
-                      pending:     { c: 'var(--status-red)',   bg: 'var(--status-red-bg)',   l: 'Received' },
-                      assigned:    { c: 'var(--status-blue)',  bg: 'var(--status-blue-bg)',  l: 'Assigned' },
                       in_progress: { c: 'var(--status-amber)', bg: 'var(--status-amber-bg)', l: 'Under Review' },
                       resolved:    { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' },
                     };
@@ -616,8 +669,8 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 </div>
 
                 {(() => {
-                  const btnColor = status === 'resolved' ? 'var(--status-green)' : status === 'assigned' ? 'var(--status-blue)' : 'var(--status-amber)';
-                  const btnShadow = status === 'resolved' ? 'rgba(62,134,87,0.3)' : status === 'assigned' ? 'rgba(59,130,246,0.3)' : 'rgba(185,122,42,0.3)';
+                  const btnColor = status === 'resolved' ? 'var(--status-green)' : 'var(--status-amber)';
+                  const btnShadow = status === 'resolved' ? 'rgba(62,134,87,0.3)' : 'rgba(185,122,42,0.3)';
                   return (
                     <button
                       onClick={handleStatusUpdate}
@@ -646,7 +699,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                           Updating…
                         </>
                       ) : (
-                        <><Icon.check /> Update to {status === 'resolved' ? 'Resolved' : status === 'assigned' ? 'Assigned' : 'Under Review'}</>
+                        <><Icon.check /> Update to {status === 'resolved' ? 'Resolved' : 'Under Review'}</>
                       )}
                     </button>
                   );
