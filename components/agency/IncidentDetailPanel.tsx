@@ -367,7 +367,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
 
           {/* Description */}
           <Section title="Description">
-            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--brand-ink)', margin: 0 }}>{incident.desc}</p>
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--brand-ink)', margin: 0, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{incident.desc}</p>
           </Section>
 
           {/* Reporter contact */}
@@ -597,6 +597,7 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>UPDATE INCIDENT STATUS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 16, padding: 4, background: 'var(--brand-white)', borderRadius: 10, border: '1px solid var(--brand-hairline)' }}>
                   {(['pending', 'assigned', 'in_progress', 'resolved'] as const).map(s => {
+                    const STATUS_RANK: Record<string, number> = { pending: 0, assigned: 1, in_progress: 2, resolved: 3 };
                     const map = {
                       pending:     { c: 'var(--status-red)',   bg: 'var(--status-red-bg)',   l: 'Received' },
                       assigned:    { c: 'var(--status-blue)',  bg: 'var(--status-blue-bg)',  l: 'Assigned' },
@@ -604,7 +605,24 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                       resolved:    { c: 'var(--status-green)', bg: 'var(--status-green-bg)', l: 'Resolved' },
                     };
                     const m = map[s];
+                    const isPast = STATUS_RANK[s] <= STATUS_RANK[committedStatus];
                     const active = status === s;
+                    if (isPast) {
+                      return (
+                        <div key={s} title="Already completed" style={{
+                          padding: '10px 8px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                          background: 'var(--brand-cream)', color: 'var(--brand-muted)',
+                          border: '1px solid var(--brand-hairline)', cursor: 'not-allowed',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                          userSelect: 'none',
+                        }}>
+                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          {m.l}
+                        </div>
+                      );
+                    }
                     return (
                       <button key={s} onClick={() => setStatus(s)} style={{
                         padding: '10px 8px', borderRadius: 7, fontSize: 12, fontWeight: 600,
@@ -621,25 +639,28 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                 </div>
 
                 {(() => {
-                  const btnColor = status === 'resolved' ? 'var(--status-green)' : status === 'assigned' ? 'var(--status-blue)' : 'var(--status-amber)';
-                  const btnShadow = status === 'resolved' ? 'rgba(62,134,87,0.3)' : status === 'assigned' ? 'rgba(59,130,246,0.3)' : 'rgba(185,122,42,0.3)';
+                  const noChange = status === committedStatus;
+                  const btnDisabled = updating || noChange;
+                  const btnColor = status === 'resolved' ? 'var(--status-green)' : status === 'in_progress' ? 'var(--status-amber)' : 'var(--status-blue)';
+                  const btnShadow = status === 'resolved' ? 'rgba(62,134,87,0.3)' : status === 'in_progress' ? 'rgba(185,122,42,0.3)' : 'rgba(59,130,246,0.3)';
+                  const btnLabel = status === 'resolved' ? 'Resolved' : status === 'in_progress' ? 'Under Review' : 'Assigned';
                   return (
                     <button
                       onClick={handleStatusUpdate}
-                      disabled={updating}
+                      disabled={btnDisabled}
                       style={{
                         width: '100%', padding: '12px 20px', borderRadius: 10, border: 'none',
-                        cursor: updating ? 'not-allowed' : 'pointer',
-                        background: updating ? 'var(--brand-muted)' : btnColor,
+                        cursor: btnDisabled ? 'not-allowed' : 'pointer',
+                        background: btnDisabled ? 'var(--brand-muted)' : btnColor,
                         color: 'white', fontWeight: 600, fontSize: 14,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        boxShadow: updating ? 'none' : `0 4px 14px ${btnShadow}`,
+                        boxShadow: btnDisabled ? 'none' : `0 4px 14px ${btnShadow}`,
                         transition: 'background 0.15s, box-shadow 0.15s, transform 0.1s',
-                        opacity: updating ? 0.8 : 1,
+                        opacity: btnDisabled ? 0.5 : 1,
                       }}
-                      onMouseEnter={e => { if (!updating) { e.currentTarget.style.filter = 'brightness(0.9)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                      onMouseEnter={e => { if (!btnDisabled) { e.currentTarget.style.filter = 'brightness(0.9)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
                       onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
-                      onMouseDown={e => { if (!updating) e.currentTarget.style.transform = 'scale(0.98)'; }}
+                      onMouseDown={e => { if (!btnDisabled) e.currentTarget.style.transform = 'scale(0.98)'; }}
                       onMouseUp={e => { e.currentTarget.style.transform = ''; }}
                     >
                       {updating ? (
@@ -650,8 +671,10 @@ export function IncidentDetailPanel({ incident, onClose, onUpdateIncident }: { i
                           </svg>
                           Updating…
                         </>
+                      ) : noChange ? (
+                        <>Select a new status above</>
                       ) : (
-                        <><Icon.check /> Update to {status === 'resolved' ? 'Resolved' : status === 'assigned' ? 'Assigned' : 'Under Review'}</>
+                        <><Icon.check /> Update to {btnLabel}</>
                       )}
                     </button>
                   );
