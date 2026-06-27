@@ -206,37 +206,21 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
       // LAYER 2: External geocoding (only if local results are insufficient)
       let externalPlaces: any[] = [];
 
-      // Bounding box covers Redemption Camp + Redemption City + surrounding area (~15km)
-      const redemptionCampBbox = '3.10,6.84,3.24,6.96';
-
-      // Helper function to check if coordinates are within bounding box
-      const isWithinBbox = (placeLat: number, placeLon: number) => {
-        const minLat = 6.84;
-        const maxLat = 6.96;
-        const minLon = 3.10;
-        const maxLon = 3.24;
-        return placeLat >= minLat && placeLat <= maxLat && placeLon >= minLon && placeLon <= maxLon;
-      };
+      // Dynamic bbox centered on the user's actual pin — ~10km in each direction
+      const latDelta = 0.09;
+      const lonDelta = 0.11;
+      const dynamicBbox = `${(lng - lonDelta).toFixed(5)},${(lat - latDelta).toFixed(5)},${(lng + lonDelta).toFixed(5)},${(lat + latDelta).toFixed(5)}`;
 
       // Only fetch external if we have fewer than 6 local results
       if (localPlacesWithDistance.length < 6) {
         try {
-          // Strategy 1: Search with Redemption Camp in query
-          const response1 = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=Redemption+Camp+Ogun+State&bounded=1&viewbox=${redemptionCampBbox}&limit=20&addressdetails=1&countrycode=NG`
+          // Search OSM for named places within the dynamic bbox around the user
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=&bounded=1&viewbox=${dynamicBbox}&limit=30&addressdetails=1&countrycode=NG&extratags=1&namedetails=1`
           );
-          const data1 = await response1.json();
-          if (data1 && data1.length > 0) {
-            externalPlaces = [...externalPlaces, ...data1];
-          }
-
-          // Strategy 2: Search with empty query but strict bounds
-          const response2 = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=&bounded=1&viewbox=${redemptionCampBbox}&limit=20&addressdetails=1&countrycode=NG&extratags=1&namedetails=1`
-          );
-          const data2 = await response2.json();
-          if (data2 && data2.length > 0) {
-            externalPlaces = [...externalPlaces, ...data2];
+          const data = await response.json();
+          if (data && data.length > 0) {
+            externalPlaces = data;
           }
 
           // Remove duplicates by place_id
@@ -244,7 +228,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
             index === self.findIndex((p: any) => p.place_id === place.place_id)
           );
 
-          // Calculate distance and filter external results
+          // Calculate distance and filter — must be in Nigeria and within 8km of pin
           const externalWithDistance = uniqueExternal
             .map((place: any) => ({
               ...place,
@@ -252,24 +236,10 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
               source: 'external',
             }))
             .filter((place: any) => {
-              // STRICT FILTERING:
-              // 1. Must be within 8km distance (covers Redemption City + surrounding area)
               const withinDistance = place.distance < 8000;
-
-              // 2. Must be within bounding box coordinates
-              const placeLat = parseFloat(place.lat);
-              const placeLon = parseFloat(place.lon);
-              const withinBbox = isWithinBbox(placeLat, placeLon);
-
-              // 3. Address must contain Nigeria/Ogun/Redemption/Mowe/Ibafo
-              const address = (place.display_name || '').toLowerCase();
-              const inNigeria = address.includes('nigeria') || address.includes('ogun') || address.includes('redemption') || address.includes('mowe') || address.includes('ibafo');
-
-              // 4. Country code must be NG (if available)
               const countryCode = (place.address?.country_code || '').toLowerCase();
               const correctCountry = !countryCode || countryCode === 'ng';
-
-              return withinDistance && withinBbox && inNigeria && correctCountry;
+              return withinDistance && correctCountry;
             });
 
           console.log('Layer 2 - External geocoding results:', externalWithDistance);
