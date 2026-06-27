@@ -263,11 +263,51 @@ export function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGe
       )}
 
       {/* Show message when no nearby places found */}
-      {!fetchingNearbyPlaces && filteredPlaces.length === 0 && (
+      {!fetchingNearbyPlaces && filteredPlaces.length === 0 && locationSearchQuery && (
         <div style={{ marginBottom: 20, padding: '16px', background: 'var(--brand-cream)', borderRadius: 8, border: '1px solid var(--brand-divider)', textAlign: 'center' }}>
-          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            {locationSearchQuery ? 'No matching locations found' : 'No nearby landmarks found in this area'}
+          <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>No matching locations found</div>
+        </div>
+      )}
+
+      {/* When no landmarks found (not searching), offer the resolved address as a selectable option */}
+      {!fetchingNearbyPlaces && filteredPlaces.length === 0 && !locationSearchQuery && resolvedLocation && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-muted)', marginBottom: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Current Location
           </div>
+          <button
+            onClick={() => onSelectPlace({
+              id: 'resolved-location',
+              name: resolvedLocation,
+              display_name: resolvedLocation,
+              distance: 0,
+              source: 'gps',
+            })}
+            type="button"
+            style={{
+              width: '100%',
+              padding: '14px 16px',
+              borderRadius: 14,
+              border: '1px solid var(--brand-hairline)',
+              backgroundColor: 'var(--brand-white)',
+              color: 'var(--brand-ink)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--brand-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon.pin style={{ width: 18, height: 18, color: 'var(--brand-muted)' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{resolvedLocation}</div>
+                <div style={{ fontSize: 11, color: 'var(--brand-muted)' }}>Tap to use this as your location name</div>
+              </div>
+            </div>
+          </button>
         </div>
       )}
 
