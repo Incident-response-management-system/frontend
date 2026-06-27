@@ -79,7 +79,7 @@ export function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGe
               </div>
             )}
             <div style={{ fontSize: 12, color: 'var(--brand-muted)' }}>
-              Redemption Camp · Ogun State · Nigeria
+              Redemption City · Ogun State · Nigeria
             </div>
             {locationPermissionGranted && userGpsLocation && !isUsingGpsLocation && (
               <button
@@ -266,7 +266,7 @@ export function LocationExplorerPanel({ pinLocation, resolvedLocation, reverseGe
       {!fetchingNearbyPlaces && filteredPlaces.length === 0 && (
         <div style={{ marginBottom: 20, padding: '16px', background: 'var(--brand-cream)', borderRadius: 8, border: '1px solid var(--brand-divider)', textAlign: 'center' }}>
           <div style={{ fontSize: 13, color: 'var(--brand-muted)' }}>
-            {locationSearchQuery ? 'No matching locations found' : 'No nearby locations found within Redemption Camp'}
+            {locationSearchQuery ? 'No matching locations found' : 'No nearby landmarks found in this area'}
           </div>
         </div>
       )}

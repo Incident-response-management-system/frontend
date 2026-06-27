@@ -193,7 +193,7 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
     setFetchingNearbyPlaces(true);
     try {
       // LAYER 1: Search local dataset first
-      const localNearby = getNearbyLocations(lat, lng, 3000); // 3km radius
+      const localNearby = getNearbyLocations(lat, lng, 8000); // 8km radius — covers Redemption City + surrounding area
       const localPlacesWithDistance = localNearby.map(loc => ({
         ...loc,
         distance: loc.distance,
@@ -206,15 +206,15 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
       // LAYER 2: External geocoding (only if local results are insufficient)
       let externalPlaces: any[] = [];
 
-      // Redemption Camp bounding box (approximate)
-      const redemptionCampBbox = '3.15,6.87,3.20,6.92';
+      // Bounding box covers Redemption Camp + Redemption City + surrounding area (~15km)
+      const redemptionCampBbox = '3.10,6.84,3.24,6.96';
 
       // Helper function to check if coordinates are within bounding box
       const isWithinBbox = (placeLat: number, placeLon: number) => {
-        const minLat = 6.87;
-        const maxLat = 6.92;
-        const minLon = 3.15;
-        const maxLon = 3.20;
+        const minLat = 6.84;
+        const maxLat = 6.96;
+        const minLon = 3.10;
+        const maxLon = 3.24;
         return placeLat >= minLat && placeLat <= maxLat && placeLon >= minLon && placeLon <= maxLon;
       };
 
@@ -253,8 +253,8 @@ export function ReportScreen({ navigate }: { navigate: (to: string, params?: Rec
             }))
             .filter((place: any) => {
               // STRICT FILTERING:
-              // 1. Must be within 2km distance
-              const withinDistance = place.distance < 2000;
+              // 1. Must be within 8km distance (covers Redemption City + surrounding area)
+              const withinDistance = place.distance < 8000;
 
               // 2. Must be within bounding box coordinates
               const placeLat = parseFloat(place.lat);
